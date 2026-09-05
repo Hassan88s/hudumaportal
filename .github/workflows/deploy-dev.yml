@@ -30,6 +30,7 @@ jobs:
           password: ${{ secrets.SFTP_PASSWORD }}
           port: ${{ secrets.SFTP_PORT }}
           protocol: ftps                  # cPanel supports FTPS on port 21; if you want SFTP use protocol: sftp + port: 22
+          security: loose                 # tolerates self-signed / IP-mismatched FTPS certs (cPanel default)
           server-dir: ${{ secrets.SFTP_DEV_PATH }}
           # Never touch these on the server — each env keeps its own:
           exclude: |
