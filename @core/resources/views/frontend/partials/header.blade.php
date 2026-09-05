@@ -175,6 +175,12 @@
 
 </head>
 <body class="__qixer">
+{{-- DEV environment banner — only visible when APP_ENV != production --}}
+@if(!app()->environment('production'))
+    <div style="position:fixed;bottom:12px;left:12px;z-index:9999;background:#ff8a54;color:#fff;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;font-family:system-ui,sans-serif;letter-spacing:.5px;box-shadow:0 4px 12px rgba(0,0,0,.15);pointer-events:none;">
+        DEV
+    </div>
+@endif
 @php
     $notice = \App\AdminNotice::where('status', 1)->where('expire_date', '>', now())->latest()->where('notice_for', 1)->first();
 @endphp
