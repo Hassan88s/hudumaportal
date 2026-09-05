@@ -11,60 +11,68 @@ concurrency:
 
 jobs:
   deploy:
-    name: FTP → dev.hudumaportal.co.tz
+    name: SFTP → dev.hudumaportal.co.tz
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Deploy files via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      # Stage a clean copy of only-what-we-want-to-deploy into ./_deploy
+      # This lets us use exclude patterns even though wlixcc/SFTP-Deploy-Action
+      # doesn't support them natively.
+      - name: Build clean deploy folder
+        run: |
+          mkdir -p _deploy
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='node_modules/' \
+            --exclude='_deploy/' \
+            --exclude='@core/vendor/' \
+            --exclude='@core/storage/framework/cache/' \
+            --exclude='@core/storage/framework/views/' \
+            --exclude='@core/storage/framework/sessions/' \
+            --exclude='@core/storage/logs/' \
+            --exclude='@core/storage/app/public/' \
+            --exclude='@core/bootstrap/cache/*.php' \
+            --exclude='@core/.env' \
+            --exclude='@core/.env.*' \
+            --exclude='assets/uploads/' \
+            --exclude='backups/' \
+            --exclude='security/' \
+            --exclude='*.sql' \
+            --exclude='*.zip' \
+            --exclude='*.tar.gz' \
+            --exclude='error_log' \
+            --exclude='index.php' \
+            --exclude='.htaccess' \
+            --exclude='.user.ini' \
+            --exclude='@core/app/Providers/AppServiceProvider.php' \
+            ./ _deploy/
+          echo "Files staged for upload:"
+          find _deploy -type f | wc -l
+
+      - name: Upload via SFTP
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.5
         with:
           server: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
-          port: ${{ secrets.SFTP_PORT }}
-          protocol: ${{ secrets.SFTP_PROTOCOL }}   # set secret to "ftp" or "ftps"
-          security: loose
-          server-dir: ${{ secrets.SFTP_DEV_PATH }}
-          state-name: .ftp-deploy-sync-state.json  # incremental — only uploads changed files
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.github/**
-            **/node_modules/**
-            **/@core/vendor/**
-            **/@core/storage/framework/cache/**
-            **/@core/storage/framework/views/**
-            **/@core/storage/framework/sessions/**
-            **/@core/storage/logs/**
-            **/@core/storage/app/public/**
-            **/@core/bootstrap/cache/*.php
-            **/@core/.env
-            **/@core/.env.*
-            **/assets/uploads/**
-            **/backups/**
-            **/security/**
-            **/*.sql
-            **/*.zip
-            **/*.tar.gz
-            **/error_log
-            index.php
-            .htaccess
-            .user.ini
-            @core/app/Providers/AppServiceProvider.php
+          port: 22
+          local_path: './_deploy/*'
+          remote_path: ${{ secrets.SFTP_DEV_PATH }}
+          sftp_only: true
+          delete_remote_files: false
 
       - name: Clear Laravel caches
         if: always()
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: 22
           script: |
             cd /home/hudumaportalco/dev.hudumaportal.co.tz/@core
             /opt/cpanel/ea-php81/root/usr/bin/php artisan cache:clear
