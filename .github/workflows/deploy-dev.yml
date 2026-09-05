@@ -65,17 +65,8 @@ jobs:
           sftp_only: true
           delete_remote_files: false
 
-      - name: Clear Laravel caches
-        if: always()
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SFTP_HOST }}
-          username: ${{ secrets.SFTP_USERNAME }}
-          password: ${{ secrets.SFTP_PASSWORD }}
-          port: 22
-          script: |
-            cd /home/hudumaportalco/dev.hudumaportal.co.tz/@core
-            /opt/cpanel/ea-php81/root/usr/bin/php artisan cache:clear
-            /opt/cpanel/ea-php81/root/usr/bin/php artisan config:clear
-            /opt/cpanel/ea-php81/root/usr/bin/php artisan view:clear
-            /opt/cpanel/ea-php81/root/usr/bin/php artisan route:clear
+      # Note: Laravel cache-clear moved OUT of the workflow because our
+      # dedicated FTP account has no SSH shell access.
+      # To clear caches when needed, run manually via cPanel Terminal:
+      #   cd /home/hudumaportalco/dev.hudumaportal.co.tz/@core
+      #   php artisan cache:clear && php artisan view:clear && php artisan config:clear && php artisan route:clear
