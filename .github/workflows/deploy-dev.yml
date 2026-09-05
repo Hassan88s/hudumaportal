@@ -27,8 +27,7 @@ jobs:
           username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
           port: 21
-          protocol: ftps
-          security: loose                    # cPanel FTPS often uses self-signed / IP-mismatched cert
+          protocol: ftp                      # plain FTP: FTPS on cPanel has a Node library incompat (SSL alert 50)
           server-dir: /                      # jailed FTP user sees dev subdomain as /
           state-name: .ftp-deploy-sync-state.json   # incremental: uploads only changed files
           timeout: 60000                     # 60s per operation
