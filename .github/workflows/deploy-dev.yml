@@ -1,0 +1,73 @@
+name: Deploy to Dev
+
+# Triggers: every push to main, plus manual "Run workflow" from GitHub UI
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  # If a second push arrives while one is deploying, cancel the older one
+  group: deploy-dev
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: SFTP → dev.hudumaportal.co.tz
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so incremental-deploy can compute the diff
+
+      - name: Deploy via SFTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: ${{ secrets.SFTP_PORT }}
+          protocol: ftps                  # cPanel supports FTPS on port 21; if you want SFTP use protocol: sftp + port: 22
+          server-dir: ${{ secrets.SFTP_DEV_PATH }}
+          # Never touch these on the server — each env keeps its own:
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/node_modules/**
+            **/@core/vendor/**
+            **/@core/storage/framework/cache/**
+            **/@core/storage/framework/views/**
+            **/@core/storage/framework/sessions/**
+            **/@core/storage/logs/**
+            **/@core/storage/app/public/**
+            **/@core/bootstrap/cache/*.php
+            **/@core/.env
+            **/@core/.env.*
+            **/assets/uploads/**
+            **/backups/**
+            **/*.sql
+            **/*.zip
+            **/*.tar.gz
+            **/error_log
+            index.php
+            .htaccess
+            .user.ini
+            @core/app/Providers/AppServiceProvider.php
+          state-name: .ftp-deploy-sync-state.json   # written on the server so next deploy is fast (incremental)
+
+      - name: SSH into server and clear Laravel caches
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: ${{ secrets.SFTP_PORT }}
+          script: |
+            cd /home/hudumaportalco/dev.hudumaportal.co.tz/@core
+            /opt/cpanel/ea-php81/root/usr/bin/php artisan cache:clear
+            /opt/cpanel/ea-php81/root/usr/bin/php artisan config:clear
+            /opt/cpanel/ea-php81/root/usr/bin/php artisan view:clear
+            /opt/cpanel/ea-php81/root/usr/bin/php artisan route:clear
