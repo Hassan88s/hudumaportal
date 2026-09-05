@@ -1,0 +1,49 @@
+---
+# ==================================================================
+#  Huduma Portal — cPanel Git deploy script
+#  Runs after `git pull` inside the cPanel repository clone.
+#  Deploys the repo's tracked files INTO the dev subdomain's docroot.
+# ==================================================================
+#
+# Safeguards:
+#   • Never overwrites .env      (each environment keeps its own)
+#   • Never overwrites vendor/    (built via composer, not tracked)
+#   • Never overwrites storage/   (Laravel runtime data)
+#   • Never overwrites uploads/   (user files, backed up separately)
+#
+# TARGET is the dev subdomain. Change DEPLOYPATH to switch to another
+# environment (e.g. production).
+# ==================================================================
+
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/hudumaportalco/dev.hudumaportal.co.tz/
+    - export PHP=/opt/cpanel/ea-php81/root/usr/bin/php
+
+    # ── Sync @core (Laravel app code) ─────────────────────────
+    - >-
+      /usr/bin/rsync -a
+      --exclude='.env'
+      --exclude='storage/framework/cache/'
+      --exclude='storage/framework/views/'
+      --exclude='storage/framework/sessions/'
+      --exclude='storage/logs/'
+      --exclude='storage/app/public/'
+      --exclude='vendor/'
+      --exclude='bootstrap/cache/'
+      @core/ ${DEPLOYPATH}@core/
+
+    # ── Sync assets (theme CSS/JS/images) — keep uploads/ alone ──
+    - >-
+      /usr/bin/rsync -a
+      --exclude='uploads/'
+      assets/ ${DEPLOYPATH}assets/
+
+    # ── (index.php, .htaccess, AppServiceProvider are in .gitignore ─
+    #     so each environment keeps its own — nothing to sync) ─────
+
+    # ── Clear Laravel caches so new views/config pick up ─────
+    - cd ${DEPLOYPATH}@core && ${PHP} artisan cache:clear
+    - cd ${DEPLOYPATH}@core && ${PHP} artisan view:clear
+    - cd ${DEPLOYPATH}@core && ${PHP} artisan config:clear
+    - cd ${DEPLOYPATH}@core && ${PHP} artisan route:clear

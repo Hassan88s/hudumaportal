@@ -1,0 +1,70 @@
+# =============================================
+#  Huduma Portal — .gitignore
+#  Anything in here is NEVER committed to git.
+# =============================================
+
+# ─── Environment secrets ────────────────────────────
+@core/.env
+@core/.env.*
+!@core/.env.example
+
+# ─── Local-only file overrides ──────────────────────
+# These files differ between local / dev / production.
+# Each environment keeps its own copy — never version-controlled.
+index.php
+.htaccess
+@core/app/Providers/AppServiceProvider.php
+
+# ─── Laravel-generated (regenerated at runtime) ─────
+@core/storage/framework/cache/*
+!@core/storage/framework/cache/.gitignore
+@core/storage/framework/views/*
+!@core/storage/framework/views/.gitignore
+@core/storage/framework/sessions/*
+!@core/storage/framework/sessions/.gitignore
+@core/storage/logs/*
+!@core/storage/logs/.gitignore
+@core/storage/app/public/*
+!@core/storage/app/public/.gitkeep
+@core/bootstrap/cache/*.php
+!@core/bootstrap/cache/.gitignore
+
+# ─── Composer / node dependencies ───────────────────
+@core/vendor/
+vendor/
+node_modules/
+
+# ─── Uploaded files (backup separately) ─────────────
+assets/uploads/
+@core/public/uploads/
+
+# ─── Auto-generated sitemaps ────────────────────────
+sitemap/*.xml
+sitemap/*.gz
+
+# ─── Backups, SQL dumps, big archives ───────────────
+backups/
+*.sql
+*.tar.gz
+*.zip
+*.rar
+error_log
+
+# ─── IDE / OS junk ──────────────────────────────────
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ─── PHP + composer caches ──────────────────────────
+.phpunit.result.cache
+composer.phar
+
+# ─── Local scratch / notes ──────────────────────────
+scratch/
+notes/
+
+# ─── Security admin panel (separate app, own DB, prod-only) ─────
+security/
