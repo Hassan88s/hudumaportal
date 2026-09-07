@@ -180,16 +180,21 @@ class RegisterController extends Controller
           
          $existingUser = UserOldPhone::where('old_phone', $user_number)->first();
           $referredBy = null;
-            if (!$existingUser) {   
-        // Generate a unique referral code for the new user
-            $referralCode = strtoupper(Str::random(8));
-    
+          $referralCodeUsed = null;
+            if (!$existingUser) {
+        // Generate a unique referral code for the new user (via ReferralService — retries on collision)
+            $referralService = app(\App\Services\ReferralService::class);
+            $referralCode = $referralService->generateUniqueCode();
+
             // Check if the user was referred (via ?ref=ABC123 in URL)
-      
-            if ($request->filled('ref')) {
-                $referrer = User::where('referral_code', $request->ref)->first();
+
+            // Prefer explicit ?ref= param; fall back to hp_ref cookie set by /r/{code} landing page.
+            $refCandidate = $request->filled('ref') ? $request->ref : $request->cookie('hp_ref');
+            if (!empty($refCandidate)) {
+                $referrer = $referralService->findReferrerByCode($refCandidate);
                 if ($referrer) {
                     $referredBy = $referrer->id;
+                    $referralCodeUsed = $refCandidate;
                 }
             }
     }
@@ -218,26 +223,10 @@ class RegisterController extends Controller
             ['balance' => 0, 'status' => 1]
         );
 
-      $sign_up_points= StaticOption::where(['option_name'=> 'sign_up_points'])->first();
-    
+        // NEW: attribution + Stage-1 reward via ReferralService (idempotent, tracks referrals table, self-ref safe)
         if ($referredBy) {
-            $referrer_wallet = Wallet::firstOrCreate(
-                ['buyer_id' => $referredBy],
-                ['balance' => 0, 'status' => 1]
-            );
-
-         
-            $referrer_wallet->increment('balance', $sign_up_points->option_value);
-
-           
-            WalletHistory::create([
-                'buyer_id' => $referredBy,
-                'amount' => $sign_up_points->option_value,
-                'payment_gateway' => 'Referral Bonus',
-                'payment_status' => 'complete',
-                'status' => 1,
-                'Action' => 'Referral Bonus',
-            ]);
+            app(\App\Services\ReferralService::class)
+                ->attachReferralOnSignup($user, $referralCodeUsed, $request);
         }
                 
                 

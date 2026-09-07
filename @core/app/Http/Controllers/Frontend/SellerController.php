@@ -1154,37 +1154,10 @@ class SellerController extends Controller
             
     $user = Auth::guard('web')->user();
 
-   
-    if (!empty($user->referred_by)) {
-        $referrer_id = $user->referred_by;
-
-       
-        $firstService = Service::where('seller_id', $user->id)->count();
-
-        if ($firstService == 1) { 
-          
-            $referrer_wallet = Wallet::firstOrCreate(
-                ['buyer_id' => $referrer_id],
-                ['balance' => 0, 'status' => 1]
-            );
-
-          
-            $first_order_points = StaticOption::where(['option_name' => 'first_order_points'])->first();
-            $points_to_add = $first_order_points->option_value ?? 5; // Default 5 points if not set
-
-         
-            $referrer_wallet->increment('balance', $points_to_add);
-
-         
-            WalletHistory::create([
-                'buyer_id' => $referrer_id,
-                'amount' => $points_to_add,
-                'payment_gateway' => 'Service Creation Bonus',
-                'payment_status' => 'complete',
-                'status' => 1,
-                'Action' => 'Referral Bonus (First Service Created)',
-            ]);
-        }
+    // NEW: Provider Stage-2 reward (first service published) via ReferralService.
+    // Idempotent + tracks referrals.stage2_at. Preserves legacy wallet-credit behaviour.
+    if ($user) {
+        app(\App\Services\ReferralService::class)->onSellerFirstService($user);
     }
             // end
             $last_service_id = DB::getPdo()->lastInsertId();

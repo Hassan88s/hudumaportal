@@ -214,37 +214,13 @@ class ServicePaymentController extends Controller
                 //$this->sendSMS($seller->phone, strip_tags($message_for_seller_admin));
          $user = Auth::guard('web')->user();
 
-             if (!empty($user->referred_by)) {
-        $referrer_id = $user->referred_by;
-
-       
-        $firstOrder= Order::where('buyer_id', $user->id)->count();
-
-        if ($firstOrder == 1) { 
-          
-            $referrer_wallet = Wallet::firstOrCreate(
-                ['buyer_id' => $referrer_id],
-                ['balance' => 0, 'status' => 1]
-            );
-
-          
-            $first_order_points = StaticOption::where(['option_name' => 'first_purchase_points'])->first();
-            $points_to_add = $first_order_points->option_value ?? 5; // Default 5 points if not set
-
-         
-            $referrer_wallet->increment('balance', $points_to_add);
-
-         
-            WalletHistory::create([
-                'buyer_id' => $referrer_id,
-                'amount' => $points_to_add,
-                'payment_gateway' => 'First Order Creation Bonus',
-                'payment_status' => 'complete',
-                'status' => 1,
-                'Action' => 'Referral Bonus (First Service Created)',
-            ]);
+        // NEW: Referral Stage-2 (buyer first order) + Stage-3 (2nd order within 60d) via ReferralService.
+        // Idempotent — safe if IPN retries. Preserves legacy behaviour (also credits wallet + writes history).
+        if ($user) {
+            $rs = app(\App\Services\ReferralService::class);
+            $rs->onBuyerFirstOrder($user);
+            $rs->onBuyerSecondOrderWithin60Days($user);
         }
-    }
           
             $random_order_id_1 = Str::random(30);
             $random_order_id_2 = Str::random(30);

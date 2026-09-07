@@ -105,6 +105,10 @@ Route::group(['prefix'=>'seller','middleware'=>['auth','inactiveuser','BuyerChec
     Route::get('/availability','Frontend\SellerController@availability')->name('seller.availability');
     Route::post('/day-toggle-status','Frontend\SellerController@dayToggleStatus')->name('seller.day.toggle.status');
 
+    // Rafiki Rewards — seller "Earn" dashboard
+    Route::get('/earn','Frontend\ReferralController@earn')->name('seller.earn');
+    Route::post('/earn/transfer','Frontend\ReferralController@transfer')->name('seller.earn.transfer');
+
     //schedules
     Route::get('/schedules','Frontend\SellerController@schedules')->name('seller.schedules');
     Route::post('/add-schedule','Frontend\SellerController@addSchedule')->name('seller.add.schedule');

@@ -68,3 +68,9 @@ notes/
 
 # ─── Security admin panel (separate app, own DB, prod-only) ─────
 security/
+
+# ─── Third-party service credentials ──────────────────
+@core/storage/app/analytics/*.json
+**/*-credentials.json
+**/service-account*.json
+**/google-*.json

@@ -10,6 +10,13 @@ use App\Http\Controllers\Frontend\AiChatController;
 Route::post('/ai/chat', [AiChatController::class, 'send'])
     ->middleware(['web', 'throttle:30,1']);
 
+// Rafiki Rewards — public referral shortlink (/r/<code>)
+// Records the click, sets 30-day attribution cookie, then redirects to /register?ref=<code>
+Route::get('/r/{code}', 'Frontend\ReferralController@land')
+    ->middleware(['web'])
+    ->where('code', '[A-Za-z0-9\-_]{2,32}')
+    ->name('referral.land');
+
 // frontend starts
 Route::group(['middleware' => ['globalVariable', 'maintains_mode','setlang']], function () {
 
