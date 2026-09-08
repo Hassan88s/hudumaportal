@@ -112,6 +112,7 @@
 .earn-wrap .stage-num{width:26px;height:26px;border-radius:50%;background:#fff;border:1px solid #d1d5db;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#1f2733;flex-shrink:0}
 .earn-wrap .track-provider .stage-num{background:#ff8a54;color:#fff;border-color:#ff8a54}
 .earn-wrap .track-client .stage-num{background:#3b82f6;color:#fff;border-color:#3b82f6}
+.earn-wrap .stage-num-star{background:#8b5cf6!important;border-color:#8b5cf6!important;font-size:14px}
 .earn-wrap .stage-title{font-size:13px;color:#1f2733;font-weight:600;margin-bottom:2px}
 .earn-wrap .stage-amt{font-size:12px;color:#10b981;font-weight:700}
 .earn-wrap .stage-amt-muted{color:#8892a0;font-weight:500}
@@ -133,7 +134,7 @@
 <div class="earn-wrap">
 
     <div class="earn-hd">
-        <h1>🎁 {{ __('Earn — Refer & Rewards') }}</h1>
+        <h1>{{ __('Earn — Refer & Rewards') }}</h1>
         <p>{{ __('Invite friends to Huduma Portal and earn rewards when they join and use the platform.') }}</p>
     </div>
 
@@ -224,7 +225,7 @@
 
         <div class="share-chips">
             <a class="wa" target="_blank" rel="noopener"
-               href="https://wa.me/?text={{ urlencode(__('Join me on Huduma Portal and get TZS 1,000 welcome credit — use my link: ') . $shareUrl) }}">
+               href="https://wa.me/?text={{ urlencode(__('Join me on Huduma Portal and get :amt TZS welcome credit — use my link: :url', ['amt' => number_format((float) (\App\StaticOption::where('option_name','referral_client_welcome_credit')->value('option_value') ?? 1000), 0), 'url' => $shareUrl])) }}">
                 <i class="la la-whatsapp"></i> {{ __('WhatsApp') }}
             </a>
             <a class="fb" target="_blank" rel="noopener"
@@ -236,7 +237,7 @@
                 <i class="la la-twitter"></i> X / Twitter
             </a>
             <a target="_blank" rel="noopener"
-               href="mailto:?subject={{ urlencode(__('Join Huduma Portal')) }}&body={{ urlencode(__('Sign up using my link and get TZS 1,000 credit: ') . $shareUrl) }}">
+               href="mailto:?subject={{ urlencode(__('Join Huduma Portal')) }}&body={{ urlencode(__('Sign up using my link and get :amt TZS credit: :url', ['amt' => number_format((float) (\App\StaticOption::where('option_name','referral_client_welcome_credit')->value('option_value') ?? 1000), 0), 'url' => $shareUrl])) }}">
                 <i class="la la-envelope"></i> {{ __('Email') }}
             </a>
             <a class="qr" href="#" onclick="event.preventDefault(); document.getElementById('qrBox').style.display='block';">
@@ -250,7 +251,7 @@
         </div>
 
         <div class="tip">
-            💡 {{ __('Tip: share your link on WhatsApp status, business cards, or after a completed job. New users get TZS 1,000 welcome credit.') }}
+            {{ __('Tip: share your link on WhatsApp status, business cards, or after a completed job. New users get :amt TZS welcome credit.', ['amt' => number_format((float) (\App\StaticOption::where('option_name','referral_client_welcome_credit')->value('option_value') ?? 1000), 0)]) }}
         </div>
     </div>
 
@@ -268,14 +269,14 @@
     @endphp
 
     <div class="card-box how-earn">
-        <h3>💰 {{ __('How You Earn') }}</h3>
+        <h3>{{ __('How You Earn') }}</h3>
         <p class="how-earn-sub">{{ __('Every time someone signs up via your link and reaches a milestone, you earn. Here is the full reward schedule:') }}</p>
 
         <div class="tracks">
             {{-- Provider track --}}
             <div class="track track-provider">
                 <div class="track-hd">
-                    <span class="track-tag">👷 {{ __('Refer a Freelancer') }}</span>
+                    <span class="track-tag">{{ __('Refer a Freelancer') }}</span>
                     <span class="track-total">{{ __('Up to') }} <strong>{{ number_format($providerTotal, 0) }} TZS</strong></span>
                 </div>
                 <div class="stage">
@@ -304,11 +305,11 @@
             {{-- Client track --}}
             <div class="track track-client">
                 <div class="track-hd">
-                    <span class="track-tag">🛒 {{ __('Refer a Client') }}</span>
+                    <span class="track-tag">{{ __('Refer a Client') }}</span>
                     <span class="track-total">{{ __('Up to') }} <strong>{{ number_format($clientTotal, 0) }} TZS</strong></span>
                 </div>
                 <div class="stage">
-                    <span class="stage-num">✨</span>
+                    <span class="stage-num stage-num-star">★</span>
                     <div>
                         <div class="stage-title">{{ __('Friend signs up via your link') }}</div>
                         <div class="stage-amt stage-amt-muted">{{ __('Friend gets') }} {{ number_format($r_c_wel, 0) }} TZS {{ __('welcome credit') }}</div>
@@ -332,7 +333,7 @@
         </div>
 
         <p class="how-earn-foot">
-            🛡️ {{ __('All rewards start as Pending and become Available after the') }}
+            {{ __('All rewards start as Pending and become Available after the') }}
             <strong>{{ (int) (\App\StaticOption::where('option_name','referral_protection_days')->value('option_value') ?? 14) }}-{{ __('day protection window') }}</strong>.
             {{ __('Transfer to your Main Wallet at') }}
             <strong>{{ number_format((float) (\App\StaticOption::where('option_name','referral_min_withdrawal')->value('option_value') ?? 5000), 0) }} TZS</strong>
