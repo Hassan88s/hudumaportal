@@ -66,9 +66,37 @@ class ReferralController extends Controller
     }
 
     /**
+     * POST /buyer/earn/transfer — buyer equivalent of the above.
+     */
+    public function buyerTransfer(Request $request)
+    {
+        $user   = Auth::guard('web')->user();
+        $result = $this->referrals->transferToMainWallet($user->id);
+
+        return redirect()->route('buyer.earn')
+            ->with($result['ok'] ? 'success' : 'error', $result['message']);
+    }
+
+    /**
      * Seller dashboard "Earn" tab.
      */
     public function earn(Request $request)
+    {
+        return $this->renderEarn('frontend.user.seller.earn.index');
+    }
+
+    /**
+     * Buyer dashboard "Earn" tab.
+     */
+    public function buyerEarn(Request $request)
+    {
+        return $this->renderEarn('frontend.user.buyer.earn.index');
+    }
+
+    /**
+     * Shared view builder — same data, different wrapper view.
+     */
+    protected function renderEarn(string $view)
     {
         $user  = Auth::guard('web')->user();
         $stats = $this->referrals->statsForUser($user->id);
@@ -86,7 +114,7 @@ class ReferralController extends Controller
         $shareUrl  = url('/r/' . $user->referral_code);
         $shareCode = $user->referral_code;
 
-        return view('frontend.user.seller.earn.index', compact(
+        return view($view, compact(
             'stats', 'referrals', 'rewards', 'shareUrl', 'shareCode', 'user'
         ));
     }

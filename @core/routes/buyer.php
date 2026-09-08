@@ -14,6 +14,11 @@ Route::group(['prefix'=>'buyer','middleware'=>['auth','inactiveuser','UserRoleCh
 
 
     Route::get('/dashboard', 'Frontend\BuyerController@buyerDashboard')->name('buyer.dashboard');
+
+    // Rafiki Rewards — buyer "Earn" dashboard (mirror of seller.earn)
+    Route::get('/earn','Frontend\ReferralController@buyerEarn')->name('buyer.earn');
+    Route::post('/earn/transfer','Frontend\ReferralController@buyerTransfer')->name('buyer.earn.transfer');
+
     Route::get('/profile','Frontend\BuyerController@buyerProfile')->name('buyer.profile');
     Route::match(['get','post'],'/profile-edit','Frontend\BuyerController@buyerProfileEdit')->name('buyer.profile.edit');
     Route::match(['get','post'],'/account-settings','Frontend\BuyerController@buyerAccountSetting')->name('buyer.account.settings');

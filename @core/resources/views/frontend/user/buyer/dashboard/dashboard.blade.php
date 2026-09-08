@@ -28,25 +28,24 @@
                     </div>
                 </div>
 
-                {{-- Referral --}}
+                {{-- Referral (short share widget — full dashboard lives at /buyer/earn) --}}
                 @if(!empty(Auth::user()->referral_code))
                 <div class="d-referral">
-                    <div class="d-referral-title"><i class="las la-share-alt"></i> {{ __('Your Referral Link') }}</div>
+                    <div class="d-referral-title">
+                        <i class="las la-share-alt"></i> {{ __('Your Referral Link') }}
+                        <a href="{{ route('buyer.earn') }}" style="margin-left:auto;font-size:12px;font-weight:600;color:#ff6b3d;text-decoration:none;">
+                            {{ __('View Earnings →') }}
+                        </a>
+                    </div>
                     <div class="input-group">
-                        <input type="text" value="{{ url('/register?ref='.Auth::user()->referral_code) }}" id="referralLink" readonly>
+                        <input type="text" value="{{ url('/r/'.Auth::user()->referral_code) }}" id="referralLink" readonly>
                         <button onclick="copyReferral()" title="{{ __('Copy') }}"><i class="fas fa-copy"></i> {{ __('Copy') }}</button>
                     </div>
                     <div class="d-share-row">
-                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(url('/register?ref='.Auth::user()->referral_code)) }}" target="_blank" class="fb" title="Facebook"><i class="fab fa-facebook-f"></i></a>
-                        <a href="https://api.whatsapp.com/send?text={{ urlencode('Freelancers – Offer your services and reach more clients.
-Clients – Hire skilled professionals for any task, online or offline.
-
-Join today and experience the fastest way to get things done. ' . url('/register?ref='.Auth::user()->referral_code)) }}" target="_blank" class="wa" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
-                        <a href="https://x.com/intent/tweet?url={{ urlencode(url('/register?ref='.Auth::user()->referral_code)) }}&text={{ urlencode('Freelancers – Offer your services and reach more clients.
-Clients – Hire skilled professionals for any task, online or offline.
-
-Join today and experience the fastest way to get things done.') }}" target="_blank" class="tw" title="X (Twitter)"><i class="fab fa-x-twitter">X</i></a>
-                        <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ urlencode(url('/register?ref='.Auth::user()->referral_code)) }}" target="_blank" class="li" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(url('/r/'.Auth::user()->referral_code)) }}" target="_blank" class="fb" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="https://api.whatsapp.com/send?text={{ urlencode(__('Join me on Huduma Portal and get TZS 1,000 welcome credit — use my link: ') . url('/r/'.Auth::user()->referral_code)) }}" target="_blank" class="wa" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                        <a href="https://x.com/intent/tweet?url={{ urlencode(url('/r/'.Auth::user()->referral_code)) }}&text={{ urlencode(__('Join me on Huduma Portal — get TZS 1,000 welcome credit.')) }}" target="_blank" class="tw" title="X (Twitter)"><i class="fab fa-x-twitter">X</i></a>
+                        <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ urlencode(url('/r/'.Auth::user()->referral_code)) }}" target="_blank" class="li" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
                     </div>
                 </div>
                 @endif

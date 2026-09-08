@@ -17,6 +17,10 @@
                     <a href="{{ route('buyer.dashboard') }}"><i class="las la-chart-bar"></i> {{ __('Dashboard') }}</a>
                 </li>
 
+                <li class="dashboard__bottom__list__item @if(request()->is('buyer/earn*')) active @endif">
+                    <a href="{{ route('buyer.earn') }}"><i class="las la-gift"></i> {{ __('Earn (Refer & Rewards)') }}</a>
+                </li>
+
                 <li class="dashboard__bottom__list__item @if(request()->is('buyer/profile*')) active @endif">
                     <a href="{{ route('buyer.profile')}}"><i class="las la-user-alt"></i> {{ __('Profile') }}</a>
                 </li>
