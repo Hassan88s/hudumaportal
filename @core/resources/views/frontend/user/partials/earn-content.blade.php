@@ -268,7 +268,8 @@
         @endif
     </div>
 
-    {{-- Rewards history --}}
+    {{-- Rewards history — all earnings sit in the Referral Wallet until user clicks Transfer.
+         No "type" column: to the referrer it's all just referral earnings, one bucket. --}}
     <div class="card-box">
         <h3>{{ __('Recent rewards') }}</h3>
         <table class="tbl">
@@ -277,7 +278,6 @@
                     <th>{{ __('Date') }}</th>
                     <th>{{ __('Event') }}</th>
                     <th>{{ __('Amount') }}</th>
-                    <th>{{ __('Type') }}</th>
                     <th>{{ __('Status') }}</th>
                 </tr>
             </thead>
@@ -287,11 +287,10 @@
                         <td>{{ optional($rw->created_at)->format('d M Y') }}</td>
                         <td>{{ $rw->reason ?? $rw->event }}</td>
                         <td><strong>{{ number_format($rw->amount, 0) }}</strong> {{ $rw->currency }}</td>
-                        <td><span class="badge-pill {{ $rw->type === 'cash' ? 'approved' : 'qualifying' }}">{{ $rw->type }}</span></td>
                         <td><span class="badge-pill {{ $rw->status }}">{{ $rw->status }}</span></td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="empty">{{ __('No rewards yet.') }}</td></tr>
+                    <tr><td colspan="4" class="empty">{{ __('No rewards yet.') }}</td></tr>
                 @endforelse
             </tbody>
         </table>
