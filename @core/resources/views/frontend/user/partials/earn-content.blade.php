@@ -96,6 +96,30 @@
 
 .earn-wrap .tip{margin-top:8px;padding:10px 12px;background:#fff7ed;border-left:3px solid #ff8a54;border-radius:6px;font-size:12px;color:#78350f}
 
+/* ═══ How You Earn — reward schedule ═══ */
+.earn-wrap .how-earn-sub{font-size:13px;color:#6b7280;margin:-4px 0 16px}
+.earn-wrap .tracks{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.earn-wrap .track{background:#f8f9fb;border:1px solid #e6e9ef;border-radius:10px;padding:16px}
+.earn-wrap .track-provider{background:linear-gradient(135deg,#fff7ed 0%,#fff 100%);border-color:#fed7aa}
+.earn-wrap .track-client{background:linear-gradient(135deg,#eff6ff 0%,#fff 100%);border-color:#bfdbfe}
+.earn-wrap .track-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed #e4e7ec}
+.earn-wrap .track-tag{font-size:13px;font-weight:700;color:#1f2733}
+.earn-wrap .track-total{font-size:11px;color:#8892a0;text-transform:uppercase;letter-spacing:.4px}
+.earn-wrap .track-total strong{color:#ff6b3d;font-size:14px;text-transform:none;letter-spacing:0}
+.earn-wrap .track-client .track-total strong{color:#1d4ed8}
+.earn-wrap .stage{display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed #f2f4f7}
+.earn-wrap .stage:last-child{border-bottom:none}
+.earn-wrap .stage-num{width:26px;height:26px;border-radius:50%;background:#fff;border:1px solid #d1d5db;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#1f2733;flex-shrink:0}
+.earn-wrap .track-provider .stage-num{background:#ff8a54;color:#fff;border-color:#ff8a54}
+.earn-wrap .track-client .stage-num{background:#3b82f6;color:#fff;border-color:#3b82f6}
+.earn-wrap .stage-title{font-size:13px;color:#1f2733;font-weight:600;margin-bottom:2px}
+.earn-wrap .stage-amt{font-size:12px;color:#10b981;font-weight:700}
+.earn-wrap .stage-amt-muted{color:#8892a0;font-weight:500}
+.earn-wrap .stage-note{color:#6b7280;font-weight:400}
+.earn-wrap .how-earn-foot{margin:16px 0 0;padding:10px 12px;background:#f8f9fb;border-radius:6px;font-size:12px;color:#6b7280;line-height:1.6}
+.earn-wrap .how-earn-foot strong{color:#1f2733}
+@media (max-width: 720px){ .earn-wrap .tracks{grid-template-columns:1fr} }
+
 @media (max-width: 900px){
     .earn-wrap .wallet-grid{grid-template-columns:1fr}
 }
@@ -228,6 +252,92 @@
         <div class="tip">
             💡 {{ __('Tip: share your link on WhatsApp status, business cards, or after a completed job. New users get TZS 1,000 welcome credit.') }}
         </div>
+    </div>
+
+    {{-- ═══ HOW YOU EARN — reward schedule breakdown ═══ --}}
+    @php
+        $r_p1 = (float) (\App\StaticOption::where('option_name','referral_stage1_provider_amount')->value('option_value') ?? 500);
+        $r_p2 = (float) (\App\StaticOption::where('option_name','referral_stage2_provider_cash')->value('option_value') ?? 1000);
+        $r_p2c = (float) (\App\StaticOption::where('option_name','referral_stage2_provider_credit')->value('option_value') ?? 1000);
+        $r_p3 = (float) (\App\StaticOption::where('option_name','referral_stage3_provider_amount')->value('option_value') ?? 1500);
+        $r_c_wel = (float) (\App\StaticOption::where('option_name','referral_client_welcome_credit')->value('option_value') ?? 1000);
+        $r_c1 = (float) (\App\StaticOption::where('option_name','referral_client_first_booking')->value('option_value') ?? 750);
+        $r_c2 = (float) (\App\StaticOption::where('option_name','referral_client_second_booking')->value('option_value') ?? 750);
+        $providerTotal = $r_p1 + $r_p2 + $r_p3;
+        $clientTotal   = $r_c1 + $r_c2;
+    @endphp
+
+    <div class="card-box how-earn">
+        <h3>💰 {{ __('How You Earn') }}</h3>
+        <p class="how-earn-sub">{{ __('Every time someone signs up via your link and reaches a milestone, you earn. Here is the full reward schedule:') }}</p>
+
+        <div class="tracks">
+            {{-- Provider track --}}
+            <div class="track track-provider">
+                <div class="track-hd">
+                    <span class="track-tag">👷 {{ __('Refer a Freelancer') }}</span>
+                    <span class="track-total">{{ __('Up to') }} <strong>{{ number_format($providerTotal, 0) }} TZS</strong></span>
+                </div>
+                <div class="stage">
+                    <span class="stage-num">1</span>
+                    <div>
+                        <div class="stage-title">{{ __('Profile + first service published') }}</div>
+                        <div class="stage-amt">+ {{ number_format($r_p1, 0) }} TZS</div>
+                    </div>
+                </div>
+                <div class="stage">
+                    <span class="stage-num">2</span>
+                    <div>
+                        <div class="stage-title">{{ __('First paid order received') }}</div>
+                        <div class="stage-amt">+ {{ number_format($r_p2, 0) }} TZS <span class="stage-note">({{ __('friend also gets') }} {{ number_format($r_p2c, 0) }} {{ __('TZS credit') }})</span></div>
+                    </div>
+                </div>
+                <div class="stage">
+                    <span class="stage-num">3</span>
+                    <div>
+                        <div class="stage-title">{{ __('Second order or paid subscription') }}</div>
+                        <div class="stage-amt">+ {{ number_format($r_p3, 0) }} TZS</div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Client track --}}
+            <div class="track track-client">
+                <div class="track-hd">
+                    <span class="track-tag">🛒 {{ __('Refer a Client') }}</span>
+                    <span class="track-total">{{ __('Up to') }} <strong>{{ number_format($clientTotal, 0) }} TZS</strong></span>
+                </div>
+                <div class="stage">
+                    <span class="stage-num">✨</span>
+                    <div>
+                        <div class="stage-title">{{ __('Friend signs up via your link') }}</div>
+                        <div class="stage-amt stage-amt-muted">{{ __('Friend gets') }} {{ number_format($r_c_wel, 0) }} TZS {{ __('welcome credit') }}</div>
+                    </div>
+                </div>
+                <div class="stage">
+                    <span class="stage-num">1</span>
+                    <div>
+                        <div class="stage-title">{{ __('First booking placed') }}</div>
+                        <div class="stage-amt">+ {{ number_format($r_c1, 0) }} TZS</div>
+                    </div>
+                </div>
+                <div class="stage">
+                    <span class="stage-num">2</span>
+                    <div>
+                        <div class="stage-title">{{ __('Second booking within 60 days') }}</div>
+                        <div class="stage-amt">+ {{ number_format($r_c2, 0) }} TZS</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="how-earn-foot">
+            🛡️ {{ __('All rewards start as Pending and become Available after the') }}
+            <strong>{{ (int) (\App\StaticOption::where('option_name','referral_protection_days')->value('option_value') ?? 14) }}-{{ __('day protection window') }}</strong>.
+            {{ __('Transfer to your Main Wallet at') }}
+            <strong>{{ number_format((float) (\App\StaticOption::where('option_name','referral_min_withdrawal')->value('option_value') ?? 5000), 0) }} TZS</strong>
+            {{ __('or more.') }}
+        </p>
     </div>
 
     {{-- Referred users --}}

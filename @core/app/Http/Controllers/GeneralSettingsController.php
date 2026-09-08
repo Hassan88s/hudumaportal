@@ -52,34 +52,65 @@ class GeneralSettingsController extends Controller
         return view('backend.general-settings.reading',compact('all_home_pages'));
     }
     public function RefferalSetting($id=null){
-     $sign_up_points= StaticOption::where(['option_name'=> 'sign_up_points'])->first();
-     $first_order_points= StaticOption::where(['option_name'=> 'first_order_points'])->first();
-        
-        return view('backend.general-settings.refferalsettings',compact('first_order_points','sign_up_points'));
+        // Legacy fields (kept for backward-compat with pre-Rafiki-Rewards code)
+        $sign_up_points        = StaticOption::where(['option_name'=> 'sign_up_points'])->first();
+        $first_order_points    = StaticOption::where(['option_name'=> 'first_order_points'])->first();
+        $first_purchase_points = StaticOption::where(['option_name'=> 'first_purchase_points'])->first();
+
+        return view('backend.general-settings.refferalsettings',
+            compact('first_order_points','sign_up_points','first_purchase_points'));
     }
-    
+
     public function update_RefferalSetting(Request $request)
     {
-        $all_languages = Language::all();
-        foreach ($all_languages as $lang) {
-            $this->validate($request, [
-                'sign_up_points' => 'nullable|string',
-                'first_order_points' => 'nullable|string',
-                 'first_purchase_points' => 'nullable|string',
+        $this->validate($request, [
+            // System toggles
+            'referral_enabled'                => 'nullable|string',
+            // Provider (freelancer) track
+            'referral_stage1_provider_amount' => 'nullable|numeric|min:0',
+            'referral_stage2_provider_cash'   => 'nullable|numeric|min:0',
+            'referral_stage2_provider_credit' => 'nullable|numeric|min:0',
+            'referral_stage3_provider_amount' => 'nullable|numeric|min:0',
+            // Client track
+            'referral_client_welcome_credit'  => 'nullable|numeric|min:0',
+            'referral_client_first_booking'   => 'nullable|numeric|min:0',
+            'referral_client_second_booking'  => 'nullable|numeric|min:0',
+            // System settings
+            'referral_protection_days'        => 'nullable|integer|min:0|max:365',
+            'referral_attribution_days'       => 'nullable|integer|min:1|max:365',
+            'referral_min_withdrawal'         => 'nullable|numeric|min:0',
+            // Legacy fields (kept for backward-compat)
+            'sign_up_points'                  => 'nullable|string',
+            'first_order_points'              => 'nullable|string',
+            'first_purchase_points'           => 'nullable|string',
+        ]);
 
-            ]);
-            $fields = [
-
-                'sign_up_points',
-                'first_order_points',
-                'first_purchase_points',
-            ];
-            foreach ($fields as $field) {
-                if ($request->has($field)) {
-                    update_static_option($field, $request->$field);
-                }
+        $fields = [
+            'referral_enabled',
+            'referral_stage1_provider_amount',
+            'referral_stage2_provider_cash',
+            'referral_stage2_provider_credit',
+            'referral_stage3_provider_amount',
+            'referral_client_welcome_credit',
+            'referral_client_first_booking',
+            'referral_client_second_booking',
+            'referral_protection_days',
+            'referral_attribution_days',
+            'referral_min_withdrawal',
+            'sign_up_points',
+            'first_order_points',
+            'first_purchase_points',
+        ];
+        foreach ($fields as $field) {
+            if ($request->has($field)) {
+                update_static_option($field, $request->$field);
             }
         }
+        // The toggle isn't a required field; if the checkbox wasn't ticked, save "0".
+        if (!$request->has('referral_enabled')) {
+            update_static_option('referral_enabled', '0');
+        }
+
         return redirect()->back()->with(FlashMsg::settings_update());
     }
       public function CompanySetting($id=null){
