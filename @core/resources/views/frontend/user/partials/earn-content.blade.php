@@ -405,6 +405,9 @@
                 @endforelse
             </tbody>
         </table>
+        @if($rewards->hasPages())
+            <div style="margin-top:14px">{{ $rewards->links() }}</div>
+        @endif
     </div>
 
 </div>

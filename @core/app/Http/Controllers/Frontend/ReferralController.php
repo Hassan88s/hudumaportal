@@ -101,15 +101,16 @@ class ReferralController extends Controller
         $user  = Auth::guard('web')->user();
         $stats = $this->referrals->statsForUser($user->id);
 
+        // Paginate 5 per page each. Different page-name so the two tables
+        // don't share the ?page= query param and page independently.
         $referrals = \App\Referral::with('referredUser')
             ->where('referrer_id', $user->id)
             ->latest()
-            ->paginate(20);
+            ->paginate(5, ['*'], 'refs_page');
 
         $rewards = \App\ReferralReward::where('user_id', $user->id)
             ->latest()
-            ->limit(20)
-            ->get();
+            ->paginate(5, ['*'], 'rewards_page');
 
         $shareUrl  = url('/r/' . $user->referral_code);
         $shareCode = $user->referral_code;
