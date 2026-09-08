@@ -780,6 +780,12 @@
                                  <li class="{{ active_menu('admin-home/general-settings/RefferalSetting') }}"><a
                                             href="{{ route('admin.general.RefferalSetting') }}">{{ __('Refferal Setting') }}</a>
                                     </li>
+                                 <li class="{{ active_menu('admin-home/general-settings/referrals') }}"><a
+                                            href="{{ route('admin.referrals.index') }}">{{ __('All Referrals') }}</a>
+                                    </li>
+                                 <li class="{{ active_menu('admin-home/general-settings/referral-rewards') }}"><a
+                                            href="{{ route('admin.referrals.rewards') }}">{{ __('Rewards Ledger') }}</a>
+                                    </li>
                                     
                                     
                                     <li class="{{ active_menu('admin-home/general-settings/CompanySetting') }}"><a

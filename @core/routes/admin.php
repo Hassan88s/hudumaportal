@@ -435,6 +435,13 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
         //RefferalSetting
          Route::get('/RefferalSetting/{id?}','GeneralSettingsController@RefferalSetting')->name('admin.general.RefferalSetting');
           Route::post('update/Refferal-settings','GeneralSettingsController@update_RefferalSetting')->name('admin.general.update.refferal');
+
+        // Rafiki Rewards — Admin management
+        Route::get('/referrals','ReferralsAdminController@index')->name('admin.referrals.index');
+        Route::get('/referrals/{id}','ReferralsAdminController@show')->name('admin.referrals.show')->where('id','[0-9]+');
+        Route::post('/referrals/{id}/status','ReferralsAdminController@updateStatus')->name('admin.referrals.status')->where('id','[0-9]+');
+        Route::post('/referrals/{id}/credit','ReferralsAdminController@manualCredit')->name('admin.referrals.credit')->where('id','[0-9]+');
+        Route::get('/referral-rewards','ReferralsAdminController@rewardsLedger')->name('admin.referrals.rewards');
           
           //request company settings
           Route::get('/CompanySetting/{id?}','GeneralSettingsController@CompanySetting')->name('admin.general.CompanySetting');
