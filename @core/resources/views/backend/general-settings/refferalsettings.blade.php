@@ -54,7 +54,7 @@
 
                 {{-- ═══ Program Toggle ═══ --}}
                 <div class="section-card">
-                    <h4 class="section-hd">🎁 {{ __('Rafiki Rewards Program') }}</h4>
+                    <h4 class="section-hd">{{ __('Rafiki Rewards Program') }}</h4>
                     <p class="section-sub">{{ __('Master switch. When off, no new referral rewards are created (existing balances stay).') }}</p>
                     <div class="toggle-row">
                         <label for="referral_enabled">{{ __('Enable Rafiki Rewards program') }}</label>
@@ -69,7 +69,7 @@
 
                 {{-- ═══ Provider (Freelancer) Rewards ═══ --}}
                 <div class="section-card">
-                    <h4 class="section-hd">👷 {{ __('Provider (Freelancer) Track') }} <span class="badge provider">MAX 3,000 TZS</span></h4>
+                    <h4 class="section-hd">{{ __('Provider (Freelancer) Track') }} <span class="badge provider">MAX 3,000 TZS</span></h4>
                     <p class="section-sub">{{ __('Rewards to the referrer when a referred freelancer completes each milestone.') }}</p>
                     <div class="row-grid">
                         <div class="form-group">
@@ -97,7 +97,7 @@
 
                 {{-- ═══ Client Rewards ═══ --}}
                 <div class="section-card">
-                    <h4 class="section-hd">🛒 {{ __('Client Track') }} <span class="badge client">MAX 1,500 TZS</span></h4>
+                    <h4 class="section-hd">{{ __('Client Track') }} <span class="badge client">MAX 1,500 TZS</span></h4>
                     <p class="section-sub">{{ __('Rewards for referring buyers/clients. The welcome credit goes to the new client (spendable on their first booking).') }}</p>
                     <div class="row-grid">
                         <div class="form-group">
@@ -120,7 +120,7 @@
 
                 {{-- ═══ System Settings ═══ --}}
                 <div class="section-card">
-                    <h4 class="section-hd">⚙️ {{ __('System Settings') }} <span class="badge system">GLOBAL</span></h4>
+                    <h4 class="section-hd">{{ __('System Settings') }} <span class="badge system">GLOBAL</span></h4>
                     <p class="section-sub">{{ __('Attribution, protection, and withdrawal thresholds.') }}</p>
                     <div class="row-grid">
                         <div class="form-group">
@@ -143,7 +143,7 @@
 
                 {{-- ═══ Legacy compatibility ═══ --}}
                 <div class="section-card">
-                    <h4 class="section-hd">🗂️ {{ __('Legacy Settings') }} <span class="badge legacy">FALLBACK</span></h4>
+                    <h4 class="section-hd">{{ __('Legacy Settings') }} <span class="badge legacy">FALLBACK</span></h4>
                     <p class="section-sub">{{ __('These older fields are still read by parts of the site that pre-date Rafiki Rewards. Leave them at defaults unless you know why you are changing them.') }}</p>
                     <div class="row-grid">
                         <div class="form-group">
