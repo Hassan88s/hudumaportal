@@ -141,7 +141,11 @@
                     </div>
                 </div>
 
-                {{-- ═══ Legacy compatibility ═══ --}}
+                {{-- ═══ Legacy compatibility — HIDDEN in UI, still saved untouched ═══
+                     Values stay in static_options as-is because some pre-Rafiki
+                     code paths still read sign_up_points / first_order_points /
+                     first_purchase_points as fallbacks. Flip @if(true) to show. --}}
+                @if(false)
                 <div class="section-card">
                     <h4 class="section-hd">{{ __('Legacy Settings') }} <span class="badge legacy">FALLBACK</span></h4>
                     <p class="section-sub">{{ __('These older fields are still read by parts of the site that pre-date Rafiki Rewards. Leave them at defaults unless you know why you are changing them.') }}</p>
@@ -163,6 +167,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
 
                 <button id="update" type="submit" class="btn btn-primary pr-4 pl-4">
                     <i class="las la-save"></i> {{ __('Save All Referral Settings') }}
