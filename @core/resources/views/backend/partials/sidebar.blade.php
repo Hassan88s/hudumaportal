@@ -129,14 +129,14 @@
                         @endcan
                     @endif
 
-                    {{-- ═══ Rafiki Rewards (Referral Program) ═══ --}}
+                    {{-- ═══ Referral Program ═══ --}}
                     <li class="@if (request()->is('admin-home/general-settings/RefferalSetting*')
                                  || request()->is('admin-home/general-settings/referrals*')
                                  || request()->is('admin-home/general-settings/referral-rewards*')
                                  || request()->is('admin-home/general-settings/referral-clicks*')
                                  || request()->is('admin-home/general-settings/referrer-leaderboard*')) active @endif">
                         <a href="javascript:void(0)" aria-expanded="true"><i class="ti-gift"></i>
-                            <span>{{ __('Rafiki Rewards') }}</span>
+                            <span>{{ __('Referral') }}</span>
                         </a>
                         <ul class="collapse">
                             <li class="{{ active_menu('admin-home/general-settings/RefferalSetting') }}">
