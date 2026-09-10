@@ -243,8 +243,17 @@ class OrdersController extends Controller
             $order_Detials->status = 4;
             $order_Detials->payment_status='return';
             $order_Detials->save();
-            
-            
+
+            // Rafiki Rewards — reverse any still-pending referral rewards tied to
+            // this buyer's orders (only rewards inside the protection window are
+            // touched; already-paid rewards are safe).
+            try {
+                app(\App\Services\ReferralService::class)
+                    ->reverseRewardsForBuyerRefund((int) $user_id, 'Order #'.$order_Detials->id.' refunded (admin accepted cancel request)');
+            } catch (\Throwable $e) {
+                \Log::warning('[Rafiki Rewards] refund reversal failed: '.$e->getMessage(), ['order_id' => $order_Detials->id]);
+            }
+
              $seller = User::where('id',$order_Detials->seller_id)->first();
                  try {
                          $mail_subject = __('Request Accepted for Cancel Order #') . ' / ' . __('Ombi la kughairi agizo limekubaliwa #');

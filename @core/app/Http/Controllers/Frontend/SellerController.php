@@ -2944,6 +2944,15 @@ class SellerController extends Controller
          $user_wallet->save();
         ////
         Order::where('id',$id)->update(['payment_status'=>'return','status'=>4]);
+
+        // Rafiki Rewards — reverse still-pending referral rewards for this buyer.
+        try {
+            app(\App\Services\ReferralService::class)
+                ->reverseRewardsForBuyerRefund((int) $user_id, 'Order #'.$id.' refunded (seller cancelled)');
+        } catch (\Throwable $e) {
+            \Log::warning('[Rafiki Rewards] refund reversal failed: '.$e->getMessage(), ['order_id' => $id]);
+        }
+
         toastr_success(__('Service order successfully cancelled.'));
         return redirect()->back();
     }

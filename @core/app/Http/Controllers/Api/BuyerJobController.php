@@ -73,9 +73,17 @@ class BuyerJobController extends Controller
             $wallet->save();
 
             $order->update([
-                'status' => 4, 
+                'status' => 4,
                 'payment_status' => 'return',
             ]);
+
+            // Rafiki Rewards — reverse still-pending referral rewards for this buyer.
+            try {
+                app(\App\Services\ReferralService::class)
+                    ->reverseRewardsForBuyerRefund((int) $user_id, 'Order #'.$order->id.' refunded (auto-cancelled stale order)');
+            } catch (\Throwable $e) {
+                \Log::warning('[Rafiki Rewards] refund reversal failed: '.$e->getMessage(), ['order_id' => $order->id]);
+            }
 
             // update custom offer status
             if ($order->Custom_offer_id) {

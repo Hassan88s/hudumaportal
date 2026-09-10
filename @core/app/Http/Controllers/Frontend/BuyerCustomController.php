@@ -256,6 +256,15 @@ public function Withdrwal_custom_offer($id){
                          $user_wallet->save();
                         ////
                         Order::where('id',$id)->update(['payment_status'=>'return','status'=>4]);
+
+                        // Rafiki Rewards — reverse still-pending referral rewards for this buyer.
+                        try {
+                            app(\App\Services\ReferralService::class)
+                                ->reverseRewardsForBuyerRefund((int) $user_id, 'Order #'.$id.' refunded (custom offer declined)');
+                        } catch (\Throwable $e) {
+                            \Log::warning('[Rafiki Rewards] refund reversal failed: '.$e->getMessage(), ['order_id' => $id]);
+                        }
+
                         CustomOffer::where('buyer_id',Auth::guard('web')->user()->id)->where('id', $order_Detials->Custom_offer_id)->update([
                             'status' =>"6",
                         ]);
