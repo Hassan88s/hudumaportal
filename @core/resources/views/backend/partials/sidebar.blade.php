@@ -110,7 +110,7 @@
                                 <li class="{{ active_menu('admin-home/wallet/lists') }}
                                 @if (request()->is('admin-home/wallet/*')) active @endif">
                                     <a href="javascript:void(0)" aria-expanded="true"><i class="ti-wallet"></i>
-                                        <span>{{ __('Wallet') }}</span> 
+                                        <span>{{ __('Wallet') }}</span>
                                     </a>
                                     <ul class="collapse">
                                         @can('wallet-list')
@@ -128,6 +128,34 @@
                             @endif
                         @endcan
                     @endif
+
+                    {{-- ═══ Rafiki Rewards (Referral Program) ═══ --}}
+                    <li class="@if (request()->is('admin-home/general-settings/RefferalSetting*')
+                                 || request()->is('admin-home/general-settings/referrals*')
+                                 || request()->is('admin-home/general-settings/referral-rewards*')
+                                 || request()->is('admin-home/general-settings/referral-clicks*')
+                                 || request()->is('admin-home/general-settings/referrer-leaderboard*')) active @endif">
+                        <a href="javascript:void(0)" aria-expanded="true"><i class="ti-gift"></i>
+                            <span>{{ __('Rafiki Rewards') }}</span>
+                        </a>
+                        <ul class="collapse">
+                            <li class="{{ active_menu('admin-home/general-settings/RefferalSetting') }}">
+                                <a href="{{ route('admin.general.RefferalSetting') }}">{{ __('Referral Settings') }}</a>
+                            </li>
+                            <li class="{{ active_menu('admin-home/general-settings/referrals') }}">
+                                <a href="{{ route('admin.referrals.index') }}">{{ __('All Referrals') }}</a>
+                            </li>
+                            <li class="{{ active_menu('admin-home/general-settings/referral-rewards') }}">
+                                <a href="{{ route('admin.referrals.rewards') }}">{{ __('Rewards Ledger') }}</a>
+                            </li>
+                            <li class="{{ active_menu('admin-home/general-settings/referral-clicks') }}">
+                                <a href="{{ route('admin.referrals.clicks') }}">{{ __('Click Analytics') }}</a>
+                            </li>
+                            <li class="{{ active_menu('admin-home/general-settings/referrer-leaderboard') }}">
+                                <a href="{{ route('admin.referrals.leaderboard') }}">{{ __('Leaderboard') }}</a>
+                            </li>
+                        </ul>
+                    </li>
 
                     @if (auth()->guard('admin')->user()->hasRole('Super Admin'))
                         <li
@@ -777,23 +805,7 @@
                                             href="{{ route('admin.general.adspace') }}">{{ __('Ads Space') }}</a>
                                     </li>
                                 @endcan
-                                 <li class="{{ active_menu('admin-home/general-settings/RefferalSetting') }}"><a
-                                            href="{{ route('admin.general.RefferalSetting') }}">{{ __('Refferal Setting') }}</a>
-                                    </li>
-                                 <li class="{{ active_menu('admin-home/general-settings/referrals') }}"><a
-                                            href="{{ route('admin.referrals.index') }}">{{ __('All Referrals') }}</a>
-                                    </li>
-                                 <li class="{{ active_menu('admin-home/general-settings/referral-rewards') }}"><a
-                                            href="{{ route('admin.referrals.rewards') }}">{{ __('Rewards Ledger') }}</a>
-                                    </li>
-                                 <li class="{{ active_menu('admin-home/general-settings/referral-clicks') }}"><a
-                                            href="{{ route('admin.referrals.clicks') }}">{{ __('Click Analytics') }}</a>
-                                    </li>
-                                 <li class="{{ active_menu('admin-home/general-settings/referrer-leaderboard') }}"><a
-                                            href="{{ route('admin.referrals.leaderboard') }}">{{ __('Leaderboard') }}</a>
-                                    </li>
-                                    
-                                    
+                                    {{-- Rafiki Rewards items moved into their own dedicated top-level menu --}}
                                     <li class="{{ active_menu('admin-home/general-settings/CompanySetting') }}"><a
                                             href="{{ route('admin.general.CompanySetting') }}">{{ __('Company Request Setting') }}</a>
                                     </li>
