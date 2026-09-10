@@ -54,6 +54,41 @@ class ReferralController extends Controller
     }
 
     /**
+     * GET /referral — public marketing landing page for the Rafiki Rewards program.
+     * Overrides the dynamic page slug so we get a purpose-built layout.
+     */
+    public function publicLanding(Request $request)
+    {
+        $s = fn($name, $default) => (float) (\App\StaticOption::where('option_name', $name)->value('option_value') ?? $default);
+
+        $rewards = [
+            'p1'         => $s('referral_stage1_provider_amount', 500),
+            'p2'         => $s('referral_stage2_provider_cash', 1000),
+            'p2c'        => $s('referral_stage2_provider_credit', 1000),
+            'p3'         => $s('referral_stage3_provider_amount', 1500),
+            'c_welcome'  => $s('referral_client_welcome_credit', 1000),
+            'c1'         => $s('referral_client_first_booking', 750),
+            'c2'         => $s('referral_client_second_booking', 750),
+            'prot_days'  => (int) $s('referral_protection_days', 14),
+            'min_wd'     => $s('referral_min_withdrawal', 5000),
+            'attr_days'  => (int) $s('referral_attribution_days', 30),
+        ];
+        $rewards['provider_total'] = $rewards['p1'] + $rewards['p2'] + $rewards['p3'];
+        $rewards['client_total']   = $rewards['c1'] + $rewards['c2'];
+
+        // Platform trust signals — non-personal aggregate stats.
+        $stats = [
+            'total_users'       => \App\User::count(),
+            'total_referrals'   => \App\Referral::count(),
+            'total_paid'        => (float) \App\ReferralReward::whereIn('status', ['approved', 'paid'])->sum('amount'),
+        ];
+
+        $user = Auth::guard('web')->user();
+
+        return view('frontend.referral-landing', compact('rewards', 'stats', 'user'));
+    }
+
+    /**
      * POST /seller/earn/transfer — move approved referral earnings to main wallet.
      */
     public function transfer(Request $request)

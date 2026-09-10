@@ -17,6 +17,12 @@ Route::get('/r/{code}', 'Frontend\ReferralController@land')
     ->where('code', '[A-Za-z0-9\-_]{2,32}')
     ->name('referral.land');
 
+// Rafiki Rewards — public marketing landing page (overrides the dynamic page slug).
+// Explicit route beats the /{slug} catch-all below because Laravel matches in order.
+Route::get('/referral', 'Frontend\ReferralController@publicLanding')
+    ->middleware(['web', 'globalVariable', 'setlang'])
+    ->name('referral.public');
+
 // frontend starts
 Route::group(['middleware' => ['globalVariable', 'maintains_mode','setlang']], function () {
 
