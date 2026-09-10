@@ -894,7 +894,7 @@
            
                     <h5 class="card-title">{{ __('Your Referral Link') }}</h5>
                     <div class="input-group mb-3">
-                        <input type="text" value="{{ url('/register?ref='.Auth::user()->referral_code) }}" class="form-control" id="referralLink" readonly>
+                        <input type="text" value="{{ url('/r/'.Auth::user()->referral_code) }}" class="form-control" id="referralLink" readonly>
                         <button onclick="copyReferral()" class="btn btn-secondary">
                             <i class="fas fa-copy"></i>
                         </button>
@@ -902,25 +902,25 @@
 
                      {{ __('Social Share Buttons') }}
                     <div class="d-flex justify-content-center gap-2 mt-2">
-                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(url('/register?ref='.Auth::user()->referral_code)) }}" target="_blank" class="btn btn-primary">
+                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(url('/r/'.Auth::user()->referral_code)) }}" target="_blank" class="btn btn-primary">
                             <i class="fab fa-facebook-f"></i>
                         </a>
 
                         <a href="https://api.whatsapp.com/send?text={{ urlencode('Freelancers – Offer your services and reach more clients.
 Clients – Hire skilled professionals for any task, online or offline.
 
-Join today and experience the fastest way to get things done. ' . url('/register?ref='.Auth::user()->referral_code)) }}" target="_blank" class="btn btn-success">
+Join today and experience the fastest way to get things done. ' . url('/r/'.Auth::user()->referral_code)) }}" target="_blank" class="btn btn-success">
                             <i class="fab fa-whatsapp"></i>
                         </a>
 
-                        <a href="https://x.com/intent/tweet?url={{ urlencode(url('/register?ref='.Auth::user()->referral_code)) }}&text={{ urlencode('Freelancers – Offer your services and reach more clients.
+                        <a href="https://x.com/intent/tweet?url={{ urlencode(url('/r/'.Auth::user()->referral_code)) }}&text={{ urlencode('Freelancers – Offer your services and reach more clients.
 Clients – Hire skilled professionals for any task, online or offline.
 
 Join today and experience the fastest way to get things done.') }}" target="_blank" class="btn btn-dark">
                             <i class="fab fa-x-twitter">X</i>
                         </a>
 
-                        <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ urlencode(url('/register?ref='.Auth::user()->referral_code)) }}" target="_blank" class="btn btn-info">
+                        <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ urlencode(url('/r/'.Auth::user()->referral_code)) }}" target="_blank" class="btn btn-info">
                             <i class="fab fa-linkedin-in"></i>
                         </a>
                         
