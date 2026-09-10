@@ -786,6 +786,12 @@
                                  <li class="{{ active_menu('admin-home/general-settings/referral-rewards') }}"><a
                                             href="{{ route('admin.referrals.rewards') }}">{{ __('Rewards Ledger') }}</a>
                                     </li>
+                                 <li class="{{ active_menu('admin-home/general-settings/referral-clicks') }}"><a
+                                            href="{{ route('admin.referrals.clicks') }}">{{ __('Click Analytics') }}</a>
+                                    </li>
+                                 <li class="{{ active_menu('admin-home/general-settings/referrer-leaderboard') }}"><a
+                                            href="{{ route('admin.referrals.leaderboard') }}">{{ __('Leaderboard') }}</a>
+                                    </li>
                                     
                                     
                                     <li class="{{ active_menu('admin-home/general-settings/CompanySetting') }}"><a

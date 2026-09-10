@@ -145,6 +145,118 @@ class ReferralsAdminController extends Controller
     }
 
     /**
+     * GET /admin-home/referral-clicks — analytics for /r/{code} visits.
+     * Aggregates the referral_clicks table into totals + top-codes + conversion
+     * rate (clicks that later signed up / total clicks).
+     */
+    public function clicksAnalytics(Request $request)
+    {
+        $days = max(1, min(365, (int) $request->query('days', 30)));
+        $since = now()->subDays($days);
+
+        // Global totals within the window
+        $totalClicks = \App\ReferralClick::where('created_at', '>=', $since)->count();
+        $uniqueIps   = \App\ReferralClick::where('created_at', '>=', $since)
+            ->distinct()->count('ip_address');
+        $converted   = \App\ReferralClick::where('created_at', '>=', $since)
+            ->whereNotNull('converted_user_id')->count();
+        $invalid     = \App\ReferralClick::where('created_at', '>=', $since)
+            ->whereNull('referrer_id')->count();
+
+        $conversionRate = $totalClicks > 0 ? round(($converted / $totalClicks) * 100, 1) : 0.0;
+
+        // Top codes by clicks in the window (joined with referrer name)
+        $topCodes = DB::table('referral_clicks')
+            ->select(
+                'referral_clicks.code',
+                'referral_clicks.referrer_id',
+                'users.name as referrer_name',
+                'users.email as referrer_email',
+                DB::raw('COUNT(*) as clicks'),
+                DB::raw('SUM(CASE WHEN converted_user_id IS NOT NULL THEN 1 ELSE 0 END) as conversions')
+            )
+            ->leftJoin('users', 'users.id', '=', 'referral_clicks.referrer_id')
+            ->where('referral_clicks.created_at', '>=', $since)
+            ->whereNotNull('referral_clicks.referrer_id')
+            ->groupBy('referral_clicks.code', 'referral_clicks.referrer_id', 'users.name', 'users.email')
+            ->orderByDesc('clicks')
+            ->limit(20)
+            ->get();
+
+        // Channel breakdown (from the ?ch= param captured on landing)
+        $channels = DB::table('referral_clicks')
+            ->select('channel', DB::raw('COUNT(*) as clicks'))
+            ->where('created_at', '>=', $since)
+            ->groupBy('channel')
+            ->orderByDesc('clicks')
+            ->get();
+
+        // Daily clicks trend (last 14 days for the sparkline)
+        $trend = DB::table('referral_clicks')
+            ->select(DB::raw('DATE(created_at) as day'), DB::raw('COUNT(*) as clicks'))
+            ->where('created_at', '>=', now()->subDays(14))
+            ->groupBy('day')
+            ->orderBy('day')
+            ->get();
+
+        return view('backend.referrals.clicks', compact(
+            'days', 'totalClicks', 'uniqueIps', 'converted', 'invalid',
+            'conversionRate', 'topCodes', 'channels', 'trend'
+        ));
+    }
+
+    /**
+     * GET /admin-home/referrer-leaderboard — top referrers by count + earnings.
+     */
+    public function leaderboard(Request $request)
+    {
+        $period = $request->query('period', 'month'); // month | year | all
+        $since = match ($period) {
+            'month' => now()->startOfMonth(),
+            'year'  => now()->startOfYear(),
+            default => null,
+        };
+
+        // Rank by number of referrals brought in the window
+        $byCount = DB::table('referrals')
+            ->select(
+                'referrals.referrer_id',
+                'users.name',
+                'users.email',
+                'users.referral_code',
+                DB::raw('COUNT(*) as ref_count'),
+                DB::raw('SUM(CASE WHEN referrals.status = "approved" THEN 1 ELSE 0 END) as approved_count')
+            )
+            ->leftJoin('users', 'users.id', '=', 'referrals.referrer_id')
+            ->when($since, fn ($q) => $q->where('referrals.created_at', '>=', $since))
+            ->groupBy('referrals.referrer_id', 'users.name', 'users.email', 'users.referral_code')
+            ->orderByDesc('ref_count')
+            ->limit(20)
+            ->get();
+
+        // Rank by TOTAL earnings in the window
+        $byEarnings = DB::table('referral_rewards')
+            ->select(
+                'referral_rewards.user_id as referrer_id',
+                'users.name',
+                'users.email',
+                'users.referral_code',
+                DB::raw('SUM(referral_rewards.amount) as earnings'),
+                DB::raw('COUNT(*) as reward_count')
+            )
+            ->leftJoin('users', 'users.id', '=', 'referral_rewards.user_id')
+            ->where('referral_rewards.type', 'cash')
+            ->whereIn('referral_rewards.status', ['approved', 'paid'])
+            ->when($since, fn ($q) => $q->where('referral_rewards.created_at', '>=', $since))
+            ->groupBy('referral_rewards.user_id', 'users.name', 'users.email', 'users.referral_code')
+            ->orderByDesc('earnings')
+            ->limit(20)
+            ->get();
+
+        return view('backend.referrals.leaderboard', compact('byCount', 'byEarnings', 'period'));
+    }
+
+    /**
      * GET /admin-home/referral-rewards — full rewards ledger (Step C).
      */
     public function rewardsLedger(Request $request)

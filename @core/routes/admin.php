@@ -442,6 +442,8 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
         Route::post('/referrals/{id}/status','ReferralsAdminController@updateStatus')->name('admin.referrals.status')->where('id','[0-9]+');
         Route::post('/referrals/{id}/credit','ReferralsAdminController@manualCredit')->name('admin.referrals.credit')->where('id','[0-9]+');
         Route::get('/referral-rewards','ReferralsAdminController@rewardsLedger')->name('admin.referrals.rewards');
+        Route::get('/referral-clicks','ReferralsAdminController@clicksAnalytics')->name('admin.referrals.clicks');
+        Route::get('/referrer-leaderboard','ReferralsAdminController@leaderboard')->name('admin.referrals.leaderboard');
           
           //request company settings
           Route::get('/CompanySetting/{id?}','GeneralSettingsController@CompanySetting')->name('admin.general.CompanySetting');
