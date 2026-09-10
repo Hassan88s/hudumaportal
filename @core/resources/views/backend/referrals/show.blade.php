@@ -153,6 +153,27 @@
                     @if($referral->rejection_reason)
                         <div class="kv"><span class="k">{{ __('Rejection reason') }}</span><span class="v" style="color:#991b1b">{{ $referral->rejection_reason }}</span></div>
                     @endif
+
+                    @if(!empty($referral->fraud_flags))
+                        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #f2f4f7">
+                            <div style="font-weight:700;font-size:13px;color:#991b1b;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+                                <span class="badge-pill blocked">FRAUD FLAGS</span>
+                                <span>{{ count($referral->fraud_flags) }} {{ __('signal(s) detected') }}</span>
+                            </div>
+                            @foreach($referral->fraud_flags as $flag)
+                                <div style="background:{{ $flag['severity']==='high' ? '#fef2f2' : ($flag['severity']==='medium' ? '#fef3c7' : '#f8f9fb') }};border-left:3px solid {{ $flag['severity']==='high' ? '#ef4444' : ($flag['severity']==='medium' ? '#f59e0b' : '#6b7280') }};border-radius:6px;padding:12px 14px;margin-bottom:8px">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                                        <strong style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#1f2733">{{ str_replace('_',' ',$flag['type']) }}</strong>
+                                        <span class="badge-pill" style="background:{{ $flag['severity']==='high' ? '#fee2e2' : ($flag['severity']==='medium' ? '#fef3c7' : '#f3f4f6') }};color:{{ $flag['severity']==='high' ? '#991b1b' : ($flag['severity']==='medium' ? '#92400e' : '#374151') }}">{{ $flag['severity'] }}</span>
+                                    </div>
+                                    <div style="font-size:13px;color:#1f2733;margin-bottom:4px">{{ $flag['message'] }}</div>
+                                    @if(!empty($flag['data']))
+                                        <div style="font-size:11px;color:#6b7280;font-family:monospace">{{ json_encode($flag['data'], JSON_UNESCAPED_SLASHES) }}</div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
                 {{-- ═══ REWARDS LEDGER ═══ --}}

@@ -35,6 +35,8 @@
     .rf-admin .badge-pill.qualifying{background:#e0e7ff;color:#3730a3}
     .rf-admin .badge-pill.approved{background:#d1fae5;color:#065f46}
     .rf-admin .badge-pill.rejected,.rf-admin .badge-pill.blocked{background:#fee2e2;color:#991b1b}
+    .rf-admin .badge-pill.flagged{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+    .rf-admin .flag-indicator{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.3px;margin-left:6px}
     .rf-admin .badge-pill.provider{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
     .rf-admin .badge-pill.client{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
     .rf-admin .badge-pill.business{background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe}
@@ -65,6 +67,7 @@
                     <div class="stat qualifying"><div class="label">{{ __('Qualifying') }}</div><div class="value">{{ number_format($stats['qualifying']) }}</div></div>
                     <div class="stat approved"><div class="label">{{ __('Approved') }}</div><div class="value">{{ number_format($stats['approved']) }}</div></div>
                     <div class="stat rejected"><div class="label">{{ __('Rejected / Blocked') }}</div><div class="value">{{ number_format($stats['rejected']) }}</div></div>
+                    <div class="stat rejected" style="background:#fef2f2;border-color:#fecaca"><div class="label">{{ __('Flagged (Fraud Review)') }}</div><div class="value">{{ number_format($stats['flagged'] ?? 0) }}</div></div>
                     <div class="stat paid"><div class="label">{{ __('Paid Out (This Month)') }}</div><div class="value">{{ number_format($stats['paid_month'], 0) }} <small>TZS</small></div></div>
                     <div class="stat"><div class="label">{{ __('Pending (All Time)') }}</div><div class="value">{{ number_format($stats['pending_all'], 0) }} <small>TZS</small></div></div>
                 </div>
@@ -79,7 +82,7 @@
                         <label>{{ __('Status') }}</label>
                         <select name="status" class="form-select">
                             <option value="">{{ __('All') }}</option>
-                            @foreach(['pending','qualifying','approved','rejected','blocked'] as $s)
+                            @foreach(['pending','qualifying','approved','rejected','blocked','flagged'] as $s)
                                 <option value="{{ $s }}" @selected($status === $s)>{{ ucfirst($s) }}</option>
                             @endforeach
                         </select>
@@ -124,7 +127,12 @@
                         <tbody>
                             @forelse($referrals as $r)
                                 <tr>
-                                    <td>#{{ $r->id }}</td>
+                                    <td>
+                                        #{{ $r->id }}
+                                        @if(!empty($r->fraud_flags))
+                                            <span class="flag-indicator" title="{{ count($r->fraud_flags) }} fraud flag(s) detected">⚠ {{ count($r->fraud_flags) }}</span>
+                                        @endif
+                                    </td>
                                     <td class="user-cell">
                                         <strong>{{ optional($r->referrer)->name ?? '—' }}</strong>
                                         <small>{{ optional($r->referrer)->email }} · {{ optional($r->referrer)->referral_code }}</small>

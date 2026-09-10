@@ -62,6 +62,7 @@ class ReferralsAdminController extends Controller
             'qualifying'  => Referral::where('status', 'qualifying')->count(),
             'approved'    => Referral::where('status', 'approved')->count(),
             'rejected'    => Referral::whereIn('status', ['rejected', 'blocked'])->count(),
+            'flagged'     => Referral::where('status', 'flagged')->count(),
             'paid_month'  => (float) ReferralReward::where('status', 'paid')
                                                     ->where('paid_at', '>=', now()->startOfMonth())
                                                     ->sum('amount'),

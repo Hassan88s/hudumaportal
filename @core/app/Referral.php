@@ -11,9 +11,10 @@ class Referral extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'stage1_at'  => 'datetime',
-        'stage2_at'  => 'datetime',
-        'stage3_at'  => 'datetime',
+        'stage1_at'   => 'datetime',
+        'stage2_at'   => 'datetime',
+        'stage3_at'   => 'datetime',
+        'fraud_flags' => 'array',
     ];
 
     public function referrer()

@@ -130,6 +130,23 @@ class ReferralService
             'updated_at'         => now(),
         ]);
 
+        // Fraud detection — never auto-rejects, only flags for admin review.
+        // Rewards are still credited so a false positive doesn't cost the referrer;
+        // admin can review the flag and reject/clawback if it turns out to be fraud.
+        try {
+            $detector = app(\App\Services\FraudDetector::class);
+            $flags    = $detector->checkReferral($referral);
+            if (!empty($flags)) {
+                $update = ['fraud_flags' => $flags];
+                if ($detector->shouldAutoFlag($flags)) {
+                    $update['status'] = 'flagged';
+                }
+                $referral->update($update);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('[Rafiki Rewards] fraud detection failed: '.$e->getMessage(), ['referral_id' => $referral->id]);
+        }
+
         // Stage-1 pending reward (uses legacy sign_up_points for backward-compat if new key missing)
         $amount = $track === 'provider'
             ? $this->opt('referral_stage1_provider_amount', $this->opt('sign_up_points', 500))
