@@ -402,6 +402,73 @@ class ReferralService
     }
 
     /* -----------------------------------------------------------------
+     |  Reversal (refund handling within the protection window)
+     | ----------------------------------------------------------------- */
+
+    /**
+     * Reverse any referral rewards tied to a buyer's order that was refunded
+     * or cancelled inside the protection window. Idempotent — safe to call
+     * from refund/cancel flows without checking upfront.
+     *
+     * Behaviour:
+     *  - Finds the referral row where referred_user_id = $buyerId
+     *  - If it exists and its stage2/stage3 rewards are still "pending" (i.e.
+     *    inside the protection window), marks them "rejected" with a reason
+     *  - If the reward was already "paid" (transferred to main wallet), we do
+     *    NOT claw back — that money is out. Admin can do it manually.
+     *  - The referral row itself moves to "rejected" if all its rewards are
+     *    now rejected/paid and none remain pending or approved.
+     *
+     * @param  int         $buyerId  the buyer whose order was refunded
+     * @param  string|null $reason   human-readable — stored on each reward
+     * @return int                    number of rewards reversed
+     */
+    public function reverseRewardsForBuyerRefund(int $buyerId, ?string $reason = null): int
+    {
+        if (!$this->enabled()) return 0;
+
+        $referral = Referral::where('referred_user_id', $buyerId)->first();
+        if (!$referral) return 0;
+
+        return DB::transaction(function () use ($referral, $reason) {
+            // Only reverse rewards still in protection (pending) — never touch
+            // approved-and-already-transferred (paid) money, and never re-reject
+            // rows already rejected.
+            $rows = ReferralReward::where('referral_id', $referral->id)
+                ->where('status', 'pending')
+                ->lockForUpdate()
+                ->get();
+
+            if ($rows->isEmpty()) return 0;
+
+            $now = now();
+            $note = $reason ?: __('Order refunded within protection window');
+
+            foreach ($rows as $row) {
+                $row->update([
+                    'status'       => 'rejected',
+                    'rejected_at'  => $now,
+                    'reason'       => ($row->reason ? $row->reason . ' — ' : '') . $note,
+                    'updated_at'   => $now,
+                ]);
+            }
+
+            // Update the referral status if nothing salvageable is left.
+            $stillLive = ReferralReward::where('referral_id', $referral->id)
+                ->whereIn('status', ['pending', 'qualifying', 'approved', 'paid'])
+                ->exists();
+            if (!$stillLive) {
+                $referral->update([
+                    'status'           => 'rejected',
+                    'rejection_reason' => $note,
+                ]);
+            }
+
+            return $rows->count();
+        });
+    }
+
+    /* -----------------------------------------------------------------
      |  Transfer to main wallet
      | ----------------------------------------------------------------- */
 
