@@ -39,10 +39,15 @@
     .rl-steps .step p{font-size:14px;color:#6b7280;line-height:1.6;margin:0}
 
     /* ═══ REWARDS ═══ */
-    .rl-rewards{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    .rl-rewards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+    @media (max-width: 1100px){ .rl-rewards{grid-template-columns:1fr 1fr} }
     .rl-rewards .track{background:#fff;border-radius:16px;padding:32px;position:relative;overflow:hidden}
     .rl-rewards .track-provider{background:linear-gradient(135deg,#fff7ed 0%,#fff 60%);border:1px solid #fed7aa}
     .rl-rewards .track-client{background:linear-gradient(135deg,#eff6ff 0%,#fff 60%);border:1px solid #bfdbfe}
+    .rl-rewards .track-business{background:linear-gradient(135deg,#f5f3ff 0%,#fff 60%);border:1px solid #ddd6fe}
+    .rl-rewards .track-business .tag{color:#6d28d9}
+    .rl-rewards .track-business .track-hd .total strong{color:#6d28d9}
+    .rl-rewards .track-business .stage-num{background:#8b5cf6;color:#fff;border-color:#8b5cf6}
     .rl-rewards .track-hd{margin-bottom:24px}
     .rl-rewards .track-hd .tag{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
     .rl-rewards .track-provider .tag{color:#c2410c}
@@ -127,8 +132,8 @@
         <div class="container">
             <span class="kicker">{{ __('Rafiki Rewards Program') }}</span>
             <h1>
-                {{ __('Bring a friend, earn') }}
-                <span>{{ number_format($rewards['provider_total'], 0) }} TZS</span>
+                {{ __('Bring a friend, earn up to') }}
+                <span>{{ number_format(max($rewards['provider_total'], $rewards['client_total'], $rewards['business_total']), 0) }} TZS</span>
                 {{ __('per referral.') }}
             </h1>
             <p class="sub">{{ __('Share your link, invite freelancers and clients, and earn real cash when they use Huduma Portal. No downloads, no gimmicks — just verified activity.') }}</p>
@@ -250,6 +255,39 @@
                             <h4>{{ __('Second booking within 60 days') }}</h4>
                             <p>{{ __('They come back for more within two months.') }}</p>
                             <span class="amt">+ {{ number_format($rewards['c2'], 0) }} TZS</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Business track --}}
+                <div class="track track-business">
+                    <div class="track-hd">
+                        <div class="tag">{{ __('Refer a Business') }}</div>
+                        <h3>{{ __('Business Track') }}</h3>
+                        <div class="total">{{ __('Earn up to') }} <strong>{{ number_format($rewards['business_total'], 0) }} TZS</strong> {{ __('per referral') }}</div>
+                    </div>
+                    <div class="stage">
+                        <div class="stage-num">1</div>
+                        <div class="stage-body">
+                            <h4>{{ __('Business gets verified') }}</h4>
+                            <p>{{ __('Their Enterprise application is approved by our admin team.') }}</p>
+                            <span class="amt">+ {{ number_format($rewards['b1'], 0) }} TZS</span>
+                        </div>
+                    </div>
+                    <div class="stage">
+                        <div class="stage-num">2</div>
+                        <div class="stage-body">
+                            <h4>{{ __('First completed booking') }}</h4>
+                            <p>{{ __('The business books and pays for its first service.') }}</p>
+                            <span class="amt">+ {{ number_format($rewards['b2'], 0) }} TZS</span>
+                        </div>
+                    </div>
+                    <div class="stage">
+                        <div class="stage-num">3</div>
+                        <div class="stage-body">
+                            <h4>{{ __('Spend :amt TZS within :days days', ['amt' => number_format($rewards['b_thresh'], 0), 'days' => $rewards['b_days']]) }}</h4>
+                            <p>{{ __('Cumulative business bookings reach the threshold.') }}</p>
+                            <span class="amt">+ {{ number_format($rewards['b3'], 0) }} TZS</span>
                         </div>
                     </div>
                 </div>

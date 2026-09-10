@@ -98,10 +98,15 @@
 
 /* ═══ How You Earn — reward schedule ═══ */
 .earn-wrap .how-earn-sub{font-size:13px;color:#6b7280;margin:-4px 0 16px}
-.earn-wrap .tracks{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.earn-wrap .tracks{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media (max-width: 1100px){ .earn-wrap .tracks{grid-template-columns:1fr 1fr} }
 .earn-wrap .track{background:#f8f9fb;border:1px solid #e6e9ef;border-radius:10px;padding:16px}
 .earn-wrap .track-provider{background:linear-gradient(135deg,#fff7ed 0%,#fff 100%);border-color:#fed7aa}
 .earn-wrap .track-client{background:linear-gradient(135deg,#eff6ff 0%,#fff 100%);border-color:#bfdbfe}
+.earn-wrap .track-business{background:linear-gradient(135deg,#f5f3ff 0%,#fff 100%);border-color:#ddd6fe}
+.earn-wrap .track-business .track-tag{color:#6d28d9}
+.earn-wrap .track-business .track-total strong{color:#6d28d9}
+.earn-wrap .track-business .stage-num{background:#8b5cf6;color:#fff;border-color:#8b5cf6}
 .earn-wrap .track-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed #e4e7ec}
 .earn-wrap .track-tag{font-size:13px;font-weight:700;color:#1f2733}
 .earn-wrap .track-total{font-size:11px;color:#8892a0;text-transform:uppercase;letter-spacing:.4px}
@@ -264,8 +269,14 @@
         $r_c_wel = (float) (\App\StaticOption::where('option_name','referral_client_welcome_credit')->value('option_value') ?? 1000);
         $r_c1 = (float) (\App\StaticOption::where('option_name','referral_client_first_booking')->value('option_value') ?? 750);
         $r_c2 = (float) (\App\StaticOption::where('option_name','referral_client_second_booking')->value('option_value') ?? 750);
+        $r_b1 = (float) (\App\StaticOption::where('option_name','referral_stage1_business_amount')->value('option_value') ?? 1000);
+        $r_b2 = (float) (\App\StaticOption::where('option_name','referral_stage2_business_amount')->value('option_value') ?? 4000);
+        $r_b3 = (float) (\App\StaticOption::where('option_name','referral_stage3_business_amount')->value('option_value') ?? 5000);
+        $r_b_thresh = (float) (\App\StaticOption::where('option_name','referral_business_spend_threshold')->value('option_value') ?? 250000);
+        $r_b_days = (int) (\App\StaticOption::where('option_name','referral_business_spend_days')->value('option_value') ?? 90);
         $providerTotal = $r_p1 + $r_p2 + $r_p3;
         $clientTotal   = $r_c1 + $r_c2;
+        $businessTotal = $r_b1 + $r_b2 + $r_b3;
     @endphp
 
     <div class="card-box how-earn">
@@ -327,6 +338,35 @@
                     <div>
                         <div class="stage-title">{{ __('Second booking within 60 days') }}</div>
                         <div class="stage-amt">+ {{ number_format($r_c2, 0) }} TZS</div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Business track --}}
+            <div class="track track-business">
+                <div class="track-hd">
+                    <span class="track-tag">{{ __('Refer a Business') }}</span>
+                    <span class="track-total">{{ __('Up to') }} <strong>{{ number_format($businessTotal, 0) }} TZS</strong></span>
+                </div>
+                <div class="stage">
+                    <span class="stage-num">1</span>
+                    <div>
+                        <div class="stage-title">{{ __('Business gets verified') }}</div>
+                        <div class="stage-amt">+ {{ number_format($r_b1, 0) }} TZS</div>
+                    </div>
+                </div>
+                <div class="stage">
+                    <span class="stage-num">2</span>
+                    <div>
+                        <div class="stage-title">{{ __('First completed booking') }}</div>
+                        <div class="stage-amt">+ {{ number_format($r_b2, 0) }} TZS</div>
+                    </div>
+                </div>
+                <div class="stage">
+                    <span class="stage-num">3</span>
+                    <div>
+                        <div class="stage-title">{{ __('Spend :amt TZS within :days days', ['amt' => number_format($r_b_thresh, 0), 'days' => $r_b_days]) }}</div>
+                        <div class="stage-amt">+ {{ number_format($r_b3, 0) }} TZS</div>
                     </div>
                 </div>
             </div>

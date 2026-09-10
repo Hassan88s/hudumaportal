@@ -118,6 +118,39 @@
                     </div>
                 </div>
 
+                {{-- ═══ Business Rewards ═══ --}}
+                <div class="section-card">
+                    <h4 class="section-hd">{{ __('Business Track') }} <span class="badge system">MAX 10,000 TZS</span></h4>
+                    <p class="section-sub">{{ __('Rewards for referring enterprise/company users. Stage 1 fires when admin approves their Enterprise application. Stage 3 fires when their cumulative spend crosses the threshold within the spend window.') }}</p>
+                    <div class="row-grid">
+                        <div class="form-group">
+                            <label>{{ __('Stage 1 — Enterprise Verified') }} <span class="hint">{{ __('to referrer') }}</span></label>
+                            <div class="input-tzs"><input type="number" step="0.01" name="referral_stage1_business_amount"
+                                class="form-control" value="{{ get_static_option('referral_stage1_business_amount', 1000) }}"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ __('Stage 2 — First Booking') }} <span class="hint">{{ __('to referrer') }}</span></label>
+                            <div class="input-tzs"><input type="number" step="0.01" name="referral_stage2_business_amount"
+                                class="form-control" value="{{ get_static_option('referral_stage2_business_amount', 4000) }}"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ __('Stage 3 — Spend Threshold Reached') }} <span class="hint">{{ __('to referrer') }}</span></label>
+                            <div class="input-tzs"><input type="number" step="0.01" name="referral_stage3_business_amount"
+                                class="form-control" value="{{ get_static_option('referral_stage3_business_amount', 5000) }}"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ __('Stage 3 — Spend Threshold Amount') }} <span class="hint">{{ __('cumulative spend to unlock Stage 3') }}</span></label>
+                            <div class="input-tzs"><input type="number" step="0.01" name="referral_business_spend_threshold"
+                                class="form-control" value="{{ get_static_option('referral_business_spend_threshold', 250000) }}"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ __('Stage 3 — Spend Window') }} <span class="hint">{{ __('rolling window in days') }}</span></label>
+                            <div class="input-days"><input type="number" name="referral_business_spend_days"
+                                class="form-control" value="{{ get_static_option('referral_business_spend_days', 90) }}"></div>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- ═══ System Settings ═══ --}}
                 <div class="section-card">
                     <h4 class="section-hd">{{ __('System Settings') }} <span class="badge system">GLOBAL</span></h4>

@@ -69,12 +69,18 @@ class ReferralController extends Controller
             'c_welcome'  => $s('referral_client_welcome_credit', 1000),
             'c1'         => $s('referral_client_first_booking', 750),
             'c2'         => $s('referral_client_second_booking', 750),
+            'b1'         => $s('referral_stage1_business_amount', 1000),
+            'b2'         => $s('referral_stage2_business_amount', 4000),
+            'b3'         => $s('referral_stage3_business_amount', 5000),
+            'b_thresh'   => $s('referral_business_spend_threshold', 250000),
+            'b_days'     => (int) $s('referral_business_spend_days', 90),
             'prot_days'  => (int) $s('referral_protection_days', 14),
             'min_wd'     => $s('referral_min_withdrawal', 5000),
             'attr_days'  => (int) $s('referral_attribution_days', 30),
         ];
         $rewards['provider_total'] = $rewards['p1'] + $rewards['p2'] + $rewards['p3'];
         $rewards['client_total']   = $rewards['c1'] + $rewards['c2'];
+        $rewards['business_total'] = $rewards['b1'] + $rewards['b2'] + $rewards['b3'];
 
         // Platform trust signals — non-personal aggregate stats.
         $stats = [

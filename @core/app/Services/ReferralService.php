@@ -112,8 +112,13 @@ class ReferralService
         $existing = Referral::where('referred_user_id', $newUser->id)->first();
         if ($existing) return $existing;
 
-        // Determine track (provider = seller = user_type 2, else client)
-        $track = ((int) $newUser->user_type === 2) ? 'provider' : 'client';
+        // Determine track. A user's track can be upgraded later:
+        //   * signs up as a plain buyer → 'client'
+        //   * signs up + already flagged is_company → 'business'
+        //   * signs up as seller (user_type = 2) → 'provider'
+        // Business is usually only detected AFTER Enterprise admin approval;
+        // in that case onBusinessEnterpriseApproved() upgrades the track.
+        $track = $this->detectTrackForUser($newUser);
 
         $referral = Referral::create([
             'referrer_id'        => $newUser->referred_by,
@@ -176,9 +181,99 @@ class ReferralService
         return $referral;
     }
 
+    /**
+     * Given a user, determine which track their referral belongs to.
+     */
+    public function detectTrackForUser(User $user): string
+    {
+        if ((int) $user->user_type === 2) return 'provider';
+        if ((int) ($user->is_company ?? 0) === 1) return 'business';
+        return 'client';
+    }
+
     /* -----------------------------------------------------------------
-     |  Milestone triggers (call from controllers where the event happens)
+     |  Business track triggers
      | ----------------------------------------------------------------- */
+
+    /**
+     * Business Stage 1: fires when a referred user's Enterprise application
+     * is approved by admin. Upgrades the referral track to "business" (if it
+     * was still "client") and credits the referrer with the Stage-1 amount.
+     * Called from EnterpriseAdminController::approve().
+     */
+    public function onBusinessEnterpriseApproved(User $businessUser): void
+    {
+        if (!$this->enabled() || empty($businessUser->referred_by)) return;
+
+        $referral = Referral::where('referred_user_id', $businessUser->id)->first();
+        if (!$referral) return;
+
+        // Upgrade the track — client → business — and mark the milestone.
+        // Note: stage1_at was set on signup, so we don't overwrite it. We use
+        // an idempotency key on the reward so double-approving is safe.
+        if ($referral->track !== 'business') {
+            $referral->update(['track' => 'business']);
+        }
+
+        $amount = (float) $this->opt('referral_stage1_business_amount', 1000);
+        $this->creditReferrerPending($referral, 'stage1_business_verified', $amount,
+            'Referral Bonus (Business Verified)');
+    }
+
+    /**
+     * Business Stage 2: fires when a business (referred user with is_company=1)
+     * completes their first paid booking. Called from the same order flow that
+     * fires onBuyerFirstOrder — this method takes precedence if the buyer is
+     * a business, otherwise the client flow runs.
+     */
+    public function onBusinessFirstOrder(User $businessUser): void
+    {
+        if (!$this->enabled() || empty($businessUser->referred_by)) return;
+
+        $referral = Referral::where('referred_user_id', $businessUser->id)->first();
+        if (!$referral || !empty($referral->stage2_at)) return;
+
+        $count = DB::table('orders')->where('buyer_id', $businessUser->id)->count();
+        if ($count !== 1) return;
+
+        // Ensure track is business (idempotent — safe if already business)
+        if ($referral->track !== 'business') $referral->update(['track' => 'business']);
+        $referral->update(['stage2_at' => now()]);
+
+        $amount = (float) $this->opt('referral_stage2_business_amount', 4000);
+        $this->creditReferrerPending($referral, 'stage2_business_first_order', $amount,
+            'Referral Bonus (Business First Booking)');
+    }
+
+    /**
+     * Business Stage 3: fires when the business's cumulative spend over their
+     * last 90 days (configurable) crosses the threshold (default TZS 250,000).
+     * Idempotent — only fires once per referral.
+     */
+    public function onBusinessSpendCheck(User $businessUser): void
+    {
+        if (!$this->enabled() || empty($businessUser->referred_by)) return;
+
+        $referral = Referral::where('referred_user_id', $businessUser->id)->first();
+        if (!$referral || !empty($referral->stage3_at)) return;
+        if ($referral->track !== 'business') return;
+
+        $threshold = (float) $this->opt('referral_business_spend_threshold', 250000);
+        $days      = (int)   $this->opt('referral_business_spend_days', 90);
+
+        $totalSpend = (float) DB::table('orders')
+            ->where('buyer_id', $businessUser->id)
+            ->where('created_at', '>=', now()->subDays($days))
+            ->sum('total');
+
+        if ($totalSpend < $threshold) return;
+
+        $referral->update(['stage3_at' => now(), 'status' => 'approved']);
+
+        $amount = (float) $this->opt('referral_stage3_business_amount', 5000);
+        $this->creditReferrerPending($referral, 'stage3_business_spend_threshold', $amount,
+            'Referral Bonus (Business Spend Threshold Reached)');
+    }
 
     /**
      * Provider Stage-2: fires when a referred SELLER publishes their first service.
@@ -210,12 +305,21 @@ class ReferralService
     }
 
     /**
-     * Client Stage-2: fires when a referred BUYER places their first paid order.
-     * Called from ServicePaymentController after payment success. Idempotent.
+     * Stage-2 for a buyer's first paid order. Routes to the business track if
+     * the buyer is a verified business (is_company=1); otherwise runs the
+     * client-track flow. Called from ServicePaymentController after payment
+     * success. Idempotent.
      */
     public function onBuyerFirstOrder(User $buyer): void
     {
         if (!$this->enabled() || empty($buyer->referred_by)) return;
+
+        // Business users get their own Stage-2 amount + spend check
+        if ((int) ($buyer->is_company ?? 0) === 1) {
+            $this->onBusinessFirstOrder($buyer);
+            $this->onBusinessSpendCheck($buyer); // may also fire Stage 3 in the same request
+            return;
+        }
 
         $referral = Referral::where('referred_user_id', $buyer->id)->first();
         if (!$referral || !empty($referral->stage2_at)) return;

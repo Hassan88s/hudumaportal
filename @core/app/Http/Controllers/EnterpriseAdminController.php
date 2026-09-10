@@ -22,6 +22,21 @@ class EnterpriseAdminController extends Controller
             \DB::table('users')
         ->where('id', $enterprise->user_id)
         ->update(['is_company' => 1]);
+
+        // Rafiki Rewards — fire Business Stage 1 if this newly-approved
+        // business was originally referred by someone. Safe to call even if
+        // they weren't referred; the service returns early.
+        try {
+            $businessUser = \App\User::find($enterprise->user_id);
+            if ($businessUser) {
+                app(\App\Services\ReferralService::class)->onBusinessEnterpriseApproved($businessUser);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('[Rafiki Rewards] business Stage 1 hook failed: '.$e->getMessage(), [
+                'enterprise_id' => $enterprise->id,
+            ]);
+        }
+
         // Send Approval Email
         Mail::to($enterprise->enterprise_email)->send(new \App\Mail\EnterpriseApprovedMail($enterprise));
          toastr_success(__('Enterprise Approved Successfully!'));
