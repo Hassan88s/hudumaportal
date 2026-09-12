@@ -51,26 +51,31 @@ class PublicLeaderboardController extends Controller
             ->limit(20)
             ->get();
 
-        // ── TOP CITIES ──
-        $topCities = DB::table('referrals')
-            ->select(
-                'service_cities.id',
-                'service_cities.name as city_name',
-                DB::raw('COUNT(*) as ref_count')
-            )
-            ->join('users', 'users.id', '=', 'referrals.referrer_id')
-            ->leftJoin('service_cities', 'service_cities.id', '=', 'users.service_city')
-            ->where($baseFilter)
-            ->when($since, fn ($q) => $q->where('referrals.created_at', '>=', $since))
-            ->whereNotNull('users.service_city')
-            ->groupBy('service_cities.id', 'service_cities.name')
-            ->orderByDesc('ref_count')
-            ->limit(15)
-            ->get();
+        // ── TOP CITIES ── (only computed when the cities tab is showing;
+        //   the tab is hidden in the current UI so this is skipped in prod.
+        //   ServiceCity's label column is named `service_city`, not `name`.)
+        $topCities = collect();
+        if ($tab === 'cities') {
+            $topCities = DB::table('referrals')
+                ->select(
+                    'service_cities.id',
+                    'service_cities.service_city as city_name',
+                    DB::raw('COUNT(*) as ref_count')
+                )
+                ->join('users', 'users.id', '=', 'referrals.referrer_id')
+                ->leftJoin('service_cities', 'service_cities.id', '=', 'users.service_city')
+                ->where($baseFilter)
+                ->when($since, fn ($q) => $q->where('referrals.created_at', '>=', $since))
+                ->whereNotNull('users.service_city')
+                ->groupBy('service_cities.id', 'service_cities.service_city')
+                ->orderByDesc('ref_count')
+                ->limit(15)
+                ->get();
+        }
 
-        // ── TOP UNIVERSITIES ── (only if the column exists)
+        // ── TOP UNIVERSITIES ── (only when tab is active AND column exists)
         $topUnis = collect();
-        if (Schema::hasColumn('users', 'university')) {
+        if ($tab === 'universities' && Schema::hasColumn('users', 'university')) {
             $topUnis = DB::table('referrals')
                 ->select(
                     'users.university',
