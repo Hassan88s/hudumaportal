@@ -272,6 +272,14 @@ class SellerController extends Controller
 
             toastr_success(__('Profile Update Success---'));
 
+            // Rafiki Rewards (PDF §05) — try Provider Stage 1 now that profile
+            // just changed. Fires only if all verification checks pass; no-op
+            // if profile still incomplete or no approved service exists yet.
+            try {
+                $u = Auth::guard('web')->user();
+                if ($u) app(\App\Services\ReferralService::class)->onProviderProfileComplete($u);
+            } catch (\Throwable $e) { \Log::warning('[Rafiki Rewards] provider stage1 hook: '.$e->getMessage()); }
+
             $user_info = Auth::guard('web')->user();
             if ($user_info->user_type === 0) {
                 Service::where('seller_id', $user_info->id)->update(['service_city_id' => $request->service_city]);
@@ -1157,7 +1165,13 @@ class SellerController extends Controller
     // NEW: Provider Stage-2 reward (first service published) via ReferralService.
     // Idempotent + tracks referrals.stage2_at. Preserves legacy wallet-credit behaviour.
     if ($user) {
-        app(\App\Services\ReferralService::class)->onSellerFirstService($user);
+        $rs = app(\App\Services\ReferralService::class);
+        $rs->onSellerFirstService($user);
+        // PDF §05: also try Provider Stage 1 — will fire only when profile+
+        // approved service both exist. First-service call above may create an
+        // unapproved service, so this call is usually a no-op until admin
+        // approves the service (approval hook calls this again).
+        $rs->onProviderProfileComplete($user);
     }
             // end
             $last_service_id = DB::getPdo()->lastInsertId();

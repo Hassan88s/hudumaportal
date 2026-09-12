@@ -23,6 +23,11 @@ Route::get('/referral', 'Frontend\ReferralController@publicLanding')
     ->middleware(['web', 'globalVariable', 'setlang'])
     ->name('referral.public');
 
+// Rafiki Rewards — public leaderboard (Top Referrers · Cities · University League)
+Route::get('/leaderboard', 'Frontend\PublicLeaderboardController@index')
+    ->middleware(['web', 'globalVariable', 'setlang'])
+    ->name('referral.leaderboard.public');
+
 // frontend starts
 Route::group(['middleware' => ['globalVariable', 'maintains_mode','setlang']], function () {
 

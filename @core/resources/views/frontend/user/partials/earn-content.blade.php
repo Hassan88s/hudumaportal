@@ -49,6 +49,27 @@
 .earn-wrap .btn-outline{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;background:#fff;color:#1f2733;border:1px solid #d1d5db;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;align-self:flex-start;transition:all .15s}
 .earn-wrap .btn-outline:hover{background:#1f2733;color:#fff;border-color:#1f2733}
 
+/* Rafiki Level card */
+.earn-wrap .level-card{background:#fff;border:1px solid #eef0f3;border-radius:14px;padding:20px 22px;margin-bottom:22px;position:relative;overflow:hidden}
+.earn-wrap .level-card.level-rafiki{border-color:#e4e7ec}
+.earn-wrap .level-card.level-balozi{background:linear-gradient(135deg,#fef3c7 0%,#fff 60%);border-color:#fde68a}
+.earn-wrap .level-card.level-super{background:linear-gradient(135deg,#e0e7ff 0%,#fff 60%);border-color:#c7d2fe}
+.earn-wrap .level-card.level-champion{background:linear-gradient(135deg,#ff8a54 0%,#ff6b3d 100%);border-color:transparent;color:#fff}
+.earn-wrap .level-card.level-champion .level-tag,.earn-wrap .level-card.level-champion .level-hint,.earn-wrap .level-card.level-champion .level-count-l{color:rgba(255,255,255,.9)}
+.earn-wrap .level-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.earn-wrap .level-tag{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#8892a0;font-weight:700;margin-bottom:4px}
+.earn-wrap .level-name{font-size:22px;font-weight:800;color:#1f2733;letter-spacing:-.3px}
+.earn-wrap .level-card.level-champion .level-name{color:#fff}
+.earn-wrap .level-count{text-align:right}
+.earn-wrap .level-count-n{font-size:26px;font-weight:800;color:#1f2733;line-height:1}
+.earn-wrap .level-card.level-champion .level-count-n{color:#fff}
+.earn-wrap .level-count-l{font-size:11px;color:#8892a0;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.earn-wrap .level-bar-wrap{height:10px;background:rgba(0,0,0,.06);border-radius:999px;overflow:hidden;margin-bottom:10px}
+.earn-wrap .level-card.level-champion .level-bar-wrap{background:rgba(255,255,255,.25)}
+.earn-wrap .level-bar{height:100%;background:linear-gradient(90deg,#ff8a54,#ff6b3d);border-radius:999px;transition:width .4s}
+.earn-wrap .level-card.level-champion .level-bar{background:#fff}
+.earn-wrap .level-hint{font-size:13px;color:#6b7280;font-weight:600}
+
 /* Flash messages */
 .earn-wrap .flash{padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:16px}
 .earn-wrap .flash-ok{background:#d1fae5;color:#065f46;border:1px solid #10b981}
@@ -62,6 +83,16 @@
 .earn-wrap .share-row .copy-btn{padding:11px 18px;background:#1f2733;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;transition:background .15s}
 .earn-wrap .share-row .copy-btn:hover{background:#0f1520}
 .earn-wrap .share-row .copy-btn.copied{background:#10b981}
+
+/* Message picker (PDF §15 — Swahili + English variants) */
+.earn-wrap .msg-picker{margin-bottom:14px}
+.earn-wrap .msg-picker-label{font-size:12px;font-weight:600;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px}
+.earn-wrap .msg-picker-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.earn-wrap .msg-tab{padding:6px 14px;font-size:12px;font-weight:600;background:#fff;border:1px solid #d1d5db;color:#374151;border-radius:999px;cursor:pointer;transition:all .15s}
+.earn-wrap .msg-tab:hover{border-color:#ff8a54;color:#ff6b3d}
+.earn-wrap .msg-tab.active{background:#ff8a54;color:#fff;border-color:#ff8a54}
+.earn-wrap .msg-preview{width:100%;min-height:80px;padding:10px 12px;font-size:12px;font-family:inherit;line-height:1.5;color:#374151;background:#f8f9fb;border:1px solid #e4e7ec;border-radius:8px;resize:vertical}
+.earn-wrap .msg-preview:focus{outline:none;border-color:#ff8a54;background:#fff}
 
 .earn-wrap .share-chips{display:flex;flex-wrap:wrap;gap:8px}
 .earn-wrap .share-chips a{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;text-decoration:none;font-size:13px;font-weight:600;border:1px solid #e4e7ec;color:#1f2733;background:#fff;transition:all .15s}
@@ -175,6 +206,43 @@
         </div>
     </div>
 
+    {{-- ═══ RAFIKI LEVEL + NEXT MILESTONE (PDF §11, §12) ═══ --}}
+    @php
+        $refCount = (int) $stats['referred'];
+        $levels = [
+            ['name' => 'RAFIKI',          'min' => 0,  'max' => 4,  'class' => 'rafiki'],
+            ['name' => 'BALOZI',          'min' => 5,  'max' => 14, 'class' => 'balozi'],
+            ['name' => 'SUPER BALOZI',    'min' => 15, 'max' => 49, 'class' => 'super'],
+            ['name' => 'HUDUMA CHAMPION', 'min' => 50, 'max' => null,'class' => 'champion'],
+        ];
+        $currentLevel = collect($levels)->first(fn ($l) => $refCount >= $l['min'] && ($l['max'] === null || $refCount <= $l['max']));
+        $nextLevel    = collect($levels)->first(fn ($l) => $l['min'] > $refCount);
+        $needed       = $nextLevel ? $nextLevel['min'] - $refCount : 0;
+        $progressPct  = $nextLevel ? min(100, ($refCount / $nextLevel['min']) * 100) : 100;
+    @endphp
+    <div class="level-card level-{{ $currentLevel['class'] }}">
+        <div class="level-hd">
+            <div>
+                <div class="level-tag">{{ __('Your Rafiki Level') }}</div>
+                <div class="level-name">{{ $currentLevel['name'] }}</div>
+            </div>
+            <div class="level-count">
+                <div class="level-count-n">{{ $refCount }}</div>
+                <div class="level-count-l">{{ __('referrals') }}</div>
+            </div>
+        </div>
+        <div class="level-bar-wrap">
+            <div class="level-bar" style="width:{{ $progressPct }}%"></div>
+        </div>
+        <div class="level-hint">
+            @if($nextLevel)
+                {{ __(':needed more :count to become :level', ['needed' => $needed, 'count' => $needed === 1 ? __('referral') : __('referrals'), 'level' => $nextLevel['name']]) }}
+            @else
+                {{ __('You have reached the top level! Keep referring to stay at the top.') }}
+            @endif
+        </div>
+    </div>
+
     {{-- ═══ TWO-WALLET SUMMARY ═══ --}}
     <div class="wallet-grid">
         <div class="wallet-card wallet-ref">
@@ -228,27 +296,78 @@
             <button type="button" class="copy-btn" data-copy="{{ $shareCode }}">{{ __('Copy code') }}</button>
         </div>
 
+        {{-- ═══ Message variants (PDF §15) — pick one, all share pre-populate the WhatsApp text ═══ --}}
+        @php
+            $welcomeAmt = number_format((float) (\App\StaticOption::where('option_name','referral_client_welcome_credit')->value('option_value') ?? 1000), 0);
+            $providerMax = number_format((float) (\App\StaticOption::where('option_name','referral_stage1_provider_amount')->value('option_value') ?? 500) + (float) (\App\StaticOption::where('option_name','referral_stage2_provider_cash')->value('option_value') ?? 1000) + (float) (\App\StaticOption::where('option_name','referral_stage3_provider_amount')->value('option_value') ?? 1500), 0);
+            $messages = [
+                'general' => [
+                    'label' => __('General'),
+                    'text'  => __('Nimeanza kutumia HudumaPortal kupata huduma na fursa za kazi. Jiunge kupitia link yangu na upate faida za kuanza. / I use Huduma Portal to find services and job opportunities. Join through my link and get welcome benefits: :url', ['url' => $shareUrl]),
+                ],
+                'provider' => [
+                    'label' => __('For freelancers'),
+                    'text'  => __('Una ujuzi au biashara ya huduma? Jiunge HudumaPortal, tangaza huduma zako na pata wateja. Tumia link yangu: :url / Have skills or a service business? Join Huduma Portal, list your services, and get customers. Use my link: :url', ['url' => $shareUrl]),
+                ],
+                'client' => [
+                    'label' => __('For clients'),
+                    'text'  => __('Unatafuta fundi au mtoa huduma? Angalia HudumaPortal kupitia link yangu na upate :amt TZS welcome credit: :url / Looking for a professional? Check out Huduma Portal via my link and get :amt TZS welcome credit: :url', ['amt' => $welcomeAmt, 'url' => $shareUrl]),
+                ],
+            ];
+            $defaultMsg = $messages['general']['text'];
+        @endphp
+        <div class="msg-picker">
+            <div class="msg-picker-label">{{ __('Pick a message:') }}</div>
+            <div class="msg-picker-tabs">
+                @foreach($messages as $key => $m)
+                    <button type="button" class="msg-tab {{ $key === 'general' ? 'active' : '' }}" data-msg-key="{{ $key }}">{{ $m['label'] }}</button>
+                @endforeach
+            </div>
+            <textarea class="msg-preview" id="shareMsgText" readonly onclick="this.select()">{{ $defaultMsg }}</textarea>
+        </div>
+
         <div class="share-chips">
-            <a class="wa" target="_blank" rel="noopener"
-               href="https://wa.me/?text={{ urlencode(__('Join me on Huduma Portal and get :amt TZS welcome credit — use my link: :url', ['amt' => number_format((float) (\App\StaticOption::where('option_name','referral_client_welcome_credit')->value('option_value') ?? 1000), 0), 'url' => $shareUrl])) }}">
+            <a class="wa" id="shareWa" target="_blank" rel="noopener"
+               href="https://wa.me/?text={{ urlencode($defaultMsg) }}">
                 <i class="la la-whatsapp"></i> {{ __('WhatsApp') }}
             </a>
             <a class="fb" target="_blank" rel="noopener"
                href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($shareUrl) }}">
                 <i class="la la-facebook"></i> {{ __('Facebook') }}
             </a>
-            <a target="_blank" rel="noopener"
-               href="https://twitter.com/intent/tweet?text={{ urlencode(__('Join me on Huduma Portal — ') . $shareUrl) }}">
+            <a id="shareTw" target="_blank" rel="noopener"
+               href="https://twitter.com/intent/tweet?text={{ urlencode($defaultMsg) }}">
                 <i class="la la-twitter"></i> X / Twitter
             </a>
-            <a target="_blank" rel="noopener"
-               href="mailto:?subject={{ urlencode(__('Join Huduma Portal')) }}&body={{ urlencode(__('Sign up using my link and get :amt TZS credit: :url', ['amt' => number_format((float) (\App\StaticOption::where('option_name','referral_client_welcome_credit')->value('option_value') ?? 1000), 0), 'url' => $shareUrl])) }}">
+            <a id="shareMail" target="_blank" rel="noopener"
+               href="mailto:?subject={{ urlencode(__('Join Huduma Portal')) }}&body={{ urlencode($defaultMsg) }}">
                 <i class="la la-envelope"></i> {{ __('Email') }}
             </a>
             <a class="qr" href="#" onclick="event.preventDefault(); document.getElementById('qrBox').style.display='block';">
                 <i class="la la-qrcode"></i> {{ __('QR Code') }}
             </a>
         </div>
+
+        {{-- Inline JS to swap the active message + rebuild share URLs when a tab is clicked --}}
+        <script>
+        (function(){
+            var messages = {!! json_encode(array_map(fn ($m) => $m['text'], $messages)) !!};
+            var textarea = document.getElementById('shareMsgText');
+            var subject = @json(__('Join Huduma Portal'));
+            document.querySelectorAll('.msg-tab').forEach(function(btn){
+                btn.addEventListener('click', function(){
+                    document.querySelectorAll('.msg-tab').forEach(function(b){ b.classList.remove('active'); });
+                    btn.classList.add('active');
+                    var key = btn.getAttribute('data-msg-key');
+                    var text = messages[key];
+                    textarea.value = text;
+                    document.getElementById('shareWa').href   = 'https://wa.me/?text=' + encodeURIComponent(text);
+                    document.getElementById('shareTw').href   = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+                    document.getElementById('shareMail').href = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(text);
+                });
+            });
+        })();
+        </script>
 
         <div class="qr-box" id="qrBox">
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($shareUrl) }}" alt="QR Code">

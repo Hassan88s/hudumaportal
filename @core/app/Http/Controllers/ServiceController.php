@@ -151,6 +151,18 @@ class ServiceController extends Controller
         $service_seller_email = optional($service->seller)->email;
         $service_seller_name = optional($service->seller)->username;
         $service_status = Service::select('status')->where('id', $id)->first();
+
+        // Rafiki Rewards (PDF §05) — when a service is approved, the referred
+        // provider may have just completed the verification gate; try to fire
+        // Provider Stage 1. Idempotent — no-op if already fired or if profile
+        // still incomplete.
+        if ($service_status->status == 1) {
+            try {
+                $seller = \App\User::find($service->seller_id);
+                if ($seller) app(\App\Services\ReferralService::class)->onProviderProfileComplete($seller);
+            } catch (\Throwable $e) { \Log::warning('[Rafiki Rewards] provider stage1 (service approve): '.$e->getMessage()); }
+        }
+
         if($service_status->status == 1){
             try {
                 $message = get_static_option('admin_service_approve_message') ?? '';

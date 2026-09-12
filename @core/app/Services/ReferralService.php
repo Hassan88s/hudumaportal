@@ -152,17 +152,29 @@ class ReferralService
             \Log::warning('[Rafiki Rewards] fraud detection failed: '.$e->getMessage(), ['referral_id' => $referral->id]);
         }
 
-        // Stage-1 pending reward (uses legacy sign_up_points for backward-compat if new key missing)
-        $amount = $track === 'provider'
-            ? $this->opt('referral_stage1_provider_amount', $this->opt('sign_up_points', 500))
-            : $this->opt('sign_up_points', 100);
+        // Stage-1 pending reward.
+        //   PDF §05: for the provider track, the reward should only fire after
+        //   the referred user completes profile + publishes an approved service.
+        //   If the admin toggle "referral_provider_stage1_requires_verified" is
+        //   ON (default 1), we skip the reward here for providers — it will
+        //   fire later from onProviderProfileComplete() once the milestones
+        //   are met. Client / business tracks still get the signup credit here
+        //   because those tracks do not have a profile-verification step.
+        $skipProviderStage1 = ((int) $this->opt('referral_provider_stage1_requires_verified', 1) === 1)
+            && $track === 'provider';
 
-        $this->creditReferrerPending(
-            $referral,
-            'stage1_signup',
-            (float) $amount,
-            'Referral Bonus (Sign-up)'
-        );
+        if (!$skipProviderStage1) {
+            $amount = $track === 'provider'
+                ? $this->opt('referral_stage1_provider_amount', $this->opt('sign_up_points', 500))
+                : $this->opt('sign_up_points', 100);
+
+            $this->creditReferrerPending(
+                $referral,
+                'stage1_signup',
+                (float) $amount,
+                'Referral Bonus (Sign-up)'
+            );
+        }
 
         // Client welcome credit (given to the NEW client, not the referrer)
         if ($track === 'client') {
@@ -189,6 +201,66 @@ class ReferralService
         if ((int) $user->user_type === 2) return 'provider';
         if ((int) ($user->is_company ?? 0) === 1) return 'business';
         return 'client';
+    }
+
+    /* -----------------------------------------------------------------
+     |  Provider Stage 1 — PDF §05 (gated on profile completion)
+     | ----------------------------------------------------------------- */
+
+    /**
+     * Provider Stage 1: fires when a referred provider has met the PDF §05
+     * verification criteria:
+     *   - phone number set (email or phone verified is a proxy)
+     *   - profile ~80% complete (name + phone + service_city + service_area
+     *     + profile_image are all set)
+     *   - at least one service published AND approved (services.status = 1)
+     *
+     * Safe to call blind — the method self-checks all preconditions, is
+     * idempotent (event `stage1_provider_verified` locks per referral), and
+     * returns early if the reward already fired.
+     *
+     * Call from:
+     *   - SellerController::sellerProfileEdit after saving profile
+     *   - Wherever admin approves a service (services.status flipped to 1)
+     */
+    public function onProviderProfileComplete(User $seller): void
+    {
+        if (!$this->enabled() || empty($seller->referred_by)) return;
+        if ((int) $seller->user_type !== 2) return; // provider track only
+
+        $referral = Referral::where('referred_user_id', $seller->id)->first();
+        if (!$referral || !empty($referral->stage1_at)) return;
+
+        // Verification checks (PDF §05).
+        //   - profile: name + phone + city + area + profile image populated
+        //   - service: at least one row in services with status=1 (approved)
+        $profileComplete = !empty($seller->name)
+            && !empty($seller->phone)
+            && !empty($seller->service_city)
+            && !empty($seller->service_area)
+            && !empty($seller->image);
+
+        if (!$profileComplete) return;
+
+        $approvedServiceExists = DB::table('services')
+            ->where('seller_id', $seller->id)
+            ->where('status', 1)
+            ->exists();
+
+        if (!$approvedServiceExists) return;
+
+        // All checks passed — mark the milestone and credit the referrer.
+        $referral->update(['stage1_at' => now(), 'track' => 'provider']);
+
+        $amount = (float) $this->opt('referral_stage1_provider_amount',
+            $this->opt('sign_up_points', 500));
+
+        $this->creditReferrerPending(
+            $referral,
+            'stage1_provider_verified',
+            $amount,
+            'Referral Bonus (Provider Verified — Profile + Approved Service)'
+        );
     }
 
     /* -----------------------------------------------------------------
