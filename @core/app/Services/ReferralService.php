@@ -218,7 +218,16 @@ class ReferralService
     {
         try {
             if (function_exists('notifySeller')) {
-                notifySeller($referrerId, $push, $sms, ['event' => 'rafiki_' . $type]);
+                // The `type => gernalnotifications` key is REQUIRED so the buyer
+                // and seller header partials render this notification through
+                // the safe "general" branch. Without it they try to route to
+                // buyer.support.ticket.view with a non-existent last_ticket_id
+                // and crash the whole header — a pre-existing platform bug.
+                notifySeller($referrerId, $push, $sms, [
+                    'type'    => 'gernalnotifications',
+                    'details' => $push,
+                    'event'   => 'rafiki_' . $type,
+                ]);
             }
         } catch (\Throwable $e) {
             \Log::warning('[Rafiki Rewards] notify failed: ' . $e->getMessage(), [
