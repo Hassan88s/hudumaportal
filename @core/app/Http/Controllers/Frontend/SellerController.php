@@ -3040,14 +3040,25 @@ class SellerController extends Controller
                 );       
                 
             } catch (\Exception $e) {
-              
+
                 return redirect()->back()->with(FlashMsg::item_new($e->getMessage()));
             }
         toastr_success(__('Service order successfully Active .'));
+
+        // Rafiki Rewards — PDF §16: strongest referral moment for a provider
+        // is when they receive/accept a real booking. Prompt them to invite
+        // other skilled workers.
+        session()->flash('refer_prompt', [
+            'title'   => __('Hongera! Umepata booking.'),
+            'body'    => __('Unamjua mtu mwingine mwenye ujuzi? Mwalike na upate hadi TZS 3,000. / Know other skilled people? Invite them and earn up to TZS 3,000 per verified referral.'),
+            'emoji'   => '👏',
+            'context' => 'seller_order_accepted',
+        ]);
+
         return redirect()->back();
     }
-       
-        
+
+
         ///time Extension
         public function RequestTimeExtension(Request $request){
                     

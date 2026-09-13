@@ -14,3 +14,7 @@
     </div>
 </div>
 @include('frontend.user.seller.partials.footer-two')
+
+{{-- Rafiki Rewards — Share Prompt Modal (PDF §16, §18). Triggered by
+     session flash 'refer_prompt' set from happy-moment controllers. --}}
+@include('frontend.partials.referral-share-prompt')
