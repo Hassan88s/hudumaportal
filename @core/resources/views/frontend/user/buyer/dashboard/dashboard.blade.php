@@ -28,6 +28,42 @@
                     </div>
                 </div>
 
+                {{-- Rafiki Rewards — Post-Registration Onboarding Prompt (PDF §34, §35).
+                     Shows only after 24h from signup (so the user has experienced the
+                     platform first per the PDF), only when they have zero referrals,
+                     and dismisses via a 30-day cookie so it never nags twice. --}}
+                @php
+                    $u = Auth::user();
+                    $hoursSinceJoin = $u && $u->created_at ? $u->created_at->diffInHours(now()) : 0;
+                    $myRefCount = \App\Referral::where('referrer_id', optional($u)->id)->count();
+                    $showOnboard = $u && !empty($u->referral_code) && $hoursSinceJoin >= 24 && $myRefCount === 0;
+                @endphp
+                @if($showOnboard)
+                    <div class="rafiki-onboard" id="rafikiOnboardBanner" style="display:none;background:linear-gradient(135deg,#ff8a54,#ff6b3d);color:#fff;padding:18px 22px;border-radius:12px;margin-bottom:20px;position:relative;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;box-shadow:0 6px 20px rgba(255,107,61,.25)">
+                        <button type="button" onclick="rafikiDismissOnboard()" aria-label="Close" style="position:absolute;top:8px;right:10px;background:rgba(255,255,255,.2);color:#fff;border:none;width:26px;height:26px;border-radius:50%;font-size:15px;line-height:1;cursor:pointer">×</button>
+                        <div style="flex:1;min-width:220px">
+                            <div style="font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;opacity:.9;margin-bottom:4px">{{ __('Rafiki Rewards') }}</div>
+                            <div style="font-size:17px;font-weight:800;margin-bottom:4px">{{ __('Want to earn from Huduma Portal?') }}</div>
+                            <div style="font-size:13px;opacity:.92;line-height:1.5">{{ __('Invite friends who need services or want customers. Earn up to TZS 3,000 per qualifying provider referral.') }}</div>
+                        </div>
+                        <div style="display:flex;gap:10px;flex-shrink:0">
+                            <a href="{{ route('buyer.earn') }}" style="background:#fff;color:#ff6b3d;padding:11px 20px;border-radius:10px;font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,.1)">{{ __('Start Earning') }} →</a>
+                        </div>
+                    </div>
+                    <script>
+                    (function(){
+                        var key='rafiki_onboard_dismissed';
+                        function has(){return document.cookie.split('; ').some(function(x){return x.indexOf(key+'=')===0})}
+                        if(!has()) document.getElementById('rafikiOnboardBanner').style.display='flex';
+                        window.rafikiDismissOnboard=function(){
+                            var d=new Date();d.setDate(d.getDate()+30);
+                            document.cookie=key+'=1; expires='+d.toUTCString()+'; path=/';
+                            var b=document.getElementById('rafikiOnboardBanner');if(b)b.style.display='none';
+                        };
+                    })();
+                    </script>
+                @endif
+
                 {{-- Referral (short share widget — full dashboard lives at /buyer/earn) --}}
                 @if(!empty(Auth::user()->referral_code))
                 <div class="d-referral">

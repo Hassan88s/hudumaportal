@@ -176,6 +176,17 @@ class ReferralService
             );
         }
 
+        // Notify the referrer that someone joined via their link (PDF §17).
+        // Uses the existing notifySeller() helper — works for any user type
+        // despite the name (it dispatches an in-app notification and falls
+        // back to SMS if the user is offline).
+        $this->notifyReferrer(
+            $referral->referrer_id,
+            __(':name joined using your referral link!', ['name' => $newUser->name]),
+            __(':name amejiunga na HudumaPortal kupitia link yako! / :name joined via your link. Watch their progress in your Earn dashboard.', ['name' => $newUser->name]),
+            'referral_signup'
+        );
+
         // Client welcome credit (given to the NEW client, not the referrer)
         if ($track === 'client') {
             $welcome = (float) $this->opt('referral_client_welcome_credit', 0);
@@ -191,6 +202,29 @@ class ReferralService
         }
 
         return $referral;
+    }
+
+    /**
+     * Fire an in-app notification (with SMS fallback) to the referrer for
+     * one of the key referral events (PDF §17). Wrapped in try/catch so a
+     * notification failure never breaks the reward flow.
+     *
+     * @param  int    $referrerId
+     * @param  string $push  short in-app / push message
+     * @param  string $sms   full SMS body (used if user is offline)
+     * @param  string $type  event slug (referral_signup / reward_unlocked / etc)
+     */
+    public function notifyReferrer(int $referrerId, string $push, string $sms, string $type = 'referral'): void
+    {
+        try {
+            if (function_exists('notifySeller')) {
+                notifySeller($referrerId, $push, $sms, ['event' => 'rafiki_' . $type]);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('[Rafiki Rewards] notify failed: ' . $e->getMessage(), [
+                'referrer_id' => $referrerId, 'type' => $type,
+            ]);
+        }
     }
 
     /**
@@ -467,7 +501,7 @@ class ReferralService
 
         $protectionDays = (int) $this->opt('referral_protection_days', 14);
 
-        return ReferralReward::create([
+        $reward = ReferralReward::create([
             'referral_id'        => $referral->id,
             'user_id'            => $referral->referrer_id,
             'event'              => $event,
@@ -481,6 +515,20 @@ class ReferralService
             'created_at'         => now(),
             'updated_at'         => now(),
         ]);
+
+        // Notify the referrer that a reward was unlocked (PDF §17).
+        // Skip Stage-1 signup here because attachReferralOnSignup already
+        // sends a "joined via your link" notification for that moment.
+        if ($event !== 'stage1_signup') {
+            $this->notifyReferrer(
+                (int) $referral->referrer_id,
+                __('Congratulations! You have earned :amt TZS.', ['amt' => number_format($amount, 0)]),
+                __('Hongera! Umepata :amt TZS ya rufaa. / Congratulations! You just earned :amt TZS in referral rewards. Check your Earn dashboard.', ['amt' => number_format($amount, 0)]),
+                'reward_unlocked'
+            );
+        }
+
+        return $reward;
     }
 
     /**

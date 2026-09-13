@@ -68,6 +68,17 @@ class ServiceListController extends Controller
     public function order_payment_success($id)
     {
         $order_details = Order::find(substr($id,30,-30));
+
+        // Rafiki Rewards — PDF §16 & §18. After a booking is paid, prompt
+        // the buyer to share Huduma Portal with a friend. Dismissal is
+        // cookie-tracked so the same buyer isn't prompted twice.
+        session()->flash('refer_prompt', [
+            'title'   => __('Booking Confirmed — Share the love!'),
+            'body'    => __('Umefanya booking. Msaidie rafiki yako kupata mtoa huduma mzuri pia — pata TZS 750 wanapofanya booking yao ya kwanza.'),
+            'emoji'   => '🎉',
+            'context' => 'booking_confirmed',
+        ]);
+
         return view('frontend.payment.payment-success')->with(['order_details' => $order_details]);
     }
          

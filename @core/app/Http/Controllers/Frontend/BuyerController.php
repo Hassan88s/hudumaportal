@@ -1122,6 +1122,18 @@ class BuyerController extends Controller
             ]);
             if($review){
                 toastr_success(__('Review Added Success---'));
+
+                // Rafiki Rewards — PDF §16: strongest referral moment is a
+                // happy customer. If they gave 4-5 stars, prompt them to share.
+                if ((int) $request->rating >= 4) {
+                    session()->flash('refer_prompt', [
+                        'title'   => __('Thanks for the review!'),
+                        'body'    => __('Umefurahia huduma? Msaidie rafiki yako kupata mtoa huduma mzuri pia — pata TZS 750 wanapofanya booking.'),
+                        'emoji'   => '⭐',
+                        'context' => 'positive_review',
+                    ]);
+                }
+
                 return redirect()->back();
             }
         }
