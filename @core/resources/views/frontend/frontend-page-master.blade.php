@@ -20,4 +20,11 @@
     </div>
 @endif
 @yield('content')
+
+{{-- Rafiki Rewards — Share Prompt Modal (PDF §16, §18). Triggered by
+     session flash 'refer_prompt' set from happy-moment controllers. --}}
+@auth
+    @include('frontend.partials.referral-share-prompt')
+@endauth
+
 @include('frontend.partials.footer')
