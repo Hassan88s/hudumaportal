@@ -89,7 +89,7 @@
                         <div class="avatar"><img src="{{ $avatarFor($row) }}" alt="{{ $row->name }}"></div>
                         <div class="who">
                             <a href="{{ url('/'.$row->username) }}" class="name">{{ $row->name ?? '—' }}</a>
-                            <div class="meta">@{{ $row->username ?? '' }}</div>
+                            <div class="meta">{{ '@'.($row->username ?? '') }}</div>
                         </div>
                         <div class="score">{{ number_format($row->completed_orders) }}<small>{{ __('Completed') }}</small></div>
                         <a href="{{ url('/'.$row->username) }}" class="btn-view">{{ __('View Profile') }} →</a>
