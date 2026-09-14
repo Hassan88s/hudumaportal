@@ -21,30 +21,15 @@
 
     .ts-body{padding:0 0 60px;margin-top:-40px;position:relative;z-index:2}
 
-    /* Podium (top 3) */
-    .ts-podium{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:16px;margin-bottom:24px;align-items:end}
-    .ts-podium .pod{background:#fff;border-radius:16px;padding:24px 18px 22px;text-align:center;border:1px solid #eef0f3;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.06)}
-    .ts-podium .pod .rank{position:absolute;top:14px;left:14px;width:32px;height:32px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#1f2733;box-shadow:0 2px 6px rgba(0,0,0,.15)}
-    .ts-podium .pod.p1{background:linear-gradient(180deg,#fbbf24 0%,#fde68a 45%,#fff 100%);border-color:#fde68a;transform:scale(1.05);padding:30px 20px 28px}
-    .ts-podium .pod.p2{background:linear-gradient(180deg,#9ca3af 0%,#e5e7eb 45%,#fff 100%);border-color:#e5e7eb}
-    .ts-podium .pod.p3{background:linear-gradient(180deg,#fb923c 0%,#fed7aa 45%,#fff 100%);border-color:#fed7aa}
-    .ts-podium .medal{font-size:34px;margin-bottom:8px}
-    .ts-podium .avatar{width:80px;height:80px;border-radius:50%;background:#fff;border:4px solid #fff;box-shadow:0 6px 16px rgba(0,0,0,.15);overflow:hidden;margin:0 auto 10px}
-    .ts-podium .avatar img{width:100%;height:100%;object-fit:cover;display:block}
-    .ts-podium .name{font-weight:800;font-size:17px;color:#1f2733;margin:0 0 3px;text-decoration:none}
-    .ts-podium .name:hover{color:#ff6b3d}
-    .ts-podium .username{font-size:11px;color:#6b7280;margin-bottom:10px}
-    .ts-podium .score{font-size:26px;font-weight:800;color:#1f2733}
-    .ts-podium .score small{font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.4px;display:block;margin-top:2px}
-
-    /* List (ranks 4-100) */
+    /* Ranked list */
     .ts-list{background:#fff;border:1px solid #eef0f3;border-radius:16px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.04)}
-    .ts-list-row{display:grid;grid-template-columns:60px 60px 1fr auto auto;gap:14px;align-items:center;padding:12px 20px;border-bottom:1px solid #f2f4f7;transition:background .15s}
+    .ts-list-row{display:grid;grid-template-columns:70px 60px 1fr auto auto;gap:14px;align-items:center;padding:14px 22px;border-bottom:1px solid #f2f4f7;transition:background .15s}
     .ts-list-row:last-child{border-bottom:none}
     .ts-list-row:hover{background:#fafbfc}
-    .ts-list-row .rank{width:40px;height:40px;border-radius:50%;background:#f3f4f6;color:#6b7280;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
-    .ts-list-row.top10 .rank{background:linear-gradient(135deg,#ff8a54,#ff6b3d);color:#fff}
-    .ts-list-row.top50 .rank{background:linear-gradient(135deg,#60a5fa,#3b82f6);color:#fff}
+    .ts-list-row .rank{font-weight:800;font-size:16px;color:#6b7280;display:inline-flex;align-items:center;gap:3px}
+    .ts-list-row .rank .lbl{font-size:10px;color:#8892a0;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-right:3px}
+    .ts-list-row.top10 .rank{color:#c2410c}
+    .ts-list-row.top50 .rank{color:#1d4ed8}
     .ts-list-row .avatar{width:44px;height:44px;border-radius:50%;overflow:hidden;background:#f3f4f6}
     .ts-list-row .avatar img{width:100%;height:100%;object-fit:cover;display:block}
     .ts-list-row .who .name{font-weight:700;font-size:14px;margin:0 0 3px;color:#1f2733;text-decoration:none}
@@ -59,9 +44,7 @@
 
     @media (max-width: 760px){
         .ts-hero h1{font-size:32px}
-        .ts-podium{grid-template-columns:1fr;gap:12px}
-        .ts-podium .pod.p1{transform:none}
-        .ts-list-row{grid-template-columns:44px 44px 1fr auto;padding:12px 14px;gap:10px}
+        .ts-list-row{grid-template-columns:60px 44px 1fr auto;padding:12px 14px;gap:10px}
         .ts-list-row .btn-view{display:none}
     }
 </style>
@@ -87,8 +70,6 @@
     <section class="ts-body">
         <div class="container">
             @php
-                $top3 = $sellers->take(3);
-                $rest = $sellers->slice(3);
                 $defaultAvatar = asset('assets/frontend/img/dashboard/dummy-profile.svg');
                 $avatarFor = function ($row) use ($defaultAvatar) {
                     return $row->image
@@ -97,51 +78,14 @@
                 };
             @endphp
 
-            {{-- Podium --}}
-            @if($top3->count() >= 3)
-                <div class="ts-podium">
-                    @php $s2 = $top3[1]; $s1 = $top3[0]; $s3 = $top3[2]; @endphp
-
-                    {{-- 2nd --}}
-                    <div class="pod p2">
-                        <span class="rank">2</span>
-                        <div class="medal">🥈</div>
-                        <div class="avatar"><img src="{{ $avatarFor($s2) }}" alt="{{ $s2->name }}"></div>
-                        <a href="{{ url('/'.$s2->username) }}" class="name">{{ $s2->name ?? '—' }}</a>
-                        <div class="username">@{{ $s2->username ?? '' }}</div>
-                        <div class="score">{{ number_format($s2->completed_orders) }}<small>{{ __('Completed') }}</small></div>
-                    </div>
-
-                    {{-- 1st --}}
-                    <div class="pod p1">
-                        <span class="rank">1</span>
-                        <div class="medal">🥇</div>
-                        <div class="avatar"><img src="{{ $avatarFor($s1) }}" alt="{{ $s1->name }}"></div>
-                        <a href="{{ url('/'.$s1->username) }}" class="name">{{ $s1->name ?? '—' }}</a>
-                        <div class="username">@{{ $s1->username ?? '' }}</div>
-                        <div class="score">{{ number_format($s1->completed_orders) }}<small>{{ __('Completed') }}</small></div>
-                    </div>
-
-                    {{-- 3rd --}}
-                    <div class="pod p3">
-                        <span class="rank">3</span>
-                        <div class="medal">🥉</div>
-                        <div class="avatar"><img src="{{ $avatarFor($s3) }}" alt="{{ $s3->name }}"></div>
-                        <a href="{{ url('/'.$s3->username) }}" class="name">{{ $s3->name ?? '—' }}</a>
-                        <div class="username">@{{ $s3->username ?? '' }}</div>
-                        <div class="score">{{ number_format($s3->completed_orders) }}<small>{{ __('Completed') }}</small></div>
-                    </div>
-                </div>
-            @endif
-
-            {{-- List (ranks 4-100) --}}
+            {{-- Ranked list — plain numbering, no medals --}}
             <div class="ts-list">
-                @forelse($rest as $row)
+                @forelse($sellers as $row)
                     @php
                         $tierClass = $row->rank <= 10 ? 'top10' : ($row->rank <= 50 ? 'top50' : '');
                     @endphp
                     <div class="ts-list-row {{ $tierClass }}">
-                        <div><span class="rank">#{{ $row->rank }}</span></div>
+                        <div class="rank"><span class="lbl">{{ __('Top Seller') }}</span> #{{ $row->rank }}</div>
                         <div class="avatar"><img src="{{ $avatarFor($row) }}" alt="{{ $row->name }}"></div>
                         <div class="who">
                             <a href="{{ url('/'.$row->username) }}" class="name">{{ $row->name ?? '—' }}</a>
@@ -151,12 +95,10 @@
                         <a href="{{ url('/'.$row->username) }}" class="btn-view">{{ __('View Profile') }} →</a>
                     </div>
                 @empty
-                    @if($sellers->isEmpty())
-                        <div class="ts-empty">
-                            <h3 style="margin:0 0 8px;color:#1f2733">{{ __('No completed orders yet') }}</h3>
-                            <p style="margin:0">{{ __('The Top 100 leaderboard fills up as sellers deliver work. Check back soon.') }}</p>
-                        </div>
-                    @endif
+                    <div class="ts-empty">
+                        <h3 style="margin:0 0 8px;color:#1f2733">{{ __('No completed orders yet') }}</h3>
+                        <p style="margin:0">{{ __('The Top 100 leaderboard fills up as sellers deliver work. Check back soon.') }}</p>
+                    </div>
                 @endforelse
             </div>
         </div>
