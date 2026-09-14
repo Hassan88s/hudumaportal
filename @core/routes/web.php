@@ -28,6 +28,11 @@ Route::get('/leaderboard', 'Frontend\PublicLeaderboardController@index')
     ->middleware(['web', 'globalVariable', 'setlang'])
     ->name('referral.leaderboard.public');
 
+// Top 100 Sellers — public ranking by completed orders
+Route::get('/top-sellers', 'Frontend\TopSellersController@index')
+    ->middleware(['web', 'globalVariable', 'setlang'])
+    ->name('top.sellers.public');
+
 // frontend starts
 Route::group(['middleware' => ['globalVariable', 'maintains_mode','setlang']], function () {
 

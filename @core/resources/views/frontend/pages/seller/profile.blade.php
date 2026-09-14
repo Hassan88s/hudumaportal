@@ -123,6 +123,10 @@
                                             </div>
                                         @endif
                                     </h4>
+                                    {{-- Top 100 Sellers rank badge (renders nothing if not in top 100) --}}
+                                    <div style="margin:6px 0 10px">
+                                        @include('frontend.partials.top-seller-badge', ['sellerId' => $seller->id, 'variant' => 'full'])
+                                    </div>
                                     @if($service_rating >=1)
                                         <div class="profiles-review">
                                     <span class="reviews">
