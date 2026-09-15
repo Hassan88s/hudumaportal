@@ -232,6 +232,9 @@ class BuyerController extends Controller
         }
 
         $orderDetails->update(['order_complete_request'=>2,'status'=>2,'offer_time_end'=>'']);
+
+        // Huduma Champions — transaction HP for both leagues (pending until the refund window passes)
+        app(\App\Services\ChampionsService::class)->onOrderCompleted((int) $orderDetails->id);
         
         // mail
        $message_body_buyer = __('Hello, ') . $seller->name . ', ' . __('Buyer has approved your order.') . 
@@ -1122,6 +1125,9 @@ class BuyerController extends Controller
             ]);
             if($review){
                 toastr_success(__('Review Added Success---'));
+
+                // Huduma Champions — client +25 HP (+10 for written feedback), seller +25 HP for a verified review
+                app(\App\Services\ChampionsService::class)->onReviewCreated((int) $review->id);
 
                 // Rafiki Rewards — PDF §16: strongest referral moment is a
                 // happy customer. If they gave 4-5 stars, prompt them to share.

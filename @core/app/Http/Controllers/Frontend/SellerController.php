@@ -2963,6 +2963,7 @@ class SellerController extends Controller
         try {
             app(\App\Services\ReferralService::class)
                 ->reverseRewardsForBuyerRefund((int) $user_id, 'Order #'.$id.' refunded (seller cancelled)');
+            app(\App\Services\ChampionsService::class)->onOrderRefunded((int) $id, 'Refunded (seller cancelled)');
         } catch (\Throwable $e) {
             \Log::warning('[Rafiki Rewards] refund reversal failed: '.$e->getMessage(), ['order_id' => $id]);
         }

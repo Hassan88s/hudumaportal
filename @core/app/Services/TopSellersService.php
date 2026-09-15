@@ -83,6 +83,40 @@ class TopSellersService
     }
 
     /**
+     * Founder Providers — sellers ranked by who got their FIRST completed order
+     * earliest (not by registration date, not by order count). The date used is
+     * created_at of the seller's earliest order that reached status 2, because
+     * orders.updated_at keeps changing after completion.
+     *
+     * @return \Illuminate\Support\Collection each item: {seller_id, first_completed_at, rank}
+     */
+    public function getFounderProviders(int $limit = 100)
+    {
+        return Cache::remember('founder_providers_' . $limit, now()->addMinutes(self::CACHE_TTL_MIN),
+            function () use ($limit) {
+                return DB::table('orders')
+                    ->join('users', 'users.id', '=', 'orders.seller_id')
+                    ->where('orders.status', 2)
+                    ->where('users.user_status', 1)
+                    ->whereColumn('orders.seller_id', '!=', 'orders.buyer_id')
+                    ->groupBy('orders.seller_id')
+                    ->select('orders.seller_id', DB::raw('MIN(orders.created_at) as first_completed_at'))
+                    ->orderBy('first_completed_at')->orderBy('orders.seller_id')
+                    ->limit($limit)->get()
+                    ->values()->map(function ($row, $i) {
+                        $row->rank = $i + 1;
+                        return $row;
+                    });
+            });
+    }
+
+    public function getFounderRank(int $sellerId): ?int
+    {
+        $row = $this->getFounderProviders(100)->firstWhere('seller_id', $sellerId);
+        return $row ? (int) $row->rank : null;
+    }
+
+    /**
      * Force-clear all cached top-seller results. Call from admin action or
      * a nightly job if you want fresher data than the 60-minute default.
      */

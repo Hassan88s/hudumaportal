@@ -444,6 +444,18 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
         Route::get('/referral-rewards','ReferralsAdminController@rewardsLedger')->name('admin.referrals.rewards');
         Route::get('/referral-clicks','ReferralsAdminController@clicksAnalytics')->name('admin.referrals.clicks');
         Route::get('/referrer-leaderboard','ReferralsAdminController@leaderboard')->name('admin.referrals.leaderboard');
+
+        // Huduma Champions — admin
+        Route::get('/champions','ChampionsAdminController@index')->name('admin.champions.index');
+        Route::get('/champions/user/{userId}','ChampionsAdminController@userLedger')->name('admin.champions.ledger')->where('userId','[0-9]+');
+        Route::post('/champions/adjust','ChampionsAdminController@adjust')->name('admin.champions.adjust');
+        Route::post('/champions/point/{id}/reverse','ChampionsAdminController@reversePoint')->name('admin.champions.reverse')->where('id','[0-9]+');
+        Route::post('/champions/disqualify','ChampionsAdminController@disqualify')->name('admin.champions.disqualify');
+        Route::post('/champions/winner/{id}','ChampionsAdminController@winnerStatus')->name('admin.champions.winner')->where('id','[0-9]+');
+        Route::post('/champions/announce/{season}','ChampionsAdminController@announce')->name('admin.champions.announce')->where('season','\d{4}-\d{2}');
+        Route::post('/champions/run','ChampionsAdminController@runJob')->name('admin.champions.run');
+        Route::post('/champions/missions','ChampionsAdminController@missionStore')->name('admin.champions.mission.store');
+        Route::post('/champions/missions/{id}/toggle','ChampionsAdminController@missionToggle')->name('admin.champions.mission.toggle')->where('id','[0-9]+');
           
           //request company settings
           Route::get('/CompanySetting/{id?}','GeneralSettingsController@CompanySetting')->name('admin.general.CompanySetting');

@@ -21,6 +21,10 @@
                     <a href="{{ route('buyer.earn') }}"><i class="las la-gift"></i> {{ __('Earn (Refer & Rewards)') }}</a>
                 </li>
 
+                <li class="dashboard__bottom__list__item @if(request()->is('buyer/champions*')) active @endif">
+                    <a href="{{ route('buyer.champions') }}"><i class="las la-trophy"></i> {{ __('Huduma Champions') }}</a>
+                </li>
+
                 <li class="dashboard__bottom__list__item @if(request()->is('buyer/profile*')) active @endif">
                     <a href="{{ route('buyer.profile')}}"><i class="las la-user-alt"></i> {{ __('Profile') }}</a>
                 </li>

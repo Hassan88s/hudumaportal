@@ -67,6 +67,14 @@ class BookmarkController extends Controller
                 'service_id' => $service->id,
             ]);
             $bookmarked = true;
+
+            // Huduma Champions — +5 HP for saving a provider's service (capped at 25 HP/month)
+            if ((int) $user->user_type !== 0 && (int) $service->seller_id !== (int) $user->id) {
+                try {
+                    app(\App\Services\ChampionsService::class)->award((int) $user->id, 'c_save_provider',
+                        ['source_type' => 'bookmark_service', 'source_id' => (int) $service->id]);
+                } catch (\Throwable $e) { \Log::warning('[Champions] bookmark award: '.$e->getMessage()); }
+            }
             $message = 'Service bookmarked';
         }
 

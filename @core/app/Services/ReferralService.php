@@ -241,7 +241,8 @@ class ReferralService
      */
     public function detectTrackForUser(User $user): string
     {
-        if ((int) $user->user_type === 2) return 'provider';
+        // Sellers are user_type 0 on Huduma Portal (buyers are 1).
+        if ((int) $user->user_type === 0) return 'provider';
         if ((int) ($user->is_company ?? 0) === 1) return 'business';
         return 'client';
     }

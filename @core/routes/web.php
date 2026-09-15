@@ -29,9 +29,17 @@ Route::get('/leaderboard', 'Frontend\PublicLeaderboardController@index')
     ->name('referral.leaderboard.public');
 
 // Top 100 Sellers — public ranking by completed orders
-Route::get('/top-sellers', 'Frontend\TopSellersController@index')
-    ->middleware(['web', 'globalVariable', 'setlang'])
-    ->name('top.sellers.public');
+// Hidden for now — re-enable by uncommenting (view + controller are kept).
+// Route::get('/top-sellers', 'Frontend\TopSellersController@index')
+//     ->middleware(['web', 'globalVariable', 'setlang'])
+//     ->name('top.sellers.public');
+
+// Huduma Champions — monthly leagues (public)
+Route::middleware(['web', 'globalVariable', 'setlang'])->group(function () {
+    Route::get('/champions', 'Frontend\ChampionsController@board')->name('champions.board');
+    Route::get('/champions/hall-of-fame', 'Frontend\ChampionsController@hallOfFame')->name('champions.hall');
+    Route::get('/champions/rules', 'Frontend\ChampionsController@rules')->name('champions.rules');
+});
 
 // frontend starts
 Route::group(['middleware' => ['globalVariable', 'maintains_mode','setlang']], function () {

@@ -102,7 +102,7 @@
             <p class="sub">{{ __('Live rankings of everyone bringing new users to Huduma Portal. Share your link, climb the levels, and earn real cash.') }}</p>
 
             @auth
-                <a href="{{ (int) auth()->user()->user_type === 2 ? route('seller.earn') : route('buyer.earn') }}" class="cta">
+                <a href="{{ (int) auth()->user()->user_type === 0 ? route('seller.earn') : route('buyer.earn') }}" class="cta">
                     <i class="las la-gift"></i> {{ __('Open My Earn Dashboard') }}
                 </a>
             @else
@@ -242,7 +242,7 @@
                     <p>{{ __('Share your unique referral link and every friend who joins moves you up the rankings.') }}</p>
                 </div>
                 @auth
-                    <a href="{{ (int) auth()->user()->user_type === 2 ? route('seller.earn') : route('buyer.earn') }}">{{ __('Get My Link') }} →</a>
+                    <a href="{{ (int) auth()->user()->user_type === 0 ? route('seller.earn') : route('buyer.earn') }}">{{ __('Get My Link') }} →</a>
                 @else
                     <a href="{{ url('/register') }}">{{ __('Sign Up Free') }} →</a>
                 @endauth

@@ -430,6 +430,9 @@ class RegisterController extends Controller
                     $user_details->otp_verified = 1;
                     $user_details->save();
 
+                    // Huduma Champions — +50 HP for verifying the account (PDF §4, §14)
+                    app(\App\Services\ChampionsService::class)->onAccountVerified((int) $user_details->id);
+
                     if($user_details->user_type==0){
                         return redirect()->route('seller.dashboard');
                     }else{

@@ -176,13 +176,24 @@ class JobDetailsApplyController extends Controller
                     toastr_warning(__('You have already applied for this job.'));
                     return redirect()->back();
                 }
-                JobRequest::create([
+                $jobRequest = JobRequest::create([
                     'seller_id'=> Auth::guard('web')->user()->id,
                     'buyer_id'=> $request->buyer_id,
                     'job_post_id'=> $request->job_post_id,
                     'expected_salary'=> $request->expected_salary,
                     'cover_letter'=> $request->cover_letter,
                 ]);
+
+                // Huduma Champions — provider +10 HP for a proposal; client +10 HP for receiving a response (max 5/month)
+                try {
+                    $champs = app(\App\Services\ChampionsService::class);
+                    $champs->award((int) Auth::guard('web')->user()->id, 'p_proposal_sent',
+                        ['source_type' => 'job_request', 'source_id' => (int) $jobRequest->id]);
+                    if (!empty($request->buyer_id) && (int) $request->buyer_id !== (int) Auth::guard('web')->user()->id) {
+                        $champs->award((int) $request->buyer_id, 'c_request_response',
+                            ['source_type' => 'job_request', 'source_id' => (int) $jobRequest->id]);
+                    }
+                } catch (\Throwable $e) { \Log::warning('[Champions] proposal award: '.$e->getMessage()); }
 
                 try {
                     $seller_name = Auth::guard('web')->user()->name;

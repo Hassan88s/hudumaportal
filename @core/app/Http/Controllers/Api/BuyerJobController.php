@@ -81,6 +81,7 @@ class BuyerJobController extends Controller
             try {
                 app(\App\Services\ReferralService::class)
                     ->reverseRewardsForBuyerRefund((int) $user_id, 'Order #'.$order->id.' refunded (auto-cancelled stale order)');
+                app(\App\Services\ChampionsService::class)->onOrderRefunded((int) $order->id, 'Refunded (auto-cancelled stale order)');
             } catch (\Throwable $e) {
                 \Log::warning('[Rafiki Rewards] refund reversal failed: '.$e->getMessage(), ['order_id' => $order->id]);
             }

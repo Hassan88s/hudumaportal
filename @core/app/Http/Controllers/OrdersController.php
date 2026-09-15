@@ -250,6 +250,7 @@ class OrdersController extends Controller
             try {
                 app(\App\Services\ReferralService::class)
                     ->reverseRewardsForBuyerRefund((int) $user_id, 'Order #'.$order_Detials->id.' refunded (admin accepted cancel request)');
+                app(\App\Services\ChampionsService::class)->onOrderRefunded((int) $order_Detials->id, 'Refunded (admin accepted cancel request)');
             } catch (\Throwable $e) {
                 \Log::warning('[Rafiki Rewards] refund reversal failed: '.$e->getMessage(), ['order_id' => $order_Detials->id]);
             }

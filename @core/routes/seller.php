@@ -109,6 +109,9 @@ Route::group(['prefix'=>'seller','middleware'=>['auth','inactiveuser','BuyerChec
     Route::get('/earn','Frontend\ReferralController@earn')->name('seller.earn');
     Route::post('/earn/transfer','Frontend\ReferralController@transfer')->name('seller.earn.transfer');
 
+    // Huduma Champions — provider dashboard
+    Route::get('/champions','Frontend\ChampionsController@dashboard')->name('seller.champions');
+
     //schedules
     Route::get('/schedules','Frontend\SellerController@schedules')->name('seller.schedules');
     Route::post('/add-schedule','Frontend\SellerController@addSchedule')->name('seller.add.schedule');

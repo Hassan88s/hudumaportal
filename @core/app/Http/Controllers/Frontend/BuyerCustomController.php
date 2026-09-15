@@ -261,6 +261,7 @@ public function Withdrwal_custom_offer($id){
                         try {
                             app(\App\Services\ReferralService::class)
                                 ->reverseRewardsForBuyerRefund((int) $user_id, 'Order #'.$id.' refunded (custom offer declined)');
+                            app(\App\Services\ChampionsService::class)->onOrderRefunded((int) $id, 'Refunded (custom offer declined)');
                         } catch (\Throwable $e) {
                             \Log::warning('[Rafiki Rewards] refund reversal failed: '.$e->getMessage(), ['order_id' => $id]);
                         }

@@ -19,6 +19,9 @@ Route::group(['prefix'=>'buyer','middleware'=>['auth','inactiveuser','UserRoleCh
     Route::get('/earn','Frontend\ReferralController@buyerEarn')->name('buyer.earn');
     Route::post('/earn/transfer','Frontend\ReferralController@buyerTransfer')->name('buyer.earn.transfer');
 
+    // Huduma Champions — client dashboard
+    Route::get('/champions','Frontend\ChampionsController@dashboard')->name('buyer.champions');
+
     Route::get('/profile','Frontend\BuyerController@buyerProfile')->name('buyer.profile');
     Route::match(['get','post'],'/profile-edit','Frontend\BuyerController@buyerProfileEdit')->name('buyer.profile.edit');
     Route::match(['get','post'],'/account-settings','Frontend\BuyerController@buyerAccountSetting')->name('buyer.account.settings');

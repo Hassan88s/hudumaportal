@@ -394,6 +394,12 @@ class JobPostController extends Controller
             // admin notification add
             AdminNotification::create(['job_post_id' => $created_job->id]);
 
+            // Huduma Champions — +30 HP for a genuine service request (max 5/month)
+            try {
+                app(\App\Services\ChampionsService::class)->award((int) $created_job->buyer_id, 'c_request_created',
+                    ['source_type' => 'job', 'source_id' => (int) $created_job->id]);
+            } catch (\Throwable $e) { \Log::warning('[Champions] job post award: '.$e->getMessage()); }
+
             try {
                 $message = get_static_option('job_create_message') ?? '';
                 $message = str_replace(["@job_post_id"],[$created_job->id],$message);

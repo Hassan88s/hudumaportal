@@ -157,6 +157,13 @@
                         </ul>
                     </li>
 
+                    {{-- ═══ Huduma Champions ═══ --}}
+                    <li class="{{ active_menu('admin-home/general-settings/champions') }}">
+                        <a href="{{ route('admin.champions.index') }}"><i class="ti-cup"></i>
+                            <span>{{ __('Huduma Champions') }}</span>
+                        </a>
+                    </li>
+
                     @if (auth()->guard('admin')->user()->hasRole('Super Admin'))
                         <li
                             class="
