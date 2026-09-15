@@ -34,10 +34,12 @@
                                 @endif
                             </div>
                         </div>
+                        @if(Route::has('champions.board'))
                         <div style="display:flex;gap:8px;flex-wrap:wrap">
                             <a class="hc-btn" href="{{ route('champions.board', ['league' => $league]) }}">{{ __('View leaderboard') }}</a>
                             <a class="hc-btn ghost" href="{{ route('champions.rules') }}">{{ __('How to earn HP') }}</a>
                         </div>
+                        @endif
                     </div>
                 </div>
 

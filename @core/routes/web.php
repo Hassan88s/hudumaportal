@@ -35,11 +35,12 @@ Route::get('/leaderboard', 'Frontend\PublicLeaderboardController@index')
 //     ->name('top.sellers.public');
 
 // Huduma Champions — monthly leagues (public)
-Route::middleware(['web', 'globalVariable', 'setlang'])->group(function () {
-    Route::get('/champions', 'Frontend\ChampionsController@board')->name('champions.board');
-    Route::get('/champions/hall-of-fame', 'Frontend\ChampionsController@hallOfFame')->name('champions.hall');
-    Route::get('/champions/rules', 'Frontend\ChampionsController@rules')->name('champions.rules');
-});
+// Hidden for now — uncomment to publish (views + controller are kept; links check Route::has).
+// Route::middleware(['web', 'globalVariable', 'setlang'])->group(function () {
+//     Route::get('/champions', 'Frontend\ChampionsController@board')->name('champions.board');
+//     Route::get('/champions/hall-of-fame', 'Frontend\ChampionsController@hallOfFame')->name('champions.hall');
+//     Route::get('/champions/rules', 'Frontend\ChampionsController@rules')->name('champions.rules');
+// });
 
 // frontend starts
 Route::group(['middleware' => ['globalVariable', 'maintains_mode','setlang']], function () {

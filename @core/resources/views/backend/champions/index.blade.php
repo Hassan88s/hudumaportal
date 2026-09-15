@@ -41,7 +41,11 @@
                                 <option value="{{ $s }}" @selected($s === $season)>{{ $s }}</option>
                             @endforeach
                         </select>
-                        <a href="{{ route('champions.board') }}" target="_blank" class="btn btn-sm btn-outline-secondary">{{ __('Public board') }}</a>
+                        @if(Route::has('champions.board'))
+                            <a href="{{ route('champions.board') }}" target="_blank" class="btn btn-sm btn-outline-secondary">{{ __('Public board') }}</a>
+                        @else
+                            <span class="badge badge-secondary">{{ __('Public pages hidden') }}</span>
+                        @endif
                     </form>
                 </div>
                 <div class="bd">
