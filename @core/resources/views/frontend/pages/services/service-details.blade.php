@@ -289,7 +289,9 @@
                                                 {!! render_image_markup_by_attachment_id(optional($service_details->seller)->image,'','thumb') !!}
                                             </div>
                                             <div class="about-seller-content">
-                                                <h5 class="title"> <a href="{{ route('about.seller.profile',optional($service_details->seller)->username) }}"> {{ optional($service_details->seller)->username }} </a> </h5>
+                                                <h5 class="title"> <a href="{{ route('about.seller.profile',optional($service_details->seller)->username) }}"> {{ optional($service_details->seller)->username }} </a>
+                                                    @include('frontend.partials.top-seller-badge', ['sellerId' => (int) $service_details->seller_id, 'variant' => 'compact'])
+                                                </h5>
                                                 @if($completed_order >=1)
                                                     <div class="about-seller-list">
                                                         <span class="icon">{{ __('Order Completed') }}</span>

@@ -21,7 +21,14 @@
 @endphp
 
 @if($rank)
-    @if($variant === 'full')
+    @if($variant === 'corner')
+        {{-- Small round badge pinned to the corner of the profile photo --}}
+        <span style="position:absolute;right:-6px;bottom:-6px;z-index:3;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:38px;height:38px;padding:0 6px;background:linear-gradient(135deg,#ff8a54,#ff6b3d);color:#fff;border:2px solid #fff;border-radius:999px;box-shadow:0 3px 8px rgba(0,0,0,.18);line-height:1"
+              title="{{ __('Founder Provider #:rank — one of the first sellers to complete an order on Huduma Portal', ['rank' => $rank]) }}">
+            <span style="font-size:7px;font-weight:700;letter-spacing:.3px;opacity:.95">{{ __('FOUNDER') }}</span>
+            <span style="font-size:12px;font-weight:900">#{{ $rank }}</span>
+        </span>
+    @elseif($variant === 'full')
         <span style="display:inline-flex;align-items:center;gap:10px;padding:8px 16px;background:linear-gradient(135deg,#ff8a54,#ff6b3d);color:#fff;border-radius:999px;font-weight:800;font-size:14px;box-shadow:0 4px 12px rgba(255,138,84,.25);white-space:nowrap"
               title="{{ __('Founder Provider #:rank — one of the first sellers to complete an order on Huduma Portal', ['rank' => $rank]) }}">
             <span style="text-transform:uppercase;letter-spacing:.5px;font-size:11px;opacity:.9">{{ __('Founder Provider') }}</span>

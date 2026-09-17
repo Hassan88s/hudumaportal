@@ -111,8 +111,10 @@
                     <div class="col-lg-4 col-md-6 margin-top-30">
                         <div class="profile-author-contents">
                             <div class="profile-flex-content">
-                                <div class="thumb">
+                                <div class="thumb" style="position:relative">
                                     {!! render_image_markup_by_attachment_id($seller->image) !!}
+                                    {{-- Founder Provider rank, small badge on the photo corner --}}
+                                    @include('frontend.partials.top-seller-badge', ['sellerId' => $seller->id, 'variant' => 'corner'])
                                 </div>
                                 <div class="profile-contents">
                                     <h4 class="title">

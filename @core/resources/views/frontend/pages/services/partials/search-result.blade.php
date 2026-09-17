@@ -23,6 +23,7 @@
                                 <span class="author-title"> {{ optional($service->seller)->name }} </span>
                             </div>
                         </a>
+                        @include('frontend.partials.top-seller-badge', ['sellerId' => (int) $service->seller_id, 'variant' => 'compact'])
                     </li>
                     <li class="tag-list">
                         @if($service->reviews->where('type', 1)->count() >= 1)

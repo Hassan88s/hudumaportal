@@ -41,6 +41,7 @@
                                     @if(optional($seller->sellerVerify)->status==1)
                                         <div data-toggle="tooltip" data-placement="top" title="{{__('This seller is verified by the site admin according his national id card.')}}"> <span class="seller-verified"> <i class="las la-check"></i> </span></div>
                                     @endif
+                                    @include('frontend.partials.top-seller-badge', ['sellerId' => $seller->id, 'variant' => 'compact'])
                                 </h4>
                                  @if(optional($seller->review->where('type', 1))->avg('rating') >=1)
                                     <div class="profiles-review">
