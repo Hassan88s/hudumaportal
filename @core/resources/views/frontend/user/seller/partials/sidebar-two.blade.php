@@ -25,6 +25,12 @@
                     <a href="{{ route('seller.champions') }}"><i class="las la-trophy"></i> {{ __('Huduma Champions') }}</a>
                 </li>
 
+                @if((int) (Auth::guard('web')->user()->user_type ?? 1) === 0)
+                <li class="dashboard__bottom__list__item @if(request()->is('seller/getting-started*')) active @endif">
+                    <a href="{{ route('seller.onboarding') }}"><i class="las la-flag-checkered"></i> {{ __('Getting Started') }}</a>
+                </li>
+                @endif
+
                 <li class="dashboard__bottom__list__item @if(request()->is('seller/profile*')) active @endif">
                     <a href="{{ route('seller.profile')}}"><i class="las la-user-alt"></i> {{ __('Profile') }}</a>
                 </li>

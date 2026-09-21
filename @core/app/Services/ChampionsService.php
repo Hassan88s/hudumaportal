@@ -554,8 +554,7 @@ class ChampionsService
             $opt = ['source_type' => 'user', 'source_id' => $u->id];
 
             if ($this->leagueOfUser($u) === 'provider') {
-                $cols = ['name', 'email', 'phone', 'image', 'service_city', 'service_area', 'country_id', 'address', 'about', 'profile_background'];
-                $pct  = (int) round($filled($cols) / count($cols) * 100);
+                $pct  = $this->providerProfilePercent($u);
                 if ($pct >= 80)  $this->award($u->id, 'p_profile_80', $opt);
                 if ($pct >= 100) $this->award($u->id, 'p_profile_100', $opt);
             } else {
@@ -565,6 +564,15 @@ class ChampionsService
         } catch (\Throwable $e) {
             \Log::warning('[Champions] onProfileUpdated failed: ' . $e->getMessage(), ['user_id' => $userId]);
         }
+    }
+
+    /** Fields that make up a provider's profile completeness (PDF §4 80% / 100%). */
+    public const PROVIDER_PROFILE_FIELDS = ['name', 'email', 'phone', 'image', 'service_city', 'service_area', 'country_id', 'address', 'about', 'profile_background'];
+
+    public function providerProfilePercent($user): int
+    {
+        $filled = collect(self::PROVIDER_PROFILE_FIELDS)->filter(fn ($c) => trim((string) ($user->$c ?? '')) !== '')->count();
+        return (int) round($filled / count(self::PROVIDER_PROFILE_FIELDS) * 100);
     }
 
     /**

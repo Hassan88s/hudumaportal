@@ -111,6 +111,8 @@ Route::group(['prefix'=>'seller','middleware'=>['auth','inactiveuser','BuyerChec
 
     // Huduma Champions — provider dashboard
     Route::get('/champions','Frontend\ChampionsController@dashboard')->name('seller.champions');
+    Route::get('/getting-started','Frontend\ChampionsController@onboarding')->name('seller.onboarding');
+    Route::post('/getting-started/complete','Frontend\ChampionsController@onboardingComplete')->name('seller.onboarding.complete');
 
     //schedules
     Route::get('/schedules','Frontend\SellerController@schedules')->name('seller.schedules');

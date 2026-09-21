@@ -157,10 +157,59 @@ class ChampionsController extends Controller
             'badges'      => $badges,
             'daysLeft'    => $this->svc->daysRemaining(),
             'isSeller'    => $league === 'provider',
+            'onboardingDone' => $league !== 'provider' || DB::table('champion_points')
+                ->where(['user_id' => $user->id, 'rule_key' => 'p_onboarding_tutorial'])->where('status', '!=', 'reversed')->exists(),
             'nextAction'  => $league === 'provider'
                 ? __('Complete your next service — +150 HP')
                 : __('Complete your next booking — +150 HP'),
         ]);
+    }
+
+    /** PDF §4 — short provider onboarding tutorial, +30 HP once when finished. */
+    public function onboarding()
+    {
+        $user = Auth::guard('web')->user();
+        abort_unless($this->leagueFor($user) === 'provider', 404);
+
+        $pct = $this->svc->providerProfilePercent($user);
+        $steps = [
+            ['icon' => 'la-user-edit',   'title' => __('Complete your profile'),
+             'text' => __('Add a clear photo, your city and area, and a short "about" so clients trust you. 80% complete earns +50 HP and 100% earns +100 HP.'),
+             'done' => $pct >= 80, 'status' => __(':p% complete', ['p' => $pct]),
+             'link' => route('seller.profile.edit'), 'cta' => __('Edit profile')],
+            ['icon' => 'la-id-card',     'title' => __('Verify your identity'),
+             'text' => __('Upload your ID or business details. Verified providers get more bookings and +100 HP.'),
+             'done' => (int) DB::table('seller_verifies')->where('seller_id', $user->id)->value('status') === 1,
+             'link' => route('seller.profile.verify'), 'cta' => __('Verify now')],
+            ['icon' => 'la-briefcase',   'title' => __('Publish a service with full pricing'),
+             'text' => __('Describe what you offer, set a price and delivery time. Each approved service earns +75 HP and complete pricing +25 HP (up to 3).'),
+             'done' => DB::table('services')->where('seller_id', $user->id)->exists(),
+             'link' => route('seller.add.services'), 'cta' => __('Add a service')],
+            ['icon' => 'la-images',      'title' => __('Show your past work'),
+             'text' => __('Add photos or videos of real jobs to your portfolio. Each item earns +20 HP (up to 5).'),
+             'done' => DB::table('portfolios')->where('freelancer_id', $user->id)->exists(),
+             'link' => route('seller.portfolio.create'), 'cta' => __('Add portfolio item')],
+            ['icon' => 'la-trophy',      'title' => __('Win clients and climb the Pro League'),
+             'text' => __('Reply to enquiries fast (+10 HP within 30 minutes), complete jobs (+150 HP each) and ask happy clients for reviews (+25 HP). The Top Five win cash and promotion every month.'),
+             'done' => null,
+             'link' => \Route::has('champions.rules') ? route('champions.rules') : route('seller.champions'), 'cta' => __('See all ways to earn')],
+        ];
+
+        return view('frontend.champions.onboarding', [
+            'steps'    => $steps,
+            'finished' => DB::table('champion_points')->where(['user_id' => $user->id, 'rule_key' => 'p_onboarding_tutorial'])
+                            ->where('status', '!=', 'reversed')->exists(),
+        ]);
+    }
+
+    public function onboardingComplete()
+    {
+        $user = Auth::guard('web')->user();
+        abort_unless($this->leagueFor($user) === 'provider', 404);
+
+        $id = $this->svc->award((int) $user->id, 'p_onboarding_tutorial', ['source_type' => 'tutorial', 'source_id' => (int) $user->id]);
+        toastr_success($id ? __('Tutorial complete — +30 HP added to your Huduma Champions points!') : __('Tutorial complete.'));
+        return redirect()->route('seller.champions');
     }
 
     protected function leagueFor($user): string
