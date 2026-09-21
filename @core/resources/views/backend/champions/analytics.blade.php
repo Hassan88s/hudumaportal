@@ -5,7 +5,8 @@
 <style>
     .hc-kpi .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
     .hc-kpi .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-    .hc-kpi .card-k{background:#fff;border:1px solid #e6e9ef;border-radius:10px;padding:14px 16px}
+    .hc-kpi .card-k{background:#fff;border:1px solid #e6e9ef;border-radius:10px;padding:14px 16px;color:#1f2733}
+    .hc-kpi .card-k strong{color:#1f2733}
     .hc-kpi .card-k .lbl{font-size:11px;color:#8892a0;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
     .hc-kpi .card-k .val{font-size:24px;font-weight:800;color:#1f2733;margin-top:4px}
     .hc-kpi .card-k .cmp{font-size:12px;margin-top:4px}
