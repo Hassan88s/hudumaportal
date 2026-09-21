@@ -4,10 +4,12 @@
 @section('style')
 <style>
     /* The admin dark theme forces headings/labels to white — keep text dark inside our white boxes */
-    .hc-adm .box,.hc-adm .stat{color:#1f2733}
-    .hc-adm .box h3,.hc-adm .box h4,.hc-adm .box h5,.hc-adm .box label,.hc-adm .box td,.hc-adm .box strong{color:#1f2733}
-    .hc-adm .box th,.hc-adm .box small,.hc-adm .box .text-muted{color:#6b7280 !important}
-    .hc-adm .box a{color:#2563eb}
+    /* dark-mode.css uses `h1,h3,h5,h6{color:#f0f0f0 !important}`, so these need !important too */
+    .hc-adm .box,.hc-adm .stat{color:#1f2733 !important}
+    .hc-adm .box h3,.hc-adm .box h4,.hc-adm .box h5,.hc-adm .box label,.hc-adm .box td,.hc-adm .box strong,.hc-adm .box span:not(.pill){color:#1f2733 !important}
+    .hc-adm .box th,.hc-adm .box small,.hc-adm .box .text-muted,.hc-adm .stat small{color:#6b7280 !important}
+    .hc-adm .box a{color:#2563eb !important}
+    .hc-adm .box input,.hc-adm .box select{color:#1f2733 !important;background:#fff !important}
     .hc-adm .box label{font-weight:600;display:inline-flex;flex-direction:column;gap:4px;margin:0}
     .hc-adm .box{background:#fff;border:1px solid #e6e9ef;border-radius:10px;margin-bottom:18px;overflow:hidden}
     .hc-adm .box .hd{padding:14px 18px;background:#f8f9fb;border-bottom:1px solid #e6e9ef;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}

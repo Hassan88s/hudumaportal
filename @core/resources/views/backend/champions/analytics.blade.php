@@ -6,7 +6,9 @@
     .hc-kpi .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
     .hc-kpi .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
     .hc-kpi .card-k{background:#fff;border:1px solid #e6e9ef;border-radius:10px;padding:14px 16px;color:#1f2733}
-    .hc-kpi .card-k strong{color:#1f2733}
+    .hc-kpi .card-k strong,.hc-kpi .card-k .val{color:#1f2733 !important}
+    .hc-kpi .card-k .lbl,.hc-kpi .card-k .want,.hc-kpi .card-k .text-muted{color:#6b7280 !important}
+    .hc-kpi .card-k .good{color:#15803d !important}.hc-kpi .card-k .bad{color:#b91c1c !important}
     .hc-kpi .card-k .lbl{font-size:11px;color:#8892a0;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
     .hc-kpi .card-k .val{font-size:24px;font-weight:800;color:#1f2733;margin-top:4px}
     .hc-kpi .card-k .cmp{font-size:12px;margin-top:4px}
