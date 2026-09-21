@@ -190,6 +190,80 @@ class ChampionsAdminController extends Controller
         return back()->with('success', __('Mission created.'));
     }
 
+    /**
+     * PDF §38 — judge the program by marketplace outcomes, not HP issued.
+     * Shows each KPI for the chosen season next to the previous season.
+     */
+    public function analytics(Request $request)
+    {
+        $season = preg_match('/^\d{4}-\d{2}$/', (string) $request->query('season')) ? $request->query('season') : $this->svc->currentSeasonKey();
+        $prev   = \Carbon\Carbon::createFromFormat('Y-m', $season)->subMonthNoOverflow()->format('Y-m');
+
+        $cur  = \Cache::remember("champ_kpi_{$season}", now()->addMinutes(30), fn () => $this->kpis($season));
+        $last = \Cache::remember("champ_kpi_{$prev}", now()->addMinutes(30), fn () => $this->kpis($prev));
+
+        return view('backend.champions.analytics', [
+            'season'  => $season,
+            'prev'    => $prev,
+            'cur'     => $cur,
+            'last'    => $last,
+            'seasons' => DB::table('champion_seasons')->orderByDesc('season_key')->pluck('season_key'),
+        ]);
+    }
+
+    protected function kpis(string $season): array
+    {
+        [$from, $to] = $this->svc->seasonRangeUtc($season);
+        [$pFrom]     = $this->svc->seasonRangeUtc(\Carbon\Carbon::createFromFormat('Y-m', $season)->subMonthNoOverflow()->format('Y-m'));
+        $inRange = fn ($q, $col = 'updated_at') => $q->whereBetween($col, [$from, $to]);
+
+        $completed = $inRange(DB::table('orders')->where('status', 2)->whereColumn('seller_id', '!=', 'buyer_id'));
+        $done      = (clone $completed)->count();
+        $cancelled = $inRange(DB::table('orders')->where('status', 4))->count();
+
+        // Providers who published their first service this month
+        $activation = DB::table('services')->select('seller_id')->groupBy('seller_id')
+            ->havingRaw('MIN(created_at) BETWEEN ? AND ?', [$from, $to])->get()->count();
+
+        // Average response rate of providers with 3+ client conversations
+        $rates = DB::table('live_chat_messages')->whereBetween('created_at', [$from, $to])->whereNotNull('seller_id')
+            ->distinct()->limit(300)->pluck('seller_id')
+            ->map(fn ($sid) => $this->svc->responseRate((int) $sid, \Carbon\Carbon::parse($from), \Carbon\Carbon::parse($to)))
+            ->filter(fn ($r) => $r !== null);
+
+        // Repeat bookings: completed orders where the client already used this provider before
+        $repeat = (clone $completed)->whereExists(function ($q) {
+            $q->from('orders as p')->whereColumn('p.buyer_id', 'orders.buyer_id')->whereColumn('p.seller_id', 'orders.seller_id')
+              ->where('p.status', 2)->whereColumn('p.id', '<', 'orders.id');
+        })->count();
+
+        // 30-day retention: users active last month who are active again this month
+        $activeIds = fn ($a, $b) => DB::table('orders')->whereBetween('created_at', [$a, $b])->pluck('buyer_id')
+            ->merge(DB::table('orders')->whereBetween('created_at', [$a, $b])->pluck('seller_id'))->filter()->unique();
+        $lastActive = $activeIds($pFrom, $from);
+        $retained   = $lastActive->count() ? round($lastActive->intersect($activeIds($from, $to))->count() / $lastActive->count() * 100, 1) : null;
+
+        $players = DB::table('champion_points')->where('season_key', $season)->distinct()->count('user_id');
+        $dq      = DB::table('champion_disqualifications')->where('season_key', $season)->count();
+
+        return [
+            'provider_activation' => $activation,
+            'response_rate'       => $rates->count() ? round($rates->avg() * 100, 1) : null,
+            'completed'           => $done,
+            'bookings'            => $inRange(DB::table('orders')->whereColumn('seller_id', '!=', 'buyer_id'), 'created_at')->count(),
+            'repeat'              => $repeat,
+            'reviews'             => $inRange(DB::table('reviews')->where('type', 1), 'created_at')->count(),
+            'referrals'           => \Schema::hasTable('referrals') ? $inRange(DB::table('referrals')->where('status', 'approved'))->count() : null,
+            'retention'           => $retained,
+            'cancel_rate'         => ($done + $cancelled) ? round($cancelled / ($done + $cancelled) * 100, 1) : null,
+            'fraud_rate'          => $players ? round($dq / $players * 100, 1) : null,
+            'gmv'                 => (float) (clone $completed)->sum('total'),
+            'revenue'             => (float) (clone $completed)->sum('commission_amount'),
+            'players'             => $players,
+            'hp_confirmed'        => (int) DB::table('champion_points')->where('season_key', $season)->where('status', 'confirmed')->sum('points'),
+        ];
+    }
+
     /** Program settings: minimum qualifying order, pair cap, pending hold, repeat-winner rule. */
     public function settings(Request $request)
     {

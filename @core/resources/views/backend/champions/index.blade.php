@@ -44,6 +44,7 @@
                                 <option value="{{ $s }}" @selected($s === $season)>{{ $s }}</option>
                             @endforeach
                         </select>
+                        <a href="{{ route('admin.champions.analytics', ['season' => $season]) }}" class="btn btn-sm btn-outline-primary">{{ __('Analytics') }}</a>
                         @if(Route::has('champions.board'))
                             <a href="{{ route('champions.board') }}" target="_blank" class="btn btn-sm btn-outline-secondary">{{ __('Public board') }}</a>
                         @else
