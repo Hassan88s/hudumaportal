@@ -43,6 +43,20 @@
                     </div>
                 </div>
 
+                {{-- PDF §31 navigation: Leaderboard, Missions, My Points History, Rewards, Rules, Previous Winners --}}
+                <div class="hc-card" style="padding:10px 14px;display:flex;gap:6px;flex-wrap:wrap">
+                    @if(Route::has('champions.board'))
+                        <a class="hc-btn ghost" style="padding:6px 12px" href="{{ route('champions.board', ['league' => $league]) }}">{{ __('Leaderboard') }}</a>
+                    @endif
+                    <a class="hc-btn ghost" style="padding:6px 12px" href="#hc-missions">{{ __('Missions') }}</a>
+                    <a class="hc-btn ghost" style="padding:6px 12px" href="#hc-history">{{ __('My Points History') }}</a>
+                    @if(Route::has('champions.rewards'))
+                        <a class="hc-btn ghost" style="padding:6px 12px" href="{{ route('champions.rewards') }}">{{ __('Rewards') }}</a>
+                        <a class="hc-btn ghost" style="padding:6px 12px" href="{{ route('champions.rules') }}">{{ __('Rules') }}</a>
+                        <a class="hc-btn ghost" style="padding:6px 12px" href="{{ route('champions.winners') }}">{{ __('Previous Winners') }}</a>
+                    @endif
+                </div>
+
                 @if($daysLeft <= 5)
                     <div class="hc-card" style="background:#fff7ed;border-color:#fed7aa;display:flex;gap:10px;align-items:center">
                         <span style="font-size:20px">⏳</span>
@@ -70,7 +84,7 @@
                 </div>
 
                 @if($missions->count())
-                    <div class="hc-card">
+                    <div class="hc-card" id="hc-missions">
                         <h3>{{ __('Missions this month') }}</h3>
                         @foreach($missions as $m)
                             @php $mp = min(100, round($m->progress / max(1, $m->target) * 100)); @endphp
@@ -99,7 +113,7 @@
                 @endif
 
                 <div class="hc-card" style="padding:0">
-                    <div style="padding:16px 22px;border-bottom:1px solid #eef0f3"><h3 style="margin:0">{{ __('Points history') }}</h3></div>
+                    <div style="padding:16px 22px;border-bottom:1px solid #eef0f3"><h3 style="margin:0" id="hc-history">{{ __('Points history') }}</h3></div>
                     <div class="hc-scroll">
                         <table class="hc-table">
                             <thead><tr><th>{{ __('Date') }}</th><th>{{ __('Activity') }}</th><th>{{ __('Status') }}</th><th style="text-align:right">{{ __('HP') }}</th></tr></thead>

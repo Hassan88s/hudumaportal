@@ -12,12 +12,7 @@
             <span class="kicker">🏆 {{ __('Huduma Champions') }}</span>
             <h1>{{ __('Hall of') }} <span>{{ __('Fame') }}</span></h1>
             <p class="sub">{{ __('Every month one provider and one client are crowned Huduma Champion. Their names stay here permanently.') }}</p>
-            <div class="hc-tabs">
-                <a href="{{ route('champions.board') }}">{{ __('Pro League') }}</a>
-                <a href="{{ route('champions.board', ['league' => 'client']) }}">{{ __('Client League') }}</a>
-                <a href="{{ route('champions.hall') }}" class="active">{{ __('Hall of Fame') }}</a>
-                <a href="{{ route('champions.rules') }}">{{ __('Rules') }}</a>
-            </div>
+            @include('frontend.champions._tabs', ['active' => 'hall'])
         </div>
     </section>
 

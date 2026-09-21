@@ -26,5 +26,6 @@
 @auth
     @include('frontend.partials.referral-share-prompt')
 @endauth
+@include('frontend.champions._sprint-banner')
 
 @include('frontend.partials.footer')

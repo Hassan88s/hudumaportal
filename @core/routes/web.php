@@ -39,6 +39,8 @@ Route::middleware(['web', 'globalVariable', 'setlang'])->group(function () {
     Route::get('/champions', 'Frontend\ChampionsController@board')->name('champions.board');
     Route::get('/champions/hall-of-fame', 'Frontend\ChampionsController@hallOfFame')->name('champions.hall');
     Route::get('/champions/rules', 'Frontend\ChampionsController@rules')->name('champions.rules');
+    Route::get('/champions/winners', 'Frontend\ChampionsController@winners')->name('champions.winners');
+    Route::get('/champions/rewards', 'Frontend\ChampionsController@rewards')->name('champions.rewards');
 });
 
 // frontend starts

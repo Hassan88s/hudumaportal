@@ -74,6 +74,42 @@ class ChampionsController extends Controller
         return view('frontend.champions.hall-of-fame', ['rows' => $rows]);
     }
 
+    /** PDF §34 — published Top Five per league for a finished season (approved winners only). */
+    public function winners(Request $request)
+    {
+        $published = DB::table('champion_winners')->whereIn('status', ['approved', 'paid'])
+            ->distinct()->orderByDesc('season_key')->pluck('season_key');
+        $season = preg_match('/^\d{4}-\d{2}$/', (string) $request->query('season')) ? $request->query('season') : $published->first();
+
+        $rows = $season ? DB::table('champion_winners as w')->join('users as u', 'u.id', '=', 'w.user_id')
+            ->where('w.season_key', $season)->whereIn('w.status', ['approved', 'paid'])
+            ->select('w.league', 'w.rank', 'w.final_hp', 'w.reward_type', 'w.reward_amount', 'u.name', 'u.username', 'u.image')
+            ->orderBy('w.rank')->get()
+            ->map(function ($r) {
+                $r->display_name = $r->league === 'client' ? $this->svc->anonymize($r->name) : $r->name;
+                return $r;
+            })->groupBy('league') : collect();
+
+        return view('frontend.champions.winners', [
+            'season'      => $season,
+            'seasonLabel' => $season ? $this->label($season) : null,
+            'published'   => $published,
+            'provider'    => $rows['provider'] ?? collect(),
+            'client'      => $rows['client'] ?? collect(),
+        ]);
+    }
+
+    /** PDF §12, §23, §31 — what each place wins, levels and permanent badges. */
+    public function rewards()
+    {
+        $user = Auth::guard('web')->user();
+        return view('frontend.champions.rewards', [
+            'rewards' => ChampionsService::REWARDS,
+            'levels'  => ChampionsService::LEVELS,
+            'badges'  => $user ? DB::table('champion_badges')->where('user_id', $user->id)->orderByDesc('awarded_at')->get() : collect(),
+        ]);
+    }
+
     public function rules()
     {
         return view('frontend.champions.rules', [

@@ -22,7 +22,9 @@
             <div class="hc-tabs">
                 <a href="{{ route('champions.board', ['league' => 'provider', 'period' => $period]) }}" class="{{ $league === 'provider' ? 'active' : '' }}">{{ __('Pro League') }}</a>
                 <a href="{{ route('champions.board', ['league' => 'client', 'period' => $period]) }}" class="{{ $league === 'client' ? 'active' : '' }}">{{ __('Client League') }}</a>
+                <a href="{{ route('champions.winners') }}">{{ __('Top Five') }}</a>
                 <a href="{{ route('champions.hall') }}">{{ __('Hall of Fame') }}</a>
+                <a href="{{ route('champions.rewards') }}">{{ __('Rewards') }}</a>
                 <a href="{{ route('champions.rules') }}">{{ __('Rules') }}</a>
             </div>
             <div class="hc-tabs" style="margin-top:10px">

@@ -318,8 +318,33 @@ class ChampionsService
 
         $this->forgetBoard($league, $season);
         $this->advanceMissions($userId, $league, $ruleKey, $season);
+        if (!$pending) $this->grantLevelBadges($userId, $league, $season);
 
         return $id;
+    }
+
+    /**
+     * PDF §3 — levels reached stay on the account as permanent badges
+     * ("Gold Provider · September 2026"). Idempotent via the badge unique key.
+     */
+    public function grantLevelBadges(int $userId, string $league, string $season): void
+    {
+        try {
+            $hp = (int) DB::table('champion_points')
+                ->where(['user_id' => $userId, 'league' => $league, 'season_key' => $season, 'status' => 'confirmed'])
+                ->sum('points');
+            $month = Carbon::createFromFormat('Y-m', $season)->format('F Y');
+            foreach (self::LEVELS[$league] as $min => $name) {
+                if ($min <= 0 || $hp < $min) continue;
+                DB::table('champion_badges')->insertOrIgnore([
+                    'user_id' => $userId, 'badge_key' => 'level_' . \Illuminate\Support\Str::slug($name, '_'),
+                    'label' => "{$name} · {$month}", 'season_key' => $season,
+                    'awarded_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('[Champions] level badge failed: ' . $e->getMessage());
+        }
     }
 
     /** Reverse every non-reversed row tied to a source (refund / cancellation / fraud). */
@@ -341,18 +366,20 @@ class ChampionsService
     /** Scheduler: promote matured pending rows to confirmed. */
     public function confirmMatured(): int
     {
-        $seasons = DB::table('champion_points')
+        $affected = DB::table('champion_points')
             ->where('status', 'pending')->where('confirm_after', '<=', now())
-            ->distinct()->pluck('season_key');
+            ->select('user_id', 'league', 'season_key')->distinct()->get();
 
         $n = DB::table('champion_points')
             ->where('status', 'pending')->where('confirm_after', '<=', now())
             ->update(['status' => 'confirmed', 'confirmed_at' => now(), 'updated_at' => now()]);
 
-        foreach ($seasons as $s) {
+        foreach ($affected->pluck('season_key')->unique() as $s) {
             $this->forgetBoard('provider', $s);
             $this->forgetBoard('client', $s);
         }
+        // Newly confirmed HP may push users into a new level
+        foreach ($affected as $a) $this->grantLevelBadges((int) $a->user_id, $a->league, $a->season_key);
         return $n;
     }
 
@@ -778,6 +805,15 @@ class ChampionsService
                 ['mission_id' => $m->id, 'user_id' => $userId, 'season_key' => $season],
                 ['progress' => $progress, 'completed_at' => $done ? now() : null, 'updated_at' => now(), 'created_at' => $p->created_at ?? now()]
             );
+
+            // PDF §3 — completed achievements stay on the account
+            if ($done) {
+                DB::table('champion_badges')->insertOrIgnore([
+                    'user_id' => $userId, 'badge_key' => 'mission_' . $m->id,
+                    'label' => 'Mission: ' . $m->title . ' · ' . Carbon::createFromFormat('Y-m', $season)->format('F Y'),
+                    'season_key' => $season, 'awarded_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
 
             if ($done && $m->reward_hp > 0) {
                 $this->award($userId, 'mission_complete', [

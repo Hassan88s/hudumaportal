@@ -18,6 +18,7 @@
 {{-- Rafiki Rewards — Share Prompt Modal (PDF §16, §18). Triggered by
      session flash 'refer_prompt' set from happy-moment controllers. --}}
 @include('frontend.partials.referral-share-prompt')
+@include('frontend.champions._sprint-banner')
 <!-- Pusher and Laravel Echo (CDN version) -->
 <!-- Load Laravel Echo and Pusher from CDN (without integrity) -->
 <script src="https://js.pusher.com/7.2/pusher.min.js"></script>

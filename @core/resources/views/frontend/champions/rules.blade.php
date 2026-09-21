@@ -24,12 +24,7 @@
             <span class="kicker">🏆 {{ __('Huduma Champions') }}</span>
             <h1>{{ __('Official') }} <span>{{ __('Rules') }}</span></h1>
             <p class="sub">{{ __('A new season starts on the 1st of every month (East Africa Time) and ends on the last day at 23:59. Points reset every month; lifetime levels and badges stay.') }}</p>
-            <div class="hc-tabs">
-                <a href="{{ route('champions.board') }}">{{ __('Pro League') }}</a>
-                <a href="{{ route('champions.board', ['league' => 'client']) }}">{{ __('Client League') }}</a>
-                <a href="{{ route('champions.hall') }}">{{ __('Hall of Fame') }}</a>
-                <a href="{{ route('champions.rules') }}" class="active">{{ __('Rules') }}</a>
-            </div>
+            @include('frontend.champions._tabs', ['active' => 'rules'])
         </div>
     </section>
 
