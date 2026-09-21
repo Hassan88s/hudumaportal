@@ -18,6 +18,19 @@
                         <a href="{{ route('admin.champions.index', ['season' => $season]) }}" class="btn btn-sm btn-outline-secondary">← {{ __('Back') }}</a>
                     </div>
 
+                    {{-- PDF §29 risk signals — for review only, never automatic --}}
+                    <div style="margin-bottom:14px">
+                        <strong style="font-size:13px">{{ __('Risk signals') }}</strong>
+                        @forelse($flags as $f)
+                            @php $cls = ['high' => 'danger', 'medium' => 'warning', 'low' => 'secondary'][$f['severity']] ?? 'secondary'; @endphp
+                            <div class="alert alert-{{ $cls }}" style="padding:6px 10px;margin:6px 0 0;font-size:13px">
+                                <strong>{{ ucfirst($f['severity']) }}</strong> · {{ str_replace('_', ' ', $f['type']) }} — {{ $f['message'] }}
+                            </div>
+                        @empty
+                            <div class="text-muted" style="font-size:13px">{{ __('No risk signals for this season.') }}</div>
+                        @endforelse
+                    </div>
+
                     <div style="overflow-x:auto">
                         <table class="table table-sm">
                             <thead><tr><th>ID</th><th>{{ __('Date') }}</th><th>{{ __('Rule') }}</th><th>{{ __('Reason') }}</th><th>{{ __('Source') }}</th><th>HP</th><th>{{ __('Status') }}</th><th></th></tr></thead>

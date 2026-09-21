@@ -384,6 +384,10 @@ class ChampionsService
             if (!$o || (int) $o->status !== 2 || empty($o->seller_id) || empty($o->buyer_id)) return;
             if ((int) $o->seller_id === (int) $o->buyer_id) return; // self-booking never scores
 
+            // PDF §30 — minimum qualifying transaction (0 = off). Tiny bookings can't farm HP.
+            $minTotal = (float) (get_static_option('champions_min_order_tzs') ?: 0);
+            if ($minTotal > 0 && (float) ($o->total ?? 0) < $minTotal) return;
+
             $season = $this->currentSeasonKey();
             [$from, $to] = $this->seasonRangeUtc($season);
 
@@ -615,6 +619,103 @@ class ChampionsService
         }
 
         return $n;
+    }
+
+    /**
+     * PDF §29 / §30 — risk signals for manual review of leading accounts.
+     * Signals only: none of these proves fraud (shared homes, offices and
+     * networks are normal), so nothing is deducted automatically.
+     *
+     * @return array<int, array{type:string, severity:string, message:string}>
+     */
+    public function riskFlags(int $userId, string $league, ?string $season = null): array
+    {
+        $season = $season ?: $this->currentSeasonKey();
+        return Cache::remember("champ_risk_{$league}_{$season}_{$userId}", now()->addMinutes(15), function () use ($userId, $league, $season) {
+            $flags = [];
+            $add = function (string $type, string $severity, string $message) use (&$flags) {
+                $flags[] = compact('type', 'severity', 'message');
+            };
+            $u = DB::table('users')->where('id', $userId)->select('id', 'phone', 'referred_by')->first();
+            if (!$u) return [];
+            [$from, $to] = $this->seasonRangeUtc($season);
+            $me    = $league === 'provider' ? 'seller_id' : 'buyer_id';
+            $other = $league === 'provider' ? 'buyer_id' : 'seller_id';
+
+            // 1. Same phone number on another account (last 9 digits)
+            $digits = substr(preg_replace('/\D+/', '', (string) $u->phone), -9);
+            if (strlen($digits) === 9) {
+                $dupes = DB::table('users')->where('id', '!=', $userId)->where('phone', 'like', '%' . $digits)->count();
+                if ($dupes) $add('duplicate_phone', 'high', "Phone number also used by {$dupes} other account(s).");
+            }
+
+            // Completed orders this season with their counterparties
+            $orders = DB::table('orders')->where($me, $userId)->where('status', 2)
+                ->whereBetween('updated_at', [$from, $to])->get(['id', $other . ' as cp', 'total']);
+            $partners = $orders->pluck('cp')->filter()->map('intval')->unique();
+
+            // 2. One partner makes up most of the activity (PDF §30 collusion)
+            if ($orders->count() >= 3) {
+                $top = $orders->groupBy('cp')->map->count()->sortDesc();
+                $share = $top->first() / $orders->count();
+                if ($share >= 0.5) {
+                    $add('pair_concentration', 'medium', sprintf('%d of %d completed orders are with the same %s (#%d).',
+                        $top->first(), $orders->count(), $league === 'provider' ? 'client' : 'provider', $top->keys()->first()));
+                }
+            }
+
+            // 3. Unusually small or repeated-amount transactions
+            $min = (float) (get_static_option('champions_min_order_tzs') ?: 0);
+            $small = $min > 0 ? $orders->filter(fn ($o) => (float) $o->total < $min)->count() : 0;
+            $sameAmount = $orders->groupBy(fn ($o) => (string) (float) $o->total)->map->count()->max() ?? 0;
+            if ($small >= 2) $add('small_transactions', 'medium', "{$small} completed orders below the minimum qualifying amount.");
+            if ($sameAmount >= 3) $add('repeated_amounts', 'medium', "{$sameAmount} completed orders with exactly the same amount.");
+
+            // 4. Self-bookings attempted
+            $self = DB::table('orders')->where('seller_id', $userId)->where('buyer_id', $userId)->whereBetween('created_at', [$from, $to])->count();
+            if ($self) $add('self_booking', 'high', "{$self} order(s) where the user booked their own service.");
+
+            // 5. Mutual 5-star reviews (seller rates buyer and buyer rates seller)
+            $givenTo = DB::table('reviews')->where($league === 'provider' ? 'seller_id' : 'buyer_id', $userId)
+                ->where('type', $league === 'provider' ? 0 : 1)->where('rating', '>=', 5)
+                ->pluck($league === 'provider' ? 'buyer_id' : 'seller_id')->map('intval')->unique();
+            $gotFrom = DB::table('reviews')->where($league === 'provider' ? 'seller_id' : 'buyer_id', $userId)
+                ->where('type', $league === 'provider' ? 1 : 0)->where('rating', '>=', 5)
+                ->pluck($league === 'provider' ? 'buyer_id' : 'seller_id')->map('intval')->unique();
+            $mutual = $givenTo->intersect($gotFrom)->count();
+            if ($mutual >= 2) $add('mutual_reviews', 'medium', "Mutual 5-star reviews with {$mutual} accounts.");
+
+            // 6. Trading with people they referred, or who referred them
+            $referred = DB::table('users')->where('referred_by', $userId)->pluck('id')->map('intval');
+            if ($u->referred_by) $referred->push((int) $u->referred_by);
+            $refTrades = $partners->intersect($referred)->count();
+            if ($refTrades >= 1) $add('referral_cluster', $refTrades >= 2 ? 'medium' : 'low', "Completed orders with {$refTrades} account(s) linked by referral.");
+
+            // 7. Shared IP / device with trading partners or other accounts
+            if (Cache::remember('champ_signals_table', now()->addMinutes(10), fn () => \Schema::hasTable('champion_user_signals'))) {
+                $mine = DB::table('champion_user_signals')->where('user_id', $userId)->where('day', '>=', now()->subDays(60)->toDateString());
+                $ips  = (clone $mine)->whereNotNull('ip')->distinct()->pluck('ip');
+                $fps  = (clone $mine)->whereNotNull('device_fp')->distinct()->pluck('device_fp');
+                if ($ips->isNotEmpty() || $fps->isNotEmpty()) {
+                    $shared = DB::table('champion_user_signals')->where('user_id', '!=', $userId)
+                        ->where(fn ($q) => $q->whereIn('ip', $ips)->orWhereIn('device_fp', $fps))
+                        ->distinct()->pluck('user_id')->map('intval');
+                    $sharedPartners = $shared->intersect($partners)->count();
+                    $sameDevice = $fps->isNotEmpty() ? DB::table('champion_user_signals')->where('user_id', '!=', $userId)->whereIn('device_fp', $fps)->distinct()->count('user_id') : 0;
+                    if ($sharedPartners) $add('shared_network_partner', 'high', "Shares an IP address or device with {$sharedPartners} trading partner(s).");
+                    elseif ($sameDevice) $add('shared_device', 'medium', "Same device used by {$sameDevice} other account(s).");
+                    elseif ($shared->count() >= 3) $add('shared_ip', 'low', "IP address shared with {$shared->count()} other accounts (could be a shared network).");
+                }
+            }
+
+            // 8. Cancellations / refunds and reversed points this season
+            $cancelled = DB::table('orders')->where($me, $userId)->where('status', 4)->whereBetween('updated_at', [$from, $to])->count();
+            if ($cancelled >= 3) $add('cancellations', 'low', "{$cancelled} cancelled or refunded orders this season.");
+            $reversed = DB::table('champion_points')->where(['user_id' => $userId, 'season_key' => $season, 'status' => 'reversed'])->count();
+            if ($reversed >= 3) $add('reversed_points', 'low', "{$reversed} point entries reversed this season.");
+
+            return $flags;
+        });
     }
 
     /** Share of client messages a provider answered in [from, to] (PDF §5 response-rate bonuses). */

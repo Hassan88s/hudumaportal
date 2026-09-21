@@ -37,12 +37,28 @@ class ChampionsAdminController extends Controller
             'dq'        => (int) DB::table('champion_disqualifications')->where('season_key', $season)->count(),
         ];
 
+        $provider = $this->svc->leaderboard('provider', $season, 20);
+        $client   = $this->svc->leaderboard('client', $season, 20);
+
+        // PDF §29/§30 — risk signals for the manual Top 20 review
+        $risk = [];
+        foreach (['provider' => $provider, 'client' => $client] as $lg => $rows) {
+            foreach ($rows as $r) $risk[$lg][$r->user_id] = $this->svc->riskFlags((int) $r->user_id, $lg, $season);
+        }
+
         return view('backend.champions.index', [
             'season'    => $season,
             'seasonRow' => DB::table('champion_seasons')->where('season_key', $season)->first(),
             'seasons'   => DB::table('champion_seasons')->orderByDesc('season_key')->pluck('season_key'),
-            'provider'  => $this->svc->leaderboard('provider', $season, 20),
-            'client'    => $this->svc->leaderboard('client', $season, 20),
+            'provider'  => $provider,
+            'client'    => $client,
+            'risk'      => $risk,
+            'settings'  => [
+                'champions_min_order_tzs'      => get_static_option('champions_min_order_tzs') ?: 0,
+                'champions_pair_txn_cap'       => get_static_option('champions_pair_txn_cap') ?: 2,
+                'champions_pending_hold_days'  => get_static_option('champions_pending_hold_days') ?: 14,
+                'champions_block_repeat_winner'=> get_static_option('champions_block_repeat_winner') ?? 1,
+            ],
             'winners'   => $winners,
             'stats'     => $stats,
             'missions'  => DB::table('champion_missions')->orderByDesc('id')->get(),
@@ -52,9 +68,11 @@ class ChampionsAdminController extends Controller
     public function userLedger(Request $request, int $userId)
     {
         $season = $request->query('season', $this->svc->currentSeasonKey());
+        $user   = DB::table('users')->where('id', $userId)->first();
         return view('backend.champions.ledger', [
-            'user'   => DB::table('users')->where('id', $userId)->first(),
+            'user'   => $user,
             'season' => $season,
+            'flags'  => $user ? $this->svc->riskFlags($userId, (int) $user->user_type === 0 ? 'provider' : 'client', $season) : [],
             'rows'   => DB::table('champion_points')->where('user_id', $userId)->where('season_key', $season)->orderByDesc('id')->paginate(50),
         ]);
     }
@@ -170,6 +188,19 @@ class ChampionsAdminController extends Controller
         ]);
         DB::table('champion_missions')->insert($data + ['target' => $data['target'] ?? 1, 'reward_hp' => $data['reward_hp'] ?? 0, 'is_active' => 1, 'created_at' => now(), 'updated_at' => now()]);
         return back()->with('success', __('Mission created.'));
+    }
+
+    /** Program settings: minimum qualifying order, pair cap, pending hold, repeat-winner rule. */
+    public function settings(Request $request)
+    {
+        $data = $request->validate([
+            'champions_min_order_tzs'       => 'required|numeric|min:0|max:100000000',
+            'champions_pair_txn_cap'        => 'required|integer|min:1|max:50',
+            'champions_pending_hold_days'   => 'required|integer|min:0|max:60',
+            'champions_block_repeat_winner' => 'required|in:0,1',
+        ]);
+        foreach ($data as $name => $value) update_static_option($name, $value);
+        return back()->with('success', __('Champions settings saved.'));
     }
 
     public function missionToggle(int $id)

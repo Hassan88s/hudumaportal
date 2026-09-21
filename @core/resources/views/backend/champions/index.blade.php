@@ -20,6 +20,9 @@
     .hc-adm .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#f3f4f6}
     .hc-adm .pill.provisional{background:#fef3c7;color:#92400e}.hc-adm .pill.approved{background:#dbeafe;color:#1e40af}
     .hc-adm .pill.paid{background:#dcfce7;color:#166534}.hc-adm .pill.disqualified{background:#fee2e2;color:#991b1b}
+    .hc-adm .pill.risk-high{background:#fee2e2;color:#991b1b}.hc-adm .pill.risk-medium{background:#fef3c7;color:#92400e}
+    .hc-adm .pill.risk-low{background:#f3f4f6;color:#4b5563}
+    .hc-adm .pill[title]{cursor:help;margin:1px 2px 1px 0}
     @media (max-width:1000px){.hc-adm .grid2{grid-template-columns:1fr}.hc-adm .stats{grid-template-columns:repeat(2,1fr)}}
 </style>
 @endsection
@@ -122,24 +125,59 @@
                         <div class="hd"><h3>{{ $lg === 'provider' ? __('Pro League — Top 20') : __('Client League — Top 20') }}</h3></div>
                         <div class="bd" style="padding:0;overflow-x:auto">
                             <table>
-                                <thead><tr><th>#</th><th>{{ __('User') }}</th><th>HP</th><th>{{ __('Done') }}</th><th>{{ __('Cancel') }}</th></tr></thead>
+                                <thead><tr><th>#</th><th>{{ __('User') }}</th><th>HP</th><th>{{ __('Done') }}</th><th>{{ __('Cancel') }}</th><th>{{ __('Risk') }}</th></tr></thead>
                                 <tbody>
                                 @forelse($rows as $r)
+                                    @php $flags = $risk[$lg][$r->user_id] ?? []; @endphp
                                     <tr>
                                         <td>{{ $r->rank }}</td>
                                         <td><a href="{{ route('admin.champions.ledger', ['userId' => $r->user_id, 'season' => $season]) }}">{{ $r->name }}</a> <small class="text-muted">#{{ $r->user_id }}</small></td>
                                         <td><strong>{{ number_format($r->hp) }}</strong></td>
                                         <td>{{ $r->completed }}</td>
                                         <td>{{ $r->cancelled }}</td>
+                                        <td>
+                                            @forelse($flags as $f)
+                                                <span class="pill risk-{{ $f['severity'] }}" title="{{ $f['message'] }}">{{ str_replace('_', ' ', $f['type']) }}</span>
+                                            @empty
+                                                <span class="text-muted" style="font-size:11px">{{ __('clean') }}</span>
+                                            @endforelse
+                                        </td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="5" class="text-center text-muted" style="padding:20px">{{ __('No confirmed HP yet.') }}</td></tr>
+                                    <tr><td colspan="6" class="text-center text-muted" style="padding:20px">{{ __('No confirmed HP yet.') }}</td></tr>
                                 @endforelse
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 @endforeach
+            </div>
+
+            {{-- Program settings --}}
+            <div class="box">
+                <div class="hd"><h3>{{ __('Program settings') }}</h3></div>
+                <div class="bd">
+                    <form method="post" action="{{ route('admin.champions.settings') }}" class="form-row">
+                        @csrf
+                        <label style="font-size:12px">{{ __('Minimum order (TZS)') }}
+                            <input name="champions_min_order_tzs" type="number" min="0" step="1" value="{{ $settings['champions_min_order_tzs'] }}" style="width:110px" title="{{ __('Completed orders below this total earn no points. 0 = off.') }}">
+                        </label>
+                        <label style="font-size:12px">{{ __('Full-points orders per pair / month') }}
+                            <input name="champions_pair_txn_cap" type="number" min="1" max="50" value="{{ $settings['champions_pair_txn_cap'] }}" style="width:70px">
+                        </label>
+                        <label style="font-size:12px">{{ __('Pending hold (days)') }}
+                            <input name="champions_pending_hold_days" type="number" min="0" max="60" value="{{ $settings['champions_pending_hold_days'] }}" style="width:70px">
+                        </label>
+                        <label style="font-size:12px">{{ __('Last #1 cannot win #1 again') }}
+                            <select name="champions_block_repeat_winner">
+                                <option value="1" @selected((string) $settings['champions_block_repeat_winner'] === '1')>{{ __('Yes') }}</option>
+                                <option value="0" @selected((string) $settings['champions_block_repeat_winner'] === '0')>{{ __('No') }}</option>
+                            </select>
+                        </label>
+                        <button class="btn btn-sm btn-primary">{{ __('Save settings') }}</button>
+                    </form>
+                    <small class="text-muted d-block" style="margin-top:8px">{{ __('Risk flags in the Top 20 tables are signals for review only — shared homes, offices and networks are normal. Hover a flag to see details; open the user to see all flags.') }}</small>
+                </div>
             </div>
 
             {{-- Adjust + disqualify --}}
