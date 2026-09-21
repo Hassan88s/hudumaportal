@@ -627,6 +627,16 @@ class ChampionsService
             if ((float) $s->price > 0 && (int) $s->delivery_days > 0) $this->award((int) $s->seller_id, 'p_service_pricing', $opt);
         }
 
+        // Proposals sent (PDF §5 +10) — catches the mobile-app path, which has no hook.
+        // Same source as the web hook, so a proposal is never scored twice.
+        $sent = DB::table('job_requests')->where('created_at', '>=', $since)
+            ->whereColumn('seller_id', '!=', 'buyer_id')->select('id', 'seller_id', 'buyer_id')->get();
+        foreach ($sent as $jr) {
+            $opt = ['source_type' => 'job_request', 'source_id' => $jr->id];
+            if ($this->award((int) $jr->seller_id, 'p_proposal_sent', $opt + ['counterparty_id' => $jr->buyer_id])) $n['proposals']++;
+            $this->award((int) $jr->buyer_id, 'c_request_response', $opt + ['counterparty_id' => $jr->seller_id]);
+        }
+
         // Proposal accepted — only proposals that actually turned into an order
         // (one hire path flags every proposal on the job as hired).
         $hired = DB::table('job_requests as jr')
