@@ -25,11 +25,14 @@ class RecordChampionSignal
             if (!$user || !$this->tableReady()) return $response;
 
             // Long-lived random device id (reuse the Rafiki cookie if the browser has it)
-            $fp = $request->cookie('rf_fp') ?: $request->cookie('hp_fp');
+            // Session fallback: requests that arrive before the cookie is saved reuse the same id
+            $session = $request->hasSession() ? $request->session() : null;
+            $fp = $request->cookie('rf_fp') ?: $request->cookie('hp_fp') ?: ($session ? $session->get('hp_fp') : null);
             if (!$fp) {
                 $fp = bin2hex(random_bytes(16));
                 Cookie::queue('hp_fp', $fp, 60 * 24 * 365);
             }
+            if ($session && !$session->has('hp_fp')) $session->put('hp_fp', $fp);
 
             $ip  = $request->ip();
             $day = now()->toDateString();
