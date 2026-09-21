@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Log;
  */
 class ChampionsSeason extends Command
 {
-    protected $signature = 'champions:season {action : confirm|sync|weekly|nudges|bonuses|finalize} {--season= : YYYY-MM (default: previous month)}';
+    protected $signature = 'champions:season {action : confirm|sync|weekly|nudges|bonuses|finalize} {--season= : YYYY-MM (default: previous month)} {--dry-run : nudges only — print messages, send nothing}';
     protected $description = 'Huduma Champions season jobs: confirm pending HP, month-end bonuses, finalize Top Five.';
 
     public function handle(ChampionsService $svc): int
@@ -92,6 +92,10 @@ class ChampionsSeason extends Command
             if ($done >= 5 && $cancelled === 0)                 $given += (int) (bool) $svc->award($sid, 'p_q_zero_cancel', $opt);
             if ($repeat >= 5)                                   $given += (int) (bool) $svc->award($sid, 'p_q_repeat_5', $opt);
             if ($done >= 1 && !$this->hasUpheldComplaint($sid, $from, $to)) $given += (int) (bool) $svc->award($sid, 'p_q_zero_complaints', $opt);
+
+            // PDF §7 — 90%+ response rate across the whole season
+            $rate = $svc->responseRate((int) $sid, Carbon::parse($from), Carbon::parse($to));
+            if ($rate !== null && $rate >= 0.9) $given += (int) (bool) $svc->award($sid, 'p_q_response_90', $opt);
         }
 
         // ── Clients (PDF §19) ──
@@ -151,21 +155,48 @@ class ChampionsSeason extends Command
             foreach ($board as $i => $row) {
                 $rank = $i + 1;
                 $key  = "champ_nudge_{$row->user_id}_" . $svc->now()->format('Ymd');
+
+                // Remember yesterday's rank so we can report movement (PDF §32)
+                $rankKey  = "champ_rank_{$league}_{$season}_{$row->user_id}";
+                $lastRank = \Cache::get($rankKey);
+                if (!$this->option('dry-run')) \Cache::put($rankKey, $rank, now()->addDays(10));
                 if (\Cache::has($key)) continue;
 
+                // HP earned today, for "your booking added 150 HP"
+                $todayHp = (int) DB::table('champion_points')
+                    ->where('user_id', $row->user_id)->where('league', $league)
+                    ->where('status', '!=', 'reversed')
+                    ->where('created_at', '>=', $svc->now()->startOfDay()->utc())
+                    ->sum('points');
+
+                // How close is the next level
+                $level = $svc->levelFor($league, (int) $row->hp);
+
                 $msg = null;
-                if ($days <= 2) {
+                if ($days <= 2) {                                   // PDF §33 final sprint
                     $msg = $rank <= 5
                         ? "Only 48 hours left in {$name}! You are #{$rank} — protect your Top Five place."
                         : "Final 48 hours in {$name}! You are #{$rank}. Complete one more job to climb.";
+                } elseif ($days <= 3) {
+                    $msg = "Final 72 hours in {$name}! You are #{$rank}. Every completed job still counts.";
+                } elseif ($days <= 7) {
+                    $msg = "7 days left in {$name}. You are #{$rank} — there is still time to climb.";
+                } elseif ($lastRank && $lastRank > $rank) {         // PDF §32 rank movement
+                    $msg = "You moved from #{$lastRank} to #{$rank} in {$name}. Keep going!";
                 } elseif ($rank > 10 && $rank <= 30 && isset($board[9])) {
                     $gap = (int) $board[9]->hp - (int) $row->hp + 1;
                     $msg = "You are #{$rank} in {$name}. You need {$gap} HP to enter the Top 10.";
                 } elseif ($rank > 5 && $rank <= 10 && isset($board[4])) {
                     $gap = (int) $board[4]->hp - (int) $row->hp + 1;
                     $msg = "You are #{$rank} in {$name}. {$gap} HP more puts you in the Top Five.";
+                } elseif (!empty($level['next']) && $level['remaining'] > 0 && $level['remaining'] <= 300) {
+                    $msg = "You are {$level['remaining']} HP away from {$level['next']['name']} in {$name}.";
+                } elseif ($todayHp > 0) {
+                    $msg = "Your activity today added {$todayHp} HP in {$name}. You are #{$rank}.";
                 }
-                if (!$msg || !function_exists('notifySeller')) continue;
+                if (!$msg) continue;
+                if ($this->option('dry-run')) { $this->line("[dry-run] user {$row->user_id} ({$league}): {$msg}"); $sent++; continue; }
+                if (!function_exists('notifySeller')) continue;
 
                 notifySeller((int) $row->user_id, $msg, $msg, [
                     'type' => 'gernalnotifications', 'id' => uniqid('notif_'), 'details' => $msg, 'event' => 'champions_progress',

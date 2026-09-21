@@ -43,6 +43,16 @@
                     </div>
                 </div>
 
+                @if($daysLeft <= 5)
+                    <div class="hc-card" style="background:#fff7ed;border-color:#fed7aa;display:flex;gap:10px;align-items:center">
+                        <span style="font-size:20px">⏳</span>
+                        <div style="font-size:13px;color:#7c2d12">
+                            <strong>{{ __('Leaderboard positions are provisional until final verification.') }}</strong><br>
+                            {{ __('Pending points, refunds and fraud checks are settled in the first days of next month.') }}
+                        </div>
+                    </div>
+                @endif
+
                 <div class="hc-grid">
                     <div class="hc-stat"><div class="lbl">{{ __('Monthly HP') }}</div><div class="val">{{ number_format($totals['confirmed']) }}</div><div class="hint">{{ __('Confirmed — counts on the board') }}</div></div>
                     <div class="hc-stat"><div class="lbl">{{ __('Pending HP') }}</div><div class="val" style="color:#b45309">{{ number_format($totals['pending']) }}</div><div class="hint">{{ __('Confirms after the refund window') }}</div></div>

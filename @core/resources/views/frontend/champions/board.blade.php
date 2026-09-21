@@ -44,6 +44,17 @@
                 </div>
             @endif
 
+            @if(!is_null($daysLeft) && $daysLeft <= 5)
+                {{-- PDF §27 — near month-end, say clearly that nothing is final yet --}}
+                <div class="hc-card" style="background:#fff7ed;border-color:#fed7aa;display:flex;gap:10px;align-items:center">
+                    <span style="font-size:20px">⏳</span>
+                    <div style="font-size:13px;color:#7c2d12">
+                        <strong>{{ __('Leaderboard positions are provisional until final verification.') }}</strong><br>
+                        {{ __('Pending points, refunds and fraud checks are settled in the first days of next month. Winners are confirmed on day 4 and announced on day 5.') }}
+                    </div>
+                </div>
+            @endif
+
             <div class="hc-card" style="padding:0">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 22px;border-bottom:1px solid #eef0f3">
                     <div>

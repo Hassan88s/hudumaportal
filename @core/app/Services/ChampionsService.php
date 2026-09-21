@@ -786,15 +786,26 @@ class ChampionsService
                         DB::raw('MAX(cp.confirmed_at) as reached_at'),
                         DB::raw("(SELECT COUNT(*) FROM orders o WHERE o.{$userCol} = cp.user_id AND o.status = 2 AND o.updated_at BETWEEN '{$from}' AND '{$to}') as completed"),
                         DB::raw("(SELECT COUNT(*) FROM orders o WHERE o.{$userCol} = cp.user_id AND o.status = 4 AND o.updated_at BETWEEN '{$from}' AND '{$to}') as cancelled"),
-                        DB::raw("(SELECT COALESCE(AVG(r.rating),0) FROM reviews r WHERE r.seller_id = cp.user_id) as rating"))
+                        DB::raw("(SELECT COALESCE(AVG(r.rating),0) FROM reviews r WHERE r.seller_id = cp.user_id) as rating"),
+                        // Client tie-breakers (PDF §28): repeat bookings and verified reviews written
+                        // providers this client booked more than once (no derived table: MariaDB 10.4 can't see cp there)
+                        DB::raw("(SELECT COUNT(DISTINCT o2.seller_id) FROM orders o2 WHERE o2.buyer_id = cp.user_id AND o2.status = 2 AND o2.updated_at BETWEEN '{$from}' AND '{$to}'
+                                  AND EXISTS (SELECT 1 FROM orders o3 WHERE o3.buyer_id = o2.buyer_id AND o3.seller_id = o2.seller_id AND o3.status = 2 AND o3.id <> o2.id AND o3.updated_at BETWEEN '{$from}' AND '{$to}')) as repeat_bookings"),
+                        DB::raw("(SELECT COUNT(*) FROM reviews r2 WHERE r2.buyer_id = cp.user_id AND r2.type = 1 AND r2.created_at BETWEEN '{$from}' AND '{$to}') as reviews_written"))
                     ->get();
 
-                // PDF §28 tie-breaks: HP ↓, completed ↓, completion rate ↓, rating ↓, cancellations ↑, earliest total ↑
-                $rows = $rows->sort(function ($a, $b) {
-                    $rateA = ($a->completed + $a->cancelled) ? $a->completed / ($a->completed + $a->cancelled) : 0;
-                    $rateB = ($b->completed + $b->cancelled) ? $b->completed / ($b->completed + $b->cancelled) : 0;
-                    return [$b->hp, $b->completed, $rateB, $b->rating, $a->cancelled, $a->reached_at]
-                       <=> [$a->hp, $a->completed, $rateA, $a->rating, $b->cancelled, $b->reached_at];
+                // PDF §28 tie-breaks — different per league.
+                //   Providers: completed bookings ↓, completion rate ↓, verified rating ↓, cancellations ↑
+                //   Clients:   completed bookings ↓, repeat bookings ↓, verified reviews ↓, cancellations ↑
+                // Both finish with whoever reached the total first.
+                $rows = $rows->sort(function ($a, $b) use ($league) {
+                    $rate = fn ($r) => ($r->completed + $r->cancelled) ? $r->completed / ($r->completed + $r->cancelled) : 0;
+                    if ($league === 'client') {
+                        return [$b->hp, $b->completed, $b->repeat_bookings, $b->reviews_written, $a->cancelled, $a->reached_at]
+                           <=> [$a->hp, $a->completed, $a->repeat_bookings, $a->reviews_written, $b->cancelled, $b->reached_at];
+                    }
+                    return [$b->hp, $b->completed, $rate($b), $b->rating, $a->cancelled, $a->reached_at]
+                       <=> [$a->hp, $a->completed, $rate($a), $a->rating, $b->cancelled, $b->reached_at];
                 })->values()->take($limit);
 
                 return $rows->map(function ($r, $i) use ($league) {
