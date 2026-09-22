@@ -1,4 +1,4 @@
-@extends('frontend.user.seller.seller-master')
+@extends('frontend.user.buyer.buyer-master')
 @section('site-title')
     {{__('Edit Seller Profile')}}
 @endsection
@@ -8,18 +8,13 @@
 @section('content')
 
     <x-frontend.seller-buyer-preloader/>
-    <!-- Dashboard area Starts -->
-    <div class="body-overlay"></div>
-    <div class="dashboard-area dashboard-padding">
-        <div class="container-fluid">
-            <div class="dashboard-contents-wrapper">
-                <div class="dashboard-icon">
-                    <div class="sidebar-icon">
-                        <i class="las la-bars"></i>
-                    </div>
-                </div>
-                @include('frontend.user.seller.partials.sidebar')
-                <div class="dashboard-right">
+    {{-- Current theme shell (same as the seller dashboard): sidebar-two + dashboard__right --}}
+    @include('frontend.user.seller.partials.sidebar-two')
+    <div class="dashboard__right">
+        @include('frontend.user.buyer.header.buyer-header')
+        <div class="dashboard__body">
+            <div class="dashboard__inner">
+                <div class="w-100">
                     <div class="profile-dashboards">
                         <div class="row">
                             <div class="col-lg-12 margin-top-40">
