@@ -135,13 +135,17 @@
                          $shortDesc = Str::limit(strip_tags($project->description), 150, '');
                           $fullDesc = Str::after(strip_tags($project->description), $shortDesc);
                     @endphp
-                    <a href="{{ route('about.seller.profile', $user->username) }}">
+                    @php
+                        // The owner account can be missing (deleted user) — never link to a null username
+                        $profileUrl = optional($user)->username ? route('about.seller.profile', $user->username) : null;
+                    @endphp
+                    <a @if($profileUrl) href="{{ $profileUrl }}" @endif>
                         <div class="d-flex align-items-center mb-3">
                             @if($profileImage)
                                 <img src="{{ $profileImage['img_url'] }}" alt="User Image" class="rounded-circle me-2" style="width:50px; height:50px; object-fit:cover;">
                             @endif
                             <div>
-                                <strong>{{ $user->username ?? 'Unknown User' }}</strong><br>
+                                <strong>{{ optional($user)->username ?? __('Unknown User') }}</strong><br>
                             </div>
                         </div>
                     </a>
