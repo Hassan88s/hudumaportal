@@ -5,233 +5,223 @@
 @section('style')
     <x-media.css/>
     <style>
-        /* Keep the uploaded image previews a sensible size on this page */
-        .dashboard__inner .img-wrap img{max-width:160px;height:auto;border-radius:10px;border:1px solid #eef0f3}
-        .dashboard__inner .media-upload-btn-wrapper{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
-        .dashboard__inner .btn-wrapper{display:flex}
+        .pe-wrap{max-width:1050px}
+        .pe-card{background:#fff;border:1px solid #eef0f3;border-radius:14px;padding:22px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+        .pe-card h3{font-size:15px;font-weight:800;margin:0 0 4px;color:#1f2733;text-transform:uppercase;letter-spacing:.4px}
+        .pe-card .hint{font-size:13px;color:#8892a0;margin:0 0 16px}
+        .pe-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px}
+        .pe-field{display:flex;flex-direction:column}
+        .pe-field.full{grid-column:1 / -1}
+        .pe-field label{font-size:13px;font-weight:600;color:#1f2733;margin-bottom:6px}
+        .pe-field .req{color:#e11d48}
+        .pe-field .form--control,.pe-field select{width:100%}
+        .pe-field .note{font-size:12px;color:#8892a0;margin-top:5px}
+        .pe-media{display:flex;gap:26px;flex-wrap:wrap}
+        .pe-media .img-wrap img{max-width:170px;height:auto;border-radius:12px;border:1px solid #eef0f3;display:block}
+        .pe-media .media-upload-btn-wrapper{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+        .pe-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+        .pe-progress{display:flex;align-items:center;gap:10px;font-size:13px;color:#4b5563}
+        .pe-progress .bar{width:150px;height:8px;border-radius:999px;background:#f1f3f5;overflow:hidden}
+        .pe-progress .bar span{display:block;height:100%;background:linear-gradient(90deg,#ff8a54,#ff6b3d)}
+        @media (max-width:768px){.pe-grid{grid-template-columns:1fr}}
     </style>
 @endsection
 @section('content')
-
     <x-frontend.seller-buyer-preloader/>
-    {{-- Current theme shell (same as the seller dashboard): sidebar-two + dashboard__right --}}
     @include('frontend.user.seller.partials.sidebar-two')
+
+    @php
+        $me  = Auth::guard('web')->user();
+        $pct = app(\App\Services\ChampionsService::class)->providerProfilePercent($me);
+        // Social links are only editable on the plan that allows a website
+        $sellerSub = \Modules\Subscription\Entities\SellerSubscription::where(['seller_id' => $me->id, 'status' => '1'])->first();
+        $planId    = optional($sellerSub)->subscription_id
+            ? optional(\Modules\Subscription\Entities\Subscription::find($sellerSub->subscription_id))->id
+            : null;
+        $showSocial = (string) $planId === '6';
+    @endphp
+
     <div class="dashboard__right">
         @include('frontend.user.buyer.header.buyer-header')
         <div class="dashboard__body">
             <div class="dashboard__inner">
-                <div class="w-100">
-                    <div class="profile-dashboards">
-                        <div class="row">
-                            <div class="col-lg-12 margin-top-40">
-                                <div class="edit-profile">
-                                    <div class="profile-info-dashboard">
-                                        <h2 class="dashboards-title"> {{__('Edit Profile')}} </h2>
-                                        <div class="dashboard-profile-flex">
-                                            <div class="thumbs margin-top-40">
-                                                {!! render_image_markup_by_attachment_id(Auth::guard('web')->user()->image) !!}
-                                                <div class="edit-thumb">
-                                                    <a href="javascript:void(0)"> <i class="lar la-image"></i> </a>
-                                                </div>
-                                            </div>
-                                            <div class="dashboard-address-details">
-                                                
-                                                <div class="mt-5"> <x-msg.error/> </div>
+                <div class="pe-wrap">
 
-                                                <form action="{{route('seller.profile.edit')}}" method="post">
-                                                @csrf
-                                                    <div class="single-dashboard-input">
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Your Name*')}} </label>
-                                                            <input class="form--control" type="text" name="name" value="{{Auth::guard('web')->user()->name}}" placeholder="{{__('Type Your Name')}}">
-                                                        </div>
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Your Email*')}} </label>
-                                                            <input class="form--control" type="email" name="email"  value="{{Auth::guard('web')->user()->email}}"  placeholder="{{__('Type Your Email')}}">
-                                                        </div>
-                                                       
-                                                    </div>
-                                                    <div class="single-dashboard-input">
-                                                        <div class="single-info-input margin-top-30 country-wrapper">
-                                                            <label class="info-title"> {{__('Country*')}} </label>
-                                                            <select name="country" id="country">
-                                                                @if(!empty($countries))
-                                                                    @foreach($countries as $country)
-                                                                       <option value="{{ $country->id }}" @if($country->id==Auth::guard('web')->user()->country_id) selected @endif>{{ $country->country }}</option>
-                                                                    @endforeach
-                                                                @endif
-                                                            </select>
-                                                        </div>
-                                                        <div class="single-info-input margin-top-30 service_city_wrapper">
-                                                            <label class="info-title"> {{__('Service City*')}} </label>
-                                                            <select name="service_city" id="service_city">
-                                                                @foreach($cities as $city)
-                                                                    <option value="{{ $city->id }}" @if(Auth::guard('web')->user()->service_city == $city->id) selected @endif>{{ $city->service_city  }}</option>
-                                                                @endforeach
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div class="single-dashboard-input">
-                                                        <div class="single-info-input margin-top-30 service_area_wrapper">
-                                                            <label class="info-title"> {{__('Service Area*')}} </label>
-                                                            <select name="service_area" id="service_area" class="get_service_city">
-                                                                @foreach($areas as $area)
-                                                                    <option value="{{ $area->id }}" @if(Auth::guard('web')->user()->service_area == $area->id) selected @endif>{{ $area->service_area  }}</option>
-                                                                @endforeach
-                                                            </select>
-                                                        </div>
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{ __('Phone Number*') }} </label>
-                                                            <input class="form--control" type="text" name="phone" value="{{Auth::guard('web')->user()->phone}}" placeholder="{{__('Type Your Number')}}">
-                                                        </div>
-                                                    </div>
-                                                    <div class="single-dashboard-input">
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Post Code*')}} </label>
-                                                            <input class="form--control" type="text" name="post_code" value="{{Auth::guard('web')->user()->post_code}}" placeholder="{{__('Type Post Code')}}">
-                                                        </div>
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Your Address*')}} </label>
-                                                            <input class="form--control" type="text" name="address" value="{{Auth::guard('web')->user()->address}}" placeholder="{{__('Type Your Address')}}">
-                                                        </div>
-                                                    </div>
-                                                    <div class="single-dashboard-input">
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('About*')}} </label>
-                                                            <textarea class="form--control textarea--form" name="about" placeholder="Type Note">{{Auth::guard('web')->user()->about}}</textarea>
-                                                        </div>
-                                                    </div>
+                    <div class="pe-card" style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+                        <div>
+                            <h3 style="margin-bottom:6px">{{ __('Edit Profile') }}</h3>
+                            <p class="hint" style="margin:0">{{ __('A complete profile wins more bookings — and earns Huduma Champions points.') }}</p>
+                        </div>
+                        <div class="pe-progress">
+                            <span>{{ __('Profile') }} <strong>{{ $pct }}%</strong></span>
+                            <span class="bar"><span style="width:{{ $pct }}%"></span></span>
+                            <span>{{ $pct >= 100 ? __('Complete') : __('80% = +50 HP · 100% = +100 HP') }}</span>
+                        </div>
+                    </div>
 
-                                                    <div class="single-dashboard-input">
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{ __('Tax Number') }} </label>
-                                                            <input class="form--control" type="text" name="tax_number" value="{{Auth::guard('web')->user()->tax_number}}" placeholder="{{__('Type Tax Number')}}">
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    {{-- Social Link --}}
-                                                                                     @php 
-$value = \Modules\Subscription\Entities\SellerSubscription::where(['seller_id' =>Auth::guard('web')->user()->id,'status'=>'1'])->first();
-if($value != NULL){
-if($value->subscription_id != NULL){
-$image = \Modules\Subscription\Entities\Subscription::where(['id' =>$value->subscription_id])->first('id');
-    }
-    }
-@endphp                                              @if(optional($value)->subscription_id != NULL)
-                                                        @if($image == '6')
-                                                    <div class="single-dashboard-input">
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Facebook Link')}} </label>
-                                                            <input class="form--control" type="text" name="fb_url" value="{{Auth::guard('web')->user()->fb_url}}" placeholder="{{__('Type Your Facebook Link')}}">
-                                                        </div>
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Twitter Link')}} </label>
-                                                            <input class="form--control" type="text" name="tw_url"  value="{{Auth::guard('web')->user()->tw_url}}"  placeholder="{{__('Type Your Twiter Link')}}">
-                                                        </div>
-                                                    </div>
-                                                    <div class="single-dashboard-input">
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Google Link')}} </label>
-                                                            <input class="form--control" type="text" name="go_url" value="{{Auth::guard('web')->user()->go_url}}" placeholder="{{__('Type Your Google Link')}}">
-                                                        </div>
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Youtube Link')}} </label>
-                                                            <input class="form--control" type="text" name="yo_url"  value="{{Auth::guard('web')->user()->yo_url}}"  placeholder="{{__('Type Your Youtube Link')}}">
-                                                        </div>
-                                                    </div>
-                                                    <div class="single-dashboard-input">
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Linkedin Link')}} </label>
-                                                            <input class="form--control" type="text" name="li_url" value="{{Auth::guard('web')->user()->li_url}}" placeholder="{{__('Type Your Linkedin Link')}}">
-                                                        </div>
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Instagram Link')}} </label>
-                                                            <input class="form--control" type="text" name="in_url"  value="{{Auth::guard('web')->user()->in_url}}"  placeholder="{{__('Type Your Instagram Link')}}">
-                                                        </div>
-                                                    </div>
-                                                    <div class="single-dashboard-input">
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Dribble  Link')}} </label>
-                                                            <input class="form--control" type="text" name="dr_url" value="{{Auth::guard('web')->user()->dr_url}}" placeholder="{{__('Type Your Dribble Link')}}">
-                                                        </div>
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Twitch Link')}} </label>
-                                                            <input class="form--control" type="text" name="twi_url"  value="{{Auth::guard('web')->user()->twi_url}}"  placeholder="{{__('Type Your Twitch Link')}}">
-                                                        </div>
-                                                    </div>
-                                                    <div class="single-dashboard-input">
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Pinterest  Link')}} </label>
-                                                            <input class="form--control" type="text" name="pi_url" value="{{Auth::guard('web')->user()->pi_url}}" placeholder="{{__('Type Your Pinterest Link')}}">
-                                                        </div>
-                                                        <div class="single-info-input margin-top-30">
-                                                            <label class="info-title"> {{__('Reddit Link')}} </label>
-                                                            <input class="form--control" type="text" name="re_url"  value="{{Auth::guard('web')->user()->re_url}}"  placeholder="{{__('Type Your Reddit Link')}}">
-                                                        </div>
-                                                    </div>
-                                                    @endif
-  @endif
-                                                    <div class="single-dashboard-input">
-                                                        <div class="single-info-input margin-top-30">
-                                                            <div class="form-group">
-                                                                <div class="media-upload-btn-wrapper">
-                                                                    <div class="img-wrap">
-                                                                        {!! render_image_markup_by_attachment_id(Auth::guard('web')->user()->image,'','thumb') !!}
-                                                                    </div>
-                                                                    <input type="hidden" id="image" name="image"
-                                                                           value="{{Auth::guard('web')->user()->image}}">
-                                                                    <button type="button" class="dashboard_table__title__btn btn-bg-1 radius-5 media_upload_form_btn"
-                                                                            data-btntitle="{{__('Select Image')}}"
-                                                                            data-modaltitle="{{__('Upload Image')}}" data-toggle="modal"
-                                                                            data-target="#media_upload_modal">
-                                                                        {{__('Upload Profile Image')}}
-                                                                    </button>
-                                                                </div>
-                                                                <small class="form-text text-muted">{{__('allowed image format: jpg,jpeg,png')}}</small>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <small class="text-danger">{{ __('recommended size 500x443') }}</small>
-                                                    <div class="single-dashboard-input">
-                                                        <div class="single-info-input margin-top-30">
-                                                            <div class="form-group">
-                                                                <div class="media-upload-btn-wrapper">
-                                                                    <div class="img-wrap">
-                                                                        {!! render_image_markup_by_attachment_id(Auth::guard('web')->user()->profile_background) !!}
-                                                                    </div>
-                                                                    <input type="hidden" id="profile_background" name="profile_background"
-                                                                           value="{{Auth::guard('web')->user()->profile_background}}">
-                                                                    <button type="button" class="dashboard_table__title__btn btn-bg-1 radius-5 media_upload_form_btn"
-                                                                            data-btntitle="{{__('Select Image')}}"
-                                                                            data-modaltitle="{{__('Upload Image')}}" data-toggle="modal"
-                                                                            data-target="#media_upload_modal">
-                                                                        {{__('Upload Background Image')}}
-                                                                    </button>
-                                                                </div>
-                                                                <small class="form-text text-muted">{{__('allowed image format: jpg,jpeg,png')}}</small>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <small class="text-danger">{{ __('recommended size 1394x315') }}</small>
-                                                    <div class="btn-wrapper margin-top-35">
-                                                        <button type="submit" class="dashboard_table__title__btn btn-bg-1 radius-5">{{ __('Save Changes') }}</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
+                    <div class="mt-2"> <x-msg.error/> </div>
+
+                    <form action="{{ route('seller.profile.edit') }}" method="post">
+                        @csrf
+
+                        {{-- Photos --}}
+                        <div class="pe-card">
+                            <h3>{{ __('Photos') }}</h3>
+                            <p class="hint">{{ __('A clear profile photo and a cover image make your page look professional.') }}</p>
+                            <div class="pe-media">
+                                <div>
+                                    <label style="font-size:13px;font-weight:600;display:block;margin-bottom:8px">{{ __('Profile image') }}</label>
+                                    <div class="media-upload-btn-wrapper">
+                                        <div class="img-wrap">{!! render_image_markup_by_attachment_id($me->image, '', 'thumb') !!}</div>
+                                        <input type="hidden" id="image" name="image" value="{{ $me->image }}">
+                                        <button type="button" class="dashboard_table__title__btn btn-bg-1 radius-5 media_upload_form_btn"
+                                                data-btntitle="{{ __('Select Image') }}" data-modaltitle="{{ __('Upload Image') }}"
+                                                data-toggle="modal" data-target="#media_upload_modal">{{ __('Upload Profile Image') }}</button>
+                                        <span class="note">{{ __('jpg, jpeg, png · recommended 500x443') }}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style="font-size:13px;font-weight:600;display:block;margin-bottom:8px">{{ __('Cover image') }}</label>
+                                    <div class="media-upload-btn-wrapper">
+                                        <div class="img-wrap">{!! render_image_markup_by_attachment_id($me->profile_background) !!}</div>
+                                        <input type="hidden" id="profile_background" name="profile_background" value="{{ $me->profile_background }}">
+                                        <button type="button" class="dashboard_table__title__btn btn-bg-1 radius-5 media_upload_form_btn"
+                                                data-btntitle="{{ __('Select Image') }}" data-modaltitle="{{ __('Upload Image') }}"
+                                                data-toggle="modal" data-target="#media_upload_modal">{{ __('Upload Cover Image') }}</button>
+                                        <span class="note">{{ __('jpg, jpeg, png · recommended 1394x315') }}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+
+                        {{-- Basic details --}}
+                        <div class="pe-card">
+                            <h3>{{ __('Your details') }}</h3>
+                            <p class="hint">{{ __('Clients see your name and can contact you on these details.') }}</p>
+                            <div class="pe-grid">
+                                <div class="pe-field">
+                                    <label>{{ __('Full name') }} <span class="req">*</span></label>
+                                    <input class="form--control" type="text" name="name" value="{{ old('name', $me->name) }}" placeholder="{{ __('Type Your Name') }}">
+                                </div>
+                                <div class="pe-field">
+                                    <label>{{ __('Username') }} <span class="req">*</span></label>
+                                    <input class="form--control" type="text" name="username" value="{{ old('username', $me->username) }}" placeholder="{{ __('Type Your Username') }}">
+                                    <span class="note">{{ __('Your public profile link') }}: {{ url('/') }}/{{ $me->username }}</span>
+                                </div>
+                                <div class="pe-field">
+                                    <label>{{ __('Email') }} <span class="req">*</span></label>
+                                    <input class="form--control" type="email" name="email" value="{{ old('email', $me->email) }}" placeholder="{{ __('Type Your Email') }}">
+                                </div>
+                                <div class="pe-field">
+                                    <label>{{ __('Phone number') }} <span class="req">*</span></label>
+                                    <input class="form--control" type="text" name="phone" value="{{ old('phone', $me->phone) }}" placeholder="{{ __('Type Your Number') }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Location --}}
+                        <div class="pe-card">
+                            <h3>{{ __('Where you work') }}</h3>
+                            <p class="hint">{{ __('Clients search by city and area, so keep these accurate.') }}</p>
+                            <div class="pe-grid">
+                                <div class="pe-field country-wrapper">
+                                    <label>{{ __('Country') }} <span class="req">*</span></label>
+                                    <select name="country_id" id="country">
+                                        @if(!empty($countries))
+                                            @foreach($countries as $country)
+                                                <option value="{{ $country->id }}" @selected($country->id == $me->country_id)>{{ $country->country }}</option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                </div>
+                                <div class="pe-field service_city_wrapper">
+                                    <label>{{ __('Service city') }} <span class="req">*</span></label>
+                                    <select name="service_city" id="service_city">
+                                        @foreach($cities as $city)
+                                            <option value="{{ $city->id }}" @selected($me->service_city == $city->id)>{{ $city->service_city }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="pe-field service_area_wrapper">
+                                    <label>{{ __('Service area') }} <span class="req">*</span></label>
+                                    <select name="service_area" id="service_area" class="get_service_city">
+                                        @foreach($areas as $area)
+                                            <option value="{{ $area->id }}" @selected($me->service_area == $area->id)>{{ $area->service_area }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="pe-field">
+                                    <label>{{ __('Post code') }} <span class="req">*</span></label>
+                                    <input class="form--control" type="text" name="post_code" value="{{ old('post_code', $me->post_code) }}" placeholder="{{ __('Type Post Code') }}">
+                                </div>
+                                <div class="pe-field full">
+                                    <label>{{ __('Address') }} <span class="req">*</span></label>
+                                    <input class="form--control" type="text" name="address" value="{{ old('address', $me->address) }}" placeholder="{{ __('Type Your Address') }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- About --}}
+                        <div class="pe-card">
+                            <h3>{{ __('About you') }}</h3>
+                            <p class="hint">{{ __('Tell clients what you do, your experience and the areas you cover.') }}</p>
+                            <div class="pe-grid">
+                                <div class="pe-field full">
+                                    <label>{{ __('About') }} <span class="req">*</span></label>
+                                    <textarea class="form--control textarea--form" name="about" rows="5" placeholder="{{ __('Example: Licensed electrician with 6 years experience in Arusha. Wiring, repairs and installations.') }}">{{ old('about', $me->about) }}</textarea>
+                                </div>
+                                <div class="pe-field">
+                                    <label>{{ __('Tax number') }}</label>
+                                    <input class="form--control" type="text" name="tax_number" value="{{ old('tax_number', $me->tax_number) }}" placeholder="{{ __('Type Tax Number') }}">
+                                    <span class="note">{{ __('Optional') }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Social links (plan feature) --}}
+                        @if($showSocial)
+                            <div class="pe-card">
+                                <h3>{{ __('Website & social links') }}</h3>
+                                <p class="hint">{{ __('Shown on your public profile.') }}</p>
+                                <div class="pe-grid">
+                                    <div class="pe-field">
+                                        <label>{{ __('Website') }}</label>
+                                        <input class="form--control" type="text" name="website_url" value="{{ old('website_url', $me->website_url) }}" placeholder="{{ __('Type Your Website Link') }}">
+                                    </div>
+                                    <div class="pe-field">
+                                        <label>{{ __('Facebook') }}</label>
+                                        <input class="form--control" type="text" name="fb_url" value="{{ old('fb_url', $me->fb_url) }}" placeholder="{{ __('Type Your Facebook Link') }}">
+                                    </div>
+                                    <div class="pe-field">
+                                        <label>{{ __('Twitter / X') }}</label>
+                                        <input class="form--control" type="text" name="tw_url" value="{{ old('tw_url', $me->tw_url) }}" placeholder="{{ __('Type Your Twitter Link') }}">
+                                    </div>
+                                    <div class="pe-field">
+                                        <label>{{ __('LinkedIn') }}</label>
+                                        <input class="form--control" type="text" name="li_url" value="{{ old('li_url', $me->li_url) }}" placeholder="{{ __('Type Your LinkedIn Link') }}">
+                                    </div>
+                                    <div class="pe-field">
+                                        <label>{{ __('Instagram') }}</label>
+                                        <input class="form--control" type="text" name="in_url" value="{{ old('in_url', $me->in_url) }}" placeholder="{{ __('Type Your Instagram Link') }}">
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        <div class="pe-card pe-actions">
+                            <button type="submit" class="dashboard_table__title__btn btn-bg-1 radius-5">{{ __('Save Changes') }}</button>
+                            <a href="{{ route('seller.profile') }}" class="dashboard_table__title__btn radius-5" style="border:1px solid #d1d5db;color:#1f2733">{{ __('Cancel') }}</a>
+                            <span class="note" style="color:#8892a0;font-size:12px">{{ __('Fields marked * are required.') }}</span>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
     <x-media.markup :type="'web'"/>
-    <!-- Dashboard area end -->
-    @endsection
-    @section('scripts')
+@endsection
+
+@section('scripts')
     <x-media.js :type="'web'"/>
     <script type="text/javascript">
         (function() {
@@ -268,7 +258,7 @@ $image = \Modules\Subscription\Entities\Subscription::where(['id' =>$value->subs
                         }
                     })
                 })
-                
+
                 $('#service_city').select2({
                   placeholder: `{{__('search city')}}`,
                   ajax: {
@@ -284,7 +274,6 @@ $image = \Modules\Subscription\Entities\Subscription::where(['id' =>$value->subs
                     },
                     delay: 250,
                     processResults: function (response) {
-                        console.log(response.data);
                       return {
                         results:  $.map(response, function (item) {
                               return {
@@ -297,7 +286,6 @@ $image = \Modules\Subscription\Entities\Subscription::where(['id' =>$value->subs
                     cache: true
                   }
                 });
-                
 
                 // select city and area
                 $(document).on('change','#service_city', function() {
@@ -330,7 +318,5 @@ $image = \Modules\Subscription\Entities\Subscription::where(['id' =>$value->subs
 
             });
         })(jQuery);
-       </script>
-
-
-    @endsection    
+    </script>
+@endsection
