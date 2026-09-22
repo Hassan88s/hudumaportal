@@ -164,7 +164,7 @@ class ChampionsAdminController extends Controller
 
     public function runJob(Request $request)
     {
-        $data = $request->validate(['action' => 'required|in:confirm,bonuses,finalize', 'season_key' => 'nullable|regex:/^\d{4}-\d{2}$/']);
+        $data = $request->validate(['action' => 'required|in:confirm,sync,bonuses,finalize', 'season_key' => 'nullable|regex:/^\d{4}-\d{2}$/']);
         $args = ['action' => $data['action']];
         if (!empty($data['season_key'])) $args['--season'] = $data['season_key'];
         Artisan::call('champions:season', $args);
