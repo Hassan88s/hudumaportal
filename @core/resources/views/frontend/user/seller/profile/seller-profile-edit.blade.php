@@ -4,6 +4,12 @@
 @endsection
 @section('style')
     <x-media.css/>
+    <style>
+        /* Keep the uploaded image previews a sensible size on this page */
+        .dashboard__inner .img-wrap img{max-width:160px;height:auto;border-radius:10px;border:1px solid #eef0f3}
+        .dashboard__inner .media-upload-btn-wrapper{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+        .dashboard__inner .btn-wrapper{display:flex}
+    </style>
 @endsection
 @section('content')
 
@@ -174,7 +180,7 @@ $image = \Modules\Subscription\Entities\Subscription::where(['id' =>$value->subs
                                                                     </div>
                                                                     <input type="hidden" id="image" name="image"
                                                                            value="{{Auth::guard('web')->user()->image}}">
-                                                                    <button type="button" class="btn btn-info media_upload_form_btn"
+                                                                    <button type="button" class="dashboard_table__title__btn btn-bg-1 radius-5 media_upload_form_btn"
                                                                             data-btntitle="{{__('Select Image')}}"
                                                                             data-modaltitle="{{__('Upload Image')}}" data-toggle="modal"
                                                                             data-target="#media_upload_modal">
@@ -195,7 +201,7 @@ $image = \Modules\Subscription\Entities\Subscription::where(['id' =>$value->subs
                                                                     </div>
                                                                     <input type="hidden" id="profile_background" name="profile_background"
                                                                            value="{{Auth::guard('web')->user()->profile_background}}">
-                                                                    <button type="button" class="btn btn-info media_upload_form_btn"
+                                                                    <button type="button" class="dashboard_table__title__btn btn-bg-1 radius-5 media_upload_form_btn"
                                                                             data-btntitle="{{__('Select Image')}}"
                                                                             data-modaltitle="{{__('Upload Image')}}" data-toggle="modal"
                                                                             data-target="#media_upload_modal">
@@ -208,7 +214,7 @@ $image = \Modules\Subscription\Entities\Subscription::where(['id' =>$value->subs
                                                     </div>
                                                     <small class="text-danger">{{ __('recommended size 1394x315') }}</small>
                                                     <div class="btn-wrapper margin-top-35">
-                                                        <button type="submit" class="btn cmn-btn btn-bg-1">{{ __('Save Changes') }}</button>
+                                                        <button type="submit" class="dashboard_table__title__btn btn-bg-1 radius-5">{{ __('Save Changes') }}</button>
                                                     </div>
                                                 </form>
                                             </div>
