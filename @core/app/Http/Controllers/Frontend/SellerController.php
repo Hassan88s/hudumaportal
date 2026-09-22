@@ -288,11 +288,9 @@ class SellerController extends Controller
             return redirect()->back();
         }
 
-        $countries = Country::where('status', 1)->get();
-        $user_country = Auth::guard('web')->user()->country_id;
-        $cities = ServiceCity::where('country_id', $user_country)->get();
-        $areas = ServiceArea::where('service_city_id', Auth::guard('web')->user()->service_city)->get();
-        return view('frontend.user.seller.profile.seller-profile-edit', compact('cities', 'areas', 'countries'));
+        // Editing happens in the "Edit Profiles" modal on the profile page — this
+        // old standalone page was a leftover from the previous theme.
+        return redirect()->route('seller.profile');
     }
 
     public function sellerAccountSetting(Request $request)
