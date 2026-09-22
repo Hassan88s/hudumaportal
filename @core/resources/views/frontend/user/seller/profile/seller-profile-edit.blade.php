@@ -116,7 +116,7 @@ if($value->subscription_id != NULL){
 $image = \Modules\Subscription\Entities\Subscription::where(['id' =>$value->subscription_id])->first('id');
     }
     }
-@endphp                                              @if($value->subscription_id != NULL)
+@endphp                                              @if(optional($value)->subscription_id != NULL)
                                                         @if($image == '6')
                                                     <div class="single-dashboard-input">
                                                         <div class="single-info-input margin-top-30">
@@ -170,7 +170,6 @@ $image = \Modules\Subscription\Entities\Subscription::where(['id' =>$value->subs
                                                     </div>
                                                     @endif
   @endif
-    @endif
                                                     <div class="single-dashboard-input">
                                                         <div class="single-info-input margin-top-30">
                                                             <div class="form-group">
