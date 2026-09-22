@@ -149,14 +149,23 @@ class LoginController extends Controller
         $admin->otp_last_sent_at = now();
         $admin->save();
         
-            // Send email
-            Mail::to($admin->email)->send(new \App\Mail\AdminLoginOtpMail([
-        'otp' => $otp,
-        'minutes' => $otpMinutes,
-        'username' => $admin->username ?? ($admin->name ?? 'Admin'),
-    ]));
+            // Send email — never fail silently: a broken SMTP setup must say so
+            try {
+                Mail::to($admin->email)->send(new \App\Mail\AdminLoginOtpMail([
+                    'otp' => $otp,
+                    'minutes' => $otpMinutes,
+                    'username' => $admin->username ?? ($admin->name ?? 'Admin'),
+                ]));
+            } catch (\Throwable $e) {
+                \Log::error('[Admin OTP] email failed: ' . $e->getMessage(), ['admin_id' => $admin->id, 'email' => $admin->email]);
+                return response()->json([
+                    'status' => 'not_ok',
+                    'type'   => 'danger',
+                    'msg'    => __('Could not send the OTP email. Check the email/SMTP settings.') . ' (' . Str::limit($e->getMessage(), 140) . ')',
+                ]);
+            }
 
-    
+
         // Return response for frontend to show OTP screen
         return response()->json([
             'status' => 'otp_required',
@@ -266,11 +275,20 @@ public function resendAdminOtp(Request $request)
     $admin->save();
 
   
-    Mail::to($admin->email)->send(new \App\Mail\AdminLoginOtpMail([
-    'otp' => $otp,
-    'minutes' => $otpMinutes,
-    'username' => $admin->username ?? ($admin->name ?? 'Admin'),
-]));
+    try {
+        Mail::to($admin->email)->send(new \App\Mail\AdminLoginOtpMail([
+            'otp' => $otp,
+            'minutes' => $otpMinutes,
+            'username' => $admin->username ?? ($admin->name ?? 'Admin'),
+        ]));
+    } catch (\Throwable $e) {
+        \Log::error('[Admin OTP] resend failed: ' . $e->getMessage(), ['admin_id' => $admin->id]);
+        return response()->json([
+            'status' => 'not_ok',
+            'type'   => 'danger',
+            'msg'    => __('Could not send the OTP email. Check the email/SMTP settings.') . ' (' . Str::limit($e->getMessage(), 140) . ')',
+        ]);
+    }
 
     return response()->json([
         'status' => 'ok',
