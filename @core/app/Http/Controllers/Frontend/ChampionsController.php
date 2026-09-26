@@ -157,8 +157,9 @@ class ChampionsController extends Controller
             'badges'      => $badges,
             'daysLeft'    => $this->svc->daysRemaining(),
             'isSeller'    => $league === 'provider',
-            'onboardingDone' => $league !== 'provider' || DB::table('champion_points')
-                ->where(['user_id' => $user->id, 'rule_key' => 'p_onboarding_tutorial'])->where('status', '!=', 'reversed')->exists(),
+            'onboardingDone' => DB::table('champion_points')
+                ->where(['user_id' => $user->id, 'rule_key' => $league === 'provider' ? 'p_onboarding_tutorial' : 'c_onboarding'])
+                ->where('status', '!=', 'reversed')->exists(),
             'nextAction'  => $league === 'provider'
                 ? __('Complete your next service — +150 HP')
                 : __('Complete your next booking — +150 HP'),
@@ -210,6 +211,55 @@ class ChampionsController extends Controller
         $id = $this->svc->award((int) $user->id, 'p_onboarding_tutorial', ['source_type' => 'tutorial', 'source_id' => (int) $user->id]);
         toastr_success($id ? __('Tutorial complete — +30 HP added to your Huduma Champions points!') : __('Tutorial complete.'));
         return redirect()->route('seller.champions');
+    }
+
+    /** PDF §14 — short client onboarding, +25 HP once when finished. */
+    public function clientOnboarding()
+    {
+        $user = Auth::guard('web')->user();
+        abort_unless($this->leagueFor($user) === 'client', 404);
+
+        $filled = fn (array $cols) => collect($cols)->every(fn ($c) => trim((string) ($user->$c ?? '')) !== '');
+        $steps = [
+            ['icon' => 'la-user-edit', 'title' => __('Complete your profile'),
+             'text' => __('Add your name, phone, photo and address so providers know who they are working for. A complete profile earns +50 HP.'),
+             'done' => $filled(['name', 'email', 'phone', 'image', 'address']),
+             'link' => route('buyer.profile.edit'), 'cta' => __('Edit profile')],
+            ['icon' => 'la-map-marker', 'title' => __('Set your location preferences'),
+             'text' => __('Choose your city and area so you see providers who actually work near you. Worth +25 HP.'),
+             'done' => $filled(['service_city', 'service_area']),
+             'link' => route('buyer.profile.edit'), 'cta' => __('Set city and area')],
+            ['icon' => 'la-search', 'title' => __('Find and save providers'),
+             'text' => __('Browse services and save the providers you like, so you can book them again later. Each saved provider earns +5 HP.'),
+             'done' => DB::table('bookmarks')->where('user_id', $user->id)->exists(),
+             'link' => url('/service-list'), 'cta' => __('Browse services')],
+            ['icon' => 'la-clipboard-list', 'title' => __('Post a request and compare offers'),
+             'text' => __('Describe the job you need done and let providers come to you. A genuine request earns +30 HP, and each provider response +10 HP.'),
+             'done' => DB::table('buyer_jobs')->where('buyer_id', $user->id)->exists(),
+             'link' => route('buyer.add.job'), 'cta' => __('Post a request')],
+            ['icon' => 'la-trophy', 'title' => __('Book, complete and review'),
+             'text' => __('Your first completed booking of the month earns +150 HP, every other booking +120 HP, and a verified review +25 HP. The Top Five clients win service credits every month.'),
+             'done' => null,
+             'link' => \Route::has('champions.rules') ? route('champions.rules') : route('buyer.champions'), 'cta' => __('See all ways to earn')],
+        ];
+
+        return view('frontend.champions.onboarding', [
+            'steps'    => $steps,
+            'isSeller' => false,
+            'reward'   => 25,
+            'finished' => DB::table('champion_points')->where(['user_id' => $user->id, 'rule_key' => 'c_onboarding'])
+                            ->where('status', '!=', 'reversed')->exists(),
+        ]);
+    }
+
+    public function clientOnboardingComplete()
+    {
+        $user = Auth::guard('web')->user();
+        abort_unless($this->leagueFor($user) === 'client', 404);
+
+        $id = $this->svc->award((int) $user->id, 'c_onboarding', ['source_type' => 'tutorial', 'source_id' => (int) $user->id]);
+        toastr_success($id ? __('Tutorial complete — +25 HP added to your Huduma Champions points!') : __('Tutorial complete.'));
+        return redirect()->route('buyer.champions');
     }
 
     protected function leagueFor($user): string

@@ -21,6 +21,8 @@ Route::group(['prefix'=>'buyer','middleware'=>['auth','inactiveuser','UserRoleCh
 
     // Huduma Champions — client dashboard
     Route::get('/champions','Frontend\ChampionsController@dashboard')->name('buyer.champions');
+    Route::get('/getting-started','Frontend\ChampionsController@clientOnboarding')->name('buyer.onboarding');
+    Route::post('/getting-started/complete','Frontend\ChampionsController@clientOnboardingComplete')->name('buyer.onboarding.complete');
 
     Route::get('/profile','Frontend\BuyerController@buyerProfile')->name('buyer.profile');
     Route::match(['get','post'],'/profile-edit','Frontend\BuyerController@buyerProfileEdit')->name('buyer.profile.edit');

@@ -2,8 +2,9 @@
 @section('site-title'){{ __('Getting Started') }}@endsection
 
 @section('content')
+    @php $isSeller = $isSeller ?? true; $reward = $reward ?? 30; @endphp
     <x-frontend.seller-buyer-preloader/>
-    @include('frontend.user.seller.partials.sidebar-two')
+    @include($isSeller ? 'frontend.user.seller.partials.sidebar-two' : 'frontend.user.buyer.partials.sidebar-two')
     @include('frontend.champions._style')
     <style>
         .ob-dots{display:flex;gap:6px;margin:0 0 16px}
@@ -23,12 +24,16 @@
             <div class="dashboard__inner hc-page" style="background:transparent">
                 <div class="hc-card" style="background:linear-gradient(135deg,#1f2733,#2d3748);color:#fff;border:none">
                     <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#fbbf24">{{ __('Getting started') }}</div>
-                    <div style="font-size:22px;font-weight:800;margin-top:4px;color:#fff">{{ __('5 quick steps to your first bookings') }}</div>
+                    <div style="font-size:22px;font-weight:800;margin-top:4px;color:#fff">
+                        {{ $isSeller ? __('5 quick steps to your first bookings') : __('5 quick steps to booking with confidence') }}
+                    </div>
                     <div style="opacity:.85;margin-top:4px">
                         @if($finished)
-                            ✓ {{ __('You finished this tutorial and earned +30 HP.') }}
+                            ✓ {{ __('You finished this tutorial and earned +:n HP.', ['n' => $reward]) }}
                         @else
-                            {{ __('Finish the tutorial to earn +30 HP in the Huduma Pro League.') }}
+                            {{ $isSeller
+                                ? __('Finish the tutorial to earn +:n HP in the Huduma Pro League.', ['n' => $reward])
+                                : __('Finish the tutorial to earn +:n HP in the Huduma Client League.', ['n' => $reward]) }}
                         @endif
                     </div>
                 </div>
@@ -54,10 +59,10 @@
                     <div class="ob-nav">
                         <button type="button" class="hc-btn ghost" id="ob-back" style="border:1px solid #d1d5db">← {{ __('Back') }}</button>
                         <button type="button" class="hc-btn" id="ob-next" style="border:0">{{ __('Next') }} →</button>
-                        <form method="post" action="{{ route('seller.onboarding.complete') }}" id="ob-finish" style="display:none;margin:0">
+                        <form method="post" action="{{ $isSeller ? route('seller.onboarding.complete') : route('buyer.onboarding.complete') }}" id="ob-finish" style="display:none;margin:0">
                             @csrf
                             <button type="submit" class="hc-btn" style="border:0">
-                                {{ $finished ? __('Back to my Champions dashboard') : __('Finish tutorial (+30 HP)') }}
+                                {{ $finished ? __('Back to my Champions dashboard') : __('Finish tutorial (+:n HP)', ['n' => $reward]) }}
                             </button>
                         </form>
                     </div>

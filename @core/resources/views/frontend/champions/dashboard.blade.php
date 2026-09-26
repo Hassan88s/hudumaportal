@@ -57,13 +57,18 @@
                     @endif
                 </div>
 
-                @if(!$onboardingDone && Route::has('seller.onboarding'))
+                @php $obRoute = $isSeller ? 'seller.onboarding' : 'buyer.onboarding'; @endphp
+                @if(!$onboardingDone && Route::has($obRoute))
                     <div class="hc-card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#fff7ed;border-color:#fed7aa">
                         <div>
                             <strong style="color:#7c2d12">🚀 {{ __('New here? Finish the Getting Started tutorial') }}</strong>
-                            <div style="font-size:13px;color:#9a3412">{{ __('5 quick steps to your first bookings — and +30 HP when you finish.') }}</div>
+                            <div style="font-size:13px;color:#9a3412">
+                                {{ $isSeller
+                                    ? __('5 quick steps to your first bookings — and +30 HP when you finish.')
+                                    : __('5 quick steps to booking with confidence — and +25 HP when you finish.') }}
+                            </div>
                         </div>
-                        <a class="hc-btn" href="{{ route('seller.onboarding') }}">{{ __('Start tutorial') }} →</a>
+                        <a class="hc-btn" href="{{ route($obRoute) }}">{{ __('Start tutorial') }} →</a>
                     </div>
                 @endif
 
