@@ -233,6 +233,11 @@ class SellerController extends Controller
                 'service_area' => 'required|max:191',
                 'post_code' => 'required|max:191',
                 'address' => 'required|max:191',
+                // users.tax_number is unique in the database — validate it so the
+                // seller sees a clear message instead of a raw SQL error page
+                'tax_number' => 'nullable|max:191|unique:users,tax_number,' . $user,
+            ], [
+                'tax_number.unique' => __('This tax number is already used by another account.'),
             ]);
             // Check if phone number changed
             $user = Auth::guard('web')->user(); 
@@ -259,7 +264,8 @@ class SellerController extends Controller
                     'post_code' => $request->post_code,
                     'address' => $request->address,
                     'about' => $request->about,
-                    'tax_number' => $request->tax_number,
+                    // empty means "not given": store NULL, since the column is unique
+                    'tax_number' => $request->filled('tax_number') ? $request->tax_number : null,
                     
                     'fb_url' => $request->fb_url,
                     'tw_url' => $request->tw_url,
