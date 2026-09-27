@@ -305,6 +305,27 @@
                     </div>
                 </div>
                 <div class="box">
+                    <div class="hd"><h3>{{ __('Apply a penalty') }}</h3></div>
+                    <div class="bd">
+                        <form method="post" action="{{ route('admin.champions.penalty') }}" class="form-row"
+                              onsubmit="return confirm('{{ __('Apply this penalty?') }}')">
+                            @csrf
+                            <input name="user_id" type="number" placeholder="{{ __('User ID') }}" required style="width:100px">
+                            <select name="rule" required>
+                                @foreach(\App\Http\Controllers\ChampionsAdminController::PENALTIES as $key => $label)
+                                    <option value="{{ $key }}">{{ __($label) }}</option>
+                                @endforeach
+                            </select>
+                            <input name="reason" placeholder="{{ __('What happened (kept in the record)') }}" required style="flex:1;min-width:180px">
+                            <button class="btn btn-sm btn-danger">{{ __('Apply penalty') }}</button>
+                        </form>
+                        <small class="text-muted d-block" style="margin-top:8px">
+                            {{ __('Set amounts from the rules: cancellation -100, slow responses -50, fake listing -500, fake review -500, policy violation -500, fake request -100, repeated client cancellation -75. For a confirmed fake booking, reverse that order\'s rows on the user page instead.') }}
+                        </small>
+                    </div>
+                </div>
+
+                <div class="box">
                     <div class="hd"><h3>{{ __('Disqualify from season') }}</h3></div>
                     <div class="bd">
                         <form method="post" action="{{ route('admin.champions.disqualify') }}" class="form-row" onsubmit="return confirm('{{ __('Disqualify this user?') }}')">

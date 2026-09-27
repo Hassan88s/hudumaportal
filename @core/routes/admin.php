@@ -451,6 +451,7 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
         Route::post('/champions/adjust','ChampionsAdminController@adjust')->name('admin.champions.adjust');
         Route::post('/champions/point/{id}/reverse','ChampionsAdminController@reversePoint')->name('admin.champions.reverse')->where('id','[0-9]+');
         Route::post('/champions/disqualify','ChampionsAdminController@disqualify')->name('admin.champions.disqualify');
+        Route::post('/champions/penalty','ChampionsAdminController@penalty')->name('admin.champions.penalty');
         Route::post('/champions/winner/{id}','ChampionsAdminController@winnerStatus')->name('admin.champions.winner')->where('id','[0-9]+');
         Route::post('/champions/announce/{season}','ChampionsAdminController@announce')->name('admin.champions.announce')->where('season','\d{4}-\d{2}');
         Route::post('/champions/run','ChampionsAdminController@runJob')->name('admin.champions.run');

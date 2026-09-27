@@ -80,6 +80,7 @@ class ChampionsService
         'p_cancel_no_reason'    => ['league' => 'provider', 'hp' => -100, 'label' => 'Provider-caused cancellation'],
         'p_slow_responses'      => ['league' => 'provider', 'hp' => -50,  'label' => 'Repeated slow/no responses'],
         'p_fake_listing'        => ['league' => 'provider', 'hp' => -500, 'label' => 'Confirmed fake listing'],
+        'p_fake_review'         => ['league' => 'provider', 'hp' => -500, 'label' => 'Confirmed fake review'],
         'p_policy_violation'    => ['league' => 'provider', 'hp' => -500, 'label' => 'Serious policy violation'],
 
         // ── CLIENT LEAGUE: account (PDF §14) ──

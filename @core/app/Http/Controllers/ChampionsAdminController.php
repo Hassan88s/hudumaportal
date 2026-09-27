@@ -123,6 +123,38 @@ class ChampionsAdminController extends Controller
         return back()->with('success', __('Points adjusted.'));
     }
 
+    /** The deductions from PDF §9 (providers) and §20 (clients), applied by an admin. */
+    public const PENALTIES = [
+        'p_cancel_no_reason' => 'Provider-caused cancellation without valid reason (-100)',
+        'p_slow_responses'   => 'Repeated slow or missing responses (-50)',
+        'p_fake_listing'     => 'Confirmed fake listing (-500)',
+        'p_fake_review'      => 'Confirmed fake review by a provider (-500)',
+        'p_policy_violation' => 'Serious policy violation (-500)',
+        'c_fake_request'     => 'Fake service request (-100)',
+        'c_repeated_cancel'  => 'Repeated client-caused cancellation (-75)',
+        'c_fake_review'      => 'Fake review by a client (-500)',
+    ];
+
+    /** Apply one of those penalties with its set amount, so admins never type the number. */
+    public function penalty(Request $request)
+    {
+        $data = $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'rule'    => 'required|in:' . implode(',', array_keys(self::PENALTIES)),
+            'reason'  => 'required|string|max:255',
+        ]);
+
+        $id = $this->svc->award((int) $data['user_id'], $data['rule'], [
+            'source_type' => 'admin', 'source_id' => Auth::guard('admin')->id(),
+            'admin_id'    => Auth::guard('admin')->id(),
+            'reason'      => ChampionsService::RULES[$data['rule']]['label'] . ' — ' . $data['reason'],
+        ]);
+
+        return back()->with($id ? 'success' : 'warning', $id
+            ? __('Penalty applied: :hp HP.', ['hp' => ChampionsService::RULES[$data['rule']]['hp']])
+            : __('Nothing applied — that penalty is already recorded for this user.'));
+    }
+
     public function reversePoint(Request $request, int $id)
     {
         $row = DB::table('champion_points')->where('id', $id)->first();
