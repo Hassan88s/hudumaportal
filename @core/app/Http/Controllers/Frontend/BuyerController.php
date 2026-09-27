@@ -692,27 +692,28 @@ class BuyerController extends Controller
     {
 
         if ($request->isMethod('post')) {
-            $user = Auth::guard('web')->user()->id;
+            $user   = Auth::guard('web')->user();
+            $userId = $user->id;
             $request->validate([
                 'name' => 'required|max:191',
-                'email' => 'required|max:191|email|unique:users,email,'.$user,
-                'username' => 'required|max:191|unique:users,username,' . $user,
+                'email' => 'required|max:191|email|unique:users,email,'.$userId,
+                'username' => 'required|max:191|unique:users,username,' . $userId,
                 'phone' => 'required|max:191',
                 'service_area' => 'required|max:191',
                 'post_code' => 'required|max:191',
                 'address' => 'required|max:191',
             ]);
-            // Check if phone number changed
-        if ($request->phone !== $user->phone) {
-            // Store the old phone
-            UserOldPhone::create([
-                'user_id' => $userId,
-                'old_phone' => $user->phone,
-            ]);
-        }
 
-            $old_image = User::select('image')->where('id',Auth::guard('web')->user()->id)->first();
-            User::where('id', Auth::guard('web')->user()->id)
+            // Keep a record when the phone number changes
+            if ($request->phone !== $user->phone) {
+                UserOldPhone::create([
+                    'user_id'   => $userId,
+                    'old_phone' => $user->phone,
+                ]);
+            }
+
+            $old_image = User::select('image', 'profile_background')->where('id', $userId)->first();
+            User::where('id', $userId)
                 ->update([
                     'name' => $request->name,
                     'email' => $request->email,
@@ -722,7 +723,8 @@ class BuyerController extends Controller
                     'profile_background' => $request->profile_background ?? $old_image->profile_background,
                     'service_city' => $request->service_city,
                     'service_area' => $request->service_area,
-                    'country_id' => $request->country,
+                    // the form posts country_id; older markup posted country
+                    'country_id' => $request->country_id ?? $request->country,
                     'post_code' => $request->post_code,
                     'address' => $request->address,
                     'about' => $request->about,
@@ -731,11 +733,9 @@ class BuyerController extends Controller
             return redirect()->back();
         }
 
- 	$cities = ServiceCity::where('status',1)->take(500)->get();
-
-        $areas = ServiceArea::where('status',1)->get();
-        $countries = Country::where('status',1)->get();
-        return view('frontend.user.buyer.profile.buyer-profile-edit',compact('cities','areas','countries'));
+        // Editing happens in the "Edit Profile" modal on the profile page — this old
+        // standalone page is a leftover from the previous theme.
+        return redirect()->route('buyer.profile');
     }
 
     public function buyerAccountSetting(Request $request)
