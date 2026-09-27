@@ -647,19 +647,31 @@ class ChampionsService
             if ($this->award((int) $jr->seller_id, 'p_proposal_accepted', ['source_type' => 'job_request', 'source_id' => $jr->id, 'counterparty_id' => $jr->buyer_id])) $n['proposals']++;
         }
 
-        // Provider replies to client enquiries (+5, +10 if within 30 min; shared 250 HP cap)
-        $replies = DB::table('live_chat_messages')->whereColumn('from_user', 'seller_id')
-            ->whereNotNull('buyer_id')->where('created_at', '>=', $since)
-            ->select('id', 'seller_id', 'buyer_id', 'created_at')->orderBy('id')->get();
-        foreach ($replies as $m) {
-            if ((int) $m->seller_id === (int) $m->buyer_id) continue;
-            $prev = DB::table('live_chat_messages')->where('seller_id', $m->seller_id)->where('buyer_id', $m->buyer_id)
-                ->where('id', '<', $m->id)->orderByDesc('id')->select('from_user', 'created_at')->first();
-            if (!$prev || (int) $prev->from_user !== (int) $m->buyer_id) continue; // only the first reply to a client message
-            $opt = ['source_type' => 'chat_message', 'source_id' => $m->id, 'counterparty_id' => $m->buyer_id];
-            if ($this->award((int) $m->seller_id, 'p_enquiry_response', $opt)) $n['chat']++;
+        // Provider replies to client enquiries (+5, +10 if within 30 min; shared 250 HP cap).
+        // The seller_id / buyer_id columns are filled differently depending on which chat
+        // page sent the message, so who is the provider is decided from the accounts.
+        $recent = DB::table('live_chat_messages')->where('created_at', '>=', $since)
+            ->select('id', 'from_user', 'to_user', 'created_at')->orderBy('id')->get();
+        $ids = $recent->pluck('from_user')->merge($recent->pluck('to_user'))->filter()->unique();
+        $types = $ids->isEmpty() ? collect() : DB::table('users')->whereIn('id', $ids)->pluck('user_type', 'id');
+        $isProvider = fn ($id) => (int) ($types[$id] ?? 1) === 0;
+
+        foreach ($recent as $m) {
+            $seller = (int) $m->from_user; $client = (int) $m->to_user;
+            if ($seller === $client || !$isProvider($seller) || $isProvider($client)) continue;
+
+            // the message right before it in the same conversation, either column order
+            $prev = DB::table('live_chat_messages')
+                ->where('id', '<', $m->id)
+                ->where(fn ($q) => $q->where(fn ($w) => $w->where('from_user', $seller)->where('to_user', $client))
+                    ->orWhere(fn ($w) => $w->where('from_user', $client)->where('to_user', $seller)))
+                ->orderByDesc('id')->select('from_user', 'created_at')->first();
+            if (!$prev || (int) $prev->from_user !== $client) continue; // only the first reply to a client message
+
+            $opt = ['source_type' => 'chat_message', 'source_id' => $m->id, 'counterparty_id' => $client];
+            if ($this->award($seller, 'p_enquiry_response', $opt)) $n['chat']++;
             if (Carbon::parse($prev->created_at)->diffInMinutes(Carbon::parse($m->created_at)) <= 30) {
-                $this->award((int) $m->seller_id, 'p_fast_response', $opt);
+                $this->award($seller, 'p_fast_response', $opt);
             }
         }
 
@@ -766,12 +778,18 @@ class ChampionsService
     /** Share of client messages a provider answered in [from, to] (PDF §5 response-rate bonuses). */
     public function responseRate(int $sellerId, Carbon $from, Carbon $to): ?float
     {
-        $msgs = DB::table('live_chat_messages')->where('seller_id', $sellerId)
-            ->whereBetween('created_at', [$from, $to])->orderBy('buyer_id')->orderBy('id')
-            ->select('buyer_id', 'from_user')->get()->groupBy('buyer_id');
+        // Conversations are read from from_user / to_user: the seller_id and buyer_id
+        // columns are not filled consistently by the two chat pages.
+        $msgs = DB::table('live_chat_messages')
+            ->whereBetween('created_at', [$from, $to])
+            ->where(fn ($q) => $q->where('from_user', $sellerId)->orWhere('to_user', $sellerId))
+            ->select('from_user', 'to_user')->get()
+            ->groupBy(fn ($r) => (int) $r->from_user === $sellerId ? (int) $r->to_user : (int) $r->from_user);
+
         $threads = 0; $answered = 0;
-        foreach ($msgs as $buyerId => $rows) {
-            if (!$rows->contains(fn ($r) => (int) $r->from_user === (int) $buyerId)) continue;
+        foreach ($msgs as $clientId => $rows) {
+            if ($clientId === $sellerId) continue;
+            if (!$rows->contains(fn ($r) => (int) $r->from_user === (int) $clientId)) continue; // client never wrote
             $threads++;
             if ($rows->contains(fn ($r) => (int) $r->from_user === $sellerId)) $answered++;
         }
