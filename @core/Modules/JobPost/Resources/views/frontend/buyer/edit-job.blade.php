@@ -316,7 +316,7 @@
             <div class="col-md-3 mt-3">
                 <div class="card text-center p-3">
                     <h5>{{ __($package->name) }}</h5>
-                    <p class="fw-bold">{{ float_amount_with_currency_symbol($package->price) }}</p>
+                    <p class="fw-bold">{{ (float) $package->price > 0 ? float_amount_with_currency_symbol($package->price) : __('Free') }}</p>
                     <input type="radio" name="package_id" value="{{ $package->id }}" class="package-radio" 
                            data-name="{{ strtolower($package->name) }}" 
                            {{ $job->package_id == $package->id ? 'checked' : '' }}>
