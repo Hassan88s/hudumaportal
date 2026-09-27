@@ -12,6 +12,7 @@ class Kernel extends ConsoleKernel
         Commands\SubscriptionExpireReminder::class,
         Commands\PromoteReferralRewards::class,
         Commands\ChampionsSeason::class,
+        Commands\ChampionsDemoData::class,
     ];
 
     protected function schedule(Schedule $schedule)
