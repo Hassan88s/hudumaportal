@@ -249,6 +249,71 @@ class ChampionsAdminController extends Controller
         return back()->with('success', $msg);
     }
 
+    /**
+     * Wipe Champions data back to nothing — for testing before launch.
+     * Destructive and permanent: Super Admin only, and the season key (or the
+     * words WIPE ALL) has to be typed in. Missions you created are kept;
+     * service credit already paid onto a wallet cannot be taken back.
+     */
+    public function wipe(Request $request)
+    {
+        $admin = Auth::guard('admin')->user();
+        abort_unless($admin, 403);
+        if (method_exists($admin, 'hasRole')) abort_unless($admin->hasRole('Super Admin'), 403);
+
+        $data = $request->validate([
+            'scope'      => 'required|in:season,all',
+            'season_key' => 'required_if:scope,season|nullable|regex:/^\d{4}-\d{2}$/',
+            'confirm'    => 'required|string',
+        ]);
+        $all    = $data['scope'] === 'all';
+        $season = $data['season_key'] ?? null;
+
+        // Typing the target back is the safety catch
+        $expected = $all ? 'WIPE ALL' : $season;
+        if (trim($data['confirm']) !== $expected) {
+            return back()->with('warning', __('Nothing was wiped — you have to type :expected exactly to confirm.', ['expected' => $expected]));
+        }
+
+        $tables = ['champion_points', 'champion_winners', 'champion_badges', 'champion_mission_progress', 'champion_disqualifications'];
+        $paidCredit = (float) DB::table('champion_winners')
+            ->when(!$all, fn ($q) => $q->where('season_key', $season))
+            ->where(['status' => 'paid', 'reward_type' => 'credit'])->sum('reward_amount');
+
+        $deleted = [];
+        DB::transaction(function () use ($tables, $all, $season, &$deleted) {
+            foreach ($tables as $t) {
+                $deleted[$t] = DB::table($t)->when(!$all, fn ($q) => $q->where('season_key', $season))->delete();
+            }
+            if ($all) {
+                $deleted['champion_user_signals'] = DB::table('champion_user_signals')->delete();
+                $deleted['champion_seasons']      = DB::table('champion_seasons')->delete();
+            } else {
+                DB::table('champion_seasons')->where('season_key', $season)
+                    ->update(['status' => 'open', 'finalized_at' => null, 'announced_at' => null, 'updated_at' => now()]);
+            }
+        });
+
+        // Leaderboards and the totals shown to users are cached
+        if ($all) {
+            \Cache::flush();
+        } else {
+            foreach (['provider', 'client'] as $league) $this->svc->forgetBoard($league, $season);
+        }
+
+        $rows = array_sum($deleted);
+        Log::warning('[Champions] WIPE by admin ' . ($admin->id ?? '?') . ' — scope=' . $data['scope']
+            . ($season ? " season={$season}" : '') . " rows={$rows} " . json_encode($deleted));
+
+        $msg = $all
+            ? __('Champions wiped completely — :n rows removed across every season. Missions you created were kept.', ['n' => number_format($rows)])
+            : __('Season :s wiped — :n rows removed. Missions you created were kept.', ['s' => $season, 'n' => number_format($rows)]);
+        if ($paidCredit > 0) {
+            $msg .= ' ' . __('TZS :amt of service credit had already been paid onto wallets and is still there — remove it in the wallet if you need to.', ['amt' => number_format($paidCredit)]);
+        }
+        return back()->with('success', $msg);
+    }
+
     public function runJob(Request $request)
     {
         $data = $request->validate(['action' => 'required|in:confirm,sync,bonuses,finalize', 'season_key' => 'nullable|regex:/^\d{4}-\d{2}$/']);
