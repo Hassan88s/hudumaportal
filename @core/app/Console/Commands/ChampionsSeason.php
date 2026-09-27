@@ -103,11 +103,15 @@ class ChampionsSeason extends Command
             ->whereIn('status', [2, 4])->distinct()->pluck('buyer_id');
 
         foreach ($clients as $bid) {
-            $completed = DB::table('orders')->where('buyer_id', $bid)->where('status', 2)->whereBetween('updated_at', [$from, $to]);
+            // Columns are table-qualified: the category count joins services, where
+            // status / updated_at exist on both tables and would be ambiguous.
+            $completed = DB::table('orders')->where('orders.buyer_id', $bid)->where('orders.status', 2)
+                ->whereBetween('orders.updated_at', [$from, $to]);
             $done      = (clone $completed)->count();
-            $cancelled = DB::table('orders')->where('buyer_id', $bid)->where('status', 4)->whereBetween('updated_at', [$from, $to])->count();
+            $cancelled = DB::table('orders')->where('orders.buyer_id', $bid)->where('orders.status', 4)
+                ->whereBetween('orders.updated_at', [$from, $to])->count();
             $cats      = (clone $completed)->join('services', 'services.id', '=', 'orders.service_id')->distinct()->count('services.category_id');
-            $sameProv  = (clone $completed)->select('seller_id')->groupBy('seller_id')->havingRaw('COUNT(*) > 1')->get()->count();
+            $sameProv  = (clone $completed)->select('orders.seller_id')->groupBy('orders.seller_id')->havingRaw('COUNT(*) > 1')->get()->count();
 
             $opt = ['season_key' => $season, 'source_type' => 'season', 'source_id' => null];
 
