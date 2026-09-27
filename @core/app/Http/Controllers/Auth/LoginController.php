@@ -130,6 +130,18 @@ class LoginController extends Controller
             ]);
         }
     
+        // Dev escape hatch: set static_options.admin_otp_disabled = 1 to log in with
+        // password only, for servers where outgoing email is unreliable.
+        if ((string) (get_static_option('admin_otp_disabled') ?? '') === '1') {
+            Auth::guard('admin')->login($admin, (bool) $request->get('remember'));
+            \Log::warning('[Admin OTP] skipped — admin_otp_disabled is on', ['admin_id' => $admin->id, 'ip' => $request->ip()]);
+            return response()->json([
+                'status' => 'ok',
+                'type'   => 'success',
+                'msg'    => __('Login Success Redirecting'),
+            ]);
+        }
+
         // Optional: throttle resend (basic)
         if ($admin->otp_last_sent_at && Carbon::parse($admin->otp_last_sent_at)->diffInSeconds(now()) < 30) {
             return response()->json([
