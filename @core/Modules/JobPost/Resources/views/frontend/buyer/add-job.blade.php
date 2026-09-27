@@ -272,7 +272,7 @@
                 <div class="col-md-4 mt-3">
                     <div class="card text-center p-3">
                        <h6>{{ __($package->name) }}</h6>
-                        <p class="fw-bold">TsH {{ number_format($package->price, 2) }}</p>
+                        <p class="fw-bold">{{ float_amount_with_currency_symbol($package->price) }}</p>
                         <input type="radio" name="package_id" value="{{ $package->id }}" class="package-radio" data-name="{{ strtolower($package->name) }}" required>
                     </div>
                 </div>
