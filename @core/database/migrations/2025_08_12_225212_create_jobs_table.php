@@ -13,6 +13,9 @@ return new class extends Migration
      */
     public function up()
     {
+        // The queue table already exists on servers set up before this migration was added
+        if (Schema::hasTable('jobs')) return;
+
         Schema::create('jobs', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('queue')->index();

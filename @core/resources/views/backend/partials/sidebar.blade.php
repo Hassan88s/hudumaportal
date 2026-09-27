@@ -164,6 +164,14 @@
                         </a>
                     </li>
 
+                    @if(auth()->guard('admin')->user()->hasRole('Super Admin'))
+                        <li class="{{ active_menu('admin-home/general-settings/database-update') }}">
+                            <a href="{{ route('admin.database.update') }}"><i class="ti-reload"></i>
+                                <span>{{ __('Database Update') }}</span>
+                            </a>
+                        </li>
+                    @endif
+
                     @if (auth()->guard('admin')->user()->hasRole('Super Admin'))
                         <li
                             class="

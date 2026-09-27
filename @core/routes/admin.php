@@ -458,6 +458,10 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
         Route::post('/champions/missions/{id}/toggle','ChampionsAdminController@missionToggle')->name('admin.champions.mission.toggle')->where('id','[0-9]+');
         Route::post('/champions/settings','ChampionsAdminController@settings')->name('admin.champions.settings');
         Route::get('/champions/analytics','ChampionsAdminController@analytics')->name('admin.champions.analytics');
+
+        // Run database migrations from the panel (Super Admin only)
+        Route::get('/database-update','DatabaseUpdateController@index')->name('admin.database.update');
+        Route::post('/database-update/run','DatabaseUpdateController@run')->name('admin.database.update.run');
           
           //request company settings
           Route::get('/CompanySetting/{id?}','GeneralSettingsController@CompanySetting')->name('admin.general.CompanySetting');

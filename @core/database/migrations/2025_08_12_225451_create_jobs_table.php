@@ -13,6 +13,9 @@ return new class extends Migration
      */
     public function up()
     {
+        // Duplicate of 2025_08_12_225212_create_jobs_table; skip when the table is there
+        if (Schema::hasTable('jobs')) return;
+
         Schema::create('jobs', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('queue')->index();
