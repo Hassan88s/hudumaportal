@@ -75,6 +75,8 @@ class ChampionsAdminController extends Controller
                 'champions_pending_hold_days'  => get_static_option('champions_pending_hold_days') ?: 14,
                 'champions_block_repeat_winner'=> get_static_option('champions_block_repeat_winner') ?? 1,
             ],
+            'rewards'   => $this->svc->rewards(),
+            'budget'    => $this->svc->rewardBudget(),
             'winners'   => $winners,
             'stats'     => $stats,
             'missions'  => DB::table('champion_missions')->orderByDesc('id')
@@ -337,6 +339,50 @@ class ChampionsAdminController extends Controller
         ]);
         foreach ($data as $name => $value) update_static_option($name, $value);
         return back()->with('success', __('Champions settings saved.'));
+    }
+
+    /** Save the Top Five prize table (PDF §12, §23) so it is not fixed in code. */
+    public function rewardsSave(Request $request)
+    {
+        $data = $request->validate([
+            'rewards'                  => 'required|array',
+            'rewards.*.*.type'         => 'required|in:cash,credit',
+            'rewards.*.*.amount'       => 'required|numeric|min:0|max:100000000',
+            'rewards.*.*.benefits'     => 'nullable|string|max:255',
+        ]);
+
+        $table = [];
+        foreach (ChampionsService::REWARDS as $league => $ranks) {
+            foreach ($ranks as $rank => $default) {
+                $row = $data['rewards'][$league][$rank] ?? null;
+                if (!is_array($row)) { $table[$league][$rank] = $default; continue; }
+                $table[$league][$rank] = [
+                    $row['type'],
+                    (int) round((float) $row['amount']),
+                    trim((string) ($row['benefits'] ?? '')) ?: $default[2],
+                ];
+            }
+        }
+        update_static_option('champions_rewards', json_encode($table));
+
+        // Winners already provisional this season should follow the new table
+        $season = preg_match('/^\d{4}-\d{2}$/', (string) $request->input('season')) ? $request->input('season') : $this->svc->currentSeasonKey();
+        foreach ($table as $league => $ranks) {
+            foreach ($ranks as $rank => [$type, $amount, $benefits]) {
+                DB::table('champion_winners')
+                    ->where(['season_key' => $season, 'league' => $league, 'rank' => $rank, 'status' => 'provisional'])
+                    ->update(['reward_type' => $type, 'reward_amount' => $amount, 'benefits' => $benefits, 'updated_at' => now()]);
+            }
+        }
+
+        return back()->with('success', __('Prize table saved.'));
+    }
+
+    /** Put the PDF's own amounts back. */
+    public function rewardsReset()
+    {
+        update_static_option('champions_rewards', '');
+        return back()->with('success', __('Prize table reset to the programme defaults.'));
     }
 
     public function missionUpdate(Request $request, int $id)

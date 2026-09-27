@@ -150,7 +150,7 @@ class ChampionsService
         'client'   => [0 => 'Explorer', 300 => 'Active Client', 750 => 'Silver Client', 1500 => 'Gold Client', 3000 => 'VIP Client', 5000 => 'Huduma Champion'],
     ];
 
-    /** Top Five rewards (PDF §12, §23). */
+    /** Top Five rewards (PDF §12, §23) — the defaults admin starts from. */
     public const REWARDS = [
         'provider' => [
             1 => ['cash',   300000, '30-day featured profile; 1 month Premium Plus; Champion badge; social feature; priority placement'],
@@ -167,6 +167,44 @@ class ChampionsService
             5 => ['credit',  50000, 'Top Five recognition'],
         ],
     ];
+
+    /**
+     * The prize table in force: what admin saved, falling back to the PDF defaults.
+     * Shape is identical to REWARDS — [league][rank] => [type, amount, benefits].
+     */
+    public function rewards(): array
+    {
+        $saved = json_decode((string) get_static_option('champions_rewards'), true);
+        if (!is_array($saved)) return self::REWARDS;
+
+        $out = self::REWARDS;
+        foreach ($out as $league => $ranks) {
+            foreach ($ranks as $rank => $default) {
+                $row = $saved[$league][$rank] ?? null;
+                if (!is_array($row)) continue;
+                $out[$league][$rank] = [
+                    in_array(($row[0] ?? ''), ['cash', 'credit'], true) ? $row[0] : $default[0],
+                    max(0, (int) ($row[1] ?? $default[1])),
+                    (string) ($row[2] ?? $default[2]),
+                ];
+            }
+        }
+        return $out;
+    }
+
+    /** What one month of Top Five prizes costs at the current table (PDF §24 budget). */
+    public function rewardBudget(): array
+    {
+        $out = ['cash' => 0, 'credit' => 0, 'provider' => 0, 'client' => 0, 'total' => 0];
+        foreach ($this->rewards() as $league => $ranks) {
+            foreach ($ranks as [$type, $amount]) {
+                $out[$type]  += (int) $amount;
+                $out[$league] += (int) $amount;
+                $out['total'] += (int) $amount;
+            }
+        }
+        return $out;
+    }
 
     /* =================================================================
      |  Seasons

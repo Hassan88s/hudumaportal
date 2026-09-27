@@ -196,6 +196,7 @@ class ChampionsSeason extends Command
     protected function finalize(ChampionsService $svc, string $season): void
     {
         $svc->confirmMatured();
+        $rewards     = $svc->rewards();
         $blockRepeat = (int) (\App\StaticOption::where('option_name', 'champions_block_repeat_winner')->value('option_value') ?? 1) === 1;
         $prevSeason  = Carbon::createFromFormat('Y-m', $season)->subMonthNoOverflow()->format('Y-m');
 
@@ -217,7 +218,7 @@ class ChampionsSeason extends Command
 
             foreach ($board->take(5)->values() as $i => $row) {
                 $rank = $i + 1;
-                [$type, $amount, $benefits] = ChampionsService::REWARDS[$league][$rank];
+                [$type, $amount, $benefits] = $rewards[$league][$rank];
                 DB::table('champion_winners')->updateOrInsert(
                     ['season_key' => $season, 'league' => $league, 'rank' => $rank],
                     ['user_id' => $row->user_id, 'final_hp' => (int) $row->hp, 'reward_type' => $type,

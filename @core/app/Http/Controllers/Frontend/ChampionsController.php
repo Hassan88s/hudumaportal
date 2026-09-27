@@ -104,7 +104,7 @@ class ChampionsController extends Controller
     {
         $user = Auth::guard('web')->user();
         return view('frontend.champions.rewards', [
-            'rewards' => ChampionsService::REWARDS,
+            'rewards' => $this->svc->rewards(),
             'levels'  => ChampionsService::LEVELS,
             'badges'  => $user ? DB::table('champion_badges')->where('user_id', $user->id)->orderByDesc('awarded_at')->get() : collect(),
         ]);
@@ -116,7 +116,7 @@ class ChampionsController extends Controller
             'rules'   => ChampionsService::RULES,
             'caps'    => ChampionsService::CAPS,
             'levels'  => ChampionsService::LEVELS,
-            'rewards' => ChampionsService::REWARDS,
+            'rewards' => $this->svc->rewards(),
         ]);
     }
 

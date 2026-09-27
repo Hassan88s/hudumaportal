@@ -262,6 +262,67 @@
                 </div>
             </div>
 
+            {{-- Prize table + monthly reward budget --}}
+            <div class="box">
+                <div class="hd"><h3>{{ __('Prize table & monthly reward budget') }}</h3></div>
+                <div class="bd">
+                    <form method="post" action="{{ route('admin.champions.rewards.save') }}">
+                        @csrf
+                        <input type="hidden" name="season" value="{{ $season }}">
+                        <div class="grid2">
+                            @foreach(['provider' => __('Huduma Pro League (providers)'), 'client' => __('Huduma Client League (clients)')] as $lg => $lgLabel)
+                                <div>
+                                    <h5 style="font-size:13px;margin:0 0 8px;color:#f0f0f0 !important">{{ $lgLabel }}</h5>
+                                    <table class="table" style="margin:0">
+                                        <thead><tr>
+                                            <th style="width:60px">{{ __('Place') }}</th>
+                                            <th style="width:110px">{{ __('Type') }}</th>
+                                            <th style="width:130px">{{ __('Amount (TZS)') }}</th>
+                                            <th>{{ __('Other benefits') }}</th>
+                                        </tr></thead>
+                                        <tbody>
+                                        @foreach($rewards[$lg] as $rank => $r)
+                                            <tr>
+                                                <td><strong>#{{ $rank }}</strong></td>
+                                                <td>
+                                                    <select name="rewards[{{ $lg }}][{{ $rank }}][type]" style="width:100%">
+                                                        <option value="cash" @selected($r[0] === 'cash')>{{ __('Cash') }}</option>
+                                                        <option value="credit" @selected($r[0] === 'credit')>{{ __('Service credit') }}</option>
+                                                    </select>
+                                                </td>
+                                                <td><input name="rewards[{{ $lg }}][{{ $rank }}][amount]" type="number" min="0" step="1000" value="{{ (int) $r[1] }}" style="width:100%"></td>
+                                                <td><input name="rewards[{{ $lg }}][{{ $rank }}][benefits]" value="{{ $r[2] }}" style="width:100%" title="{{ __('Shown on the rewards page and saved with the winner') }}"></td>
+                                            </tr>
+                                        @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="form-row" style="margin-top:12px;align-items:center">
+                            <button class="btn btn-sm btn-primary">{{ __('Save prize table') }}</button>
+                            <span class="text-muted" style="font-size:12px">{{ __('Cash prizes are paid by hand and marked paid below. Service credits go on the winner\'s account.') }}</span>
+                        </div>
+                    </form>
+                    <form method="post" action="{{ route('admin.champions.rewards.reset') }}" onsubmit="return confirm('{{ __('Put the programme default amounts back?') }}')" style="margin-top:6px">
+                        @csrf
+                        <button class="btn btn-sm btn-secondary">{{ __('Reset to programme defaults') }}</button>
+                    </form>
+
+                    <table class="table" style="margin:14px 0 0;max-width:520px">
+                        <tbody>
+                            <tr><td>{{ __('Provider prizes') }}</td><td class="text-right"><strong>TZS {{ number_format($budget['provider']) }}</strong></td></tr>
+                            <tr><td>{{ __('Client prizes') }}</td><td class="text-right"><strong>TZS {{ number_format($budget['client']) }}</strong></td></tr>
+                            <tr><td>{{ __('Of which cash (paid out)') }}</td><td class="text-right">TZS {{ number_format($budget['cash']) }}</td></tr>
+                            <tr><td>{{ __('Of which service credit') }}</td><td class="text-right">TZS {{ number_format($budget['credit']) }}</td></tr>
+                            <tr><td><strong>{{ __('Monthly reward budget') }}</strong></td><td class="text-right"><strong>TZS {{ number_format($budget['total']) }}</strong></td></tr>
+                            <tr><td>{{ __('Annualised (× 12)') }}</td><td class="text-right">TZS {{ number_format($budget['total'] * 12) }}</td></tr>
+                        </tbody>
+                    </table>
+                    <small class="text-muted d-block" style="margin-top:8px">{{ __('This is the prize money only. Visibility rewards — featured profile, membership months, boosts — are fulfilled by hand and are not counted here.') }}</small>
+                </div>
+            </div>
+
             {{-- Program settings --}}
             <div class="box">
                 <div class="hd"><h3>{{ __('Program settings') }}</h3></div>
