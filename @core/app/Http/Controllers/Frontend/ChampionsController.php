@@ -157,6 +157,10 @@ class ChampionsController extends Controller
             'badges'      => $badges,
             'daysLeft'    => $this->svc->daysRemaining(),
             'isSeller'    => $league === 'provider',
+            // PDF §7 / §19 — how this user is doing against the month-end bonuses
+            'bonus'       => $league === 'provider'
+                ? $this->svc->providerQuality((int) $user->id, $season)
+                : $this->svc->clientLoyalty((int) $user->id, $season),
             'onboardingDone' => DB::table('champion_points')
                 ->where(['user_id' => $user->id, 'rule_key' => $league === 'provider' ? 'p_onboarding_tutorial' : 'c_onboarding'])
                 ->where('status', '!=', 'reversed')->exists(),

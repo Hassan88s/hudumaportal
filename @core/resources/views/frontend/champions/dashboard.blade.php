@@ -98,6 +98,44 @@
                     </div>
                 </div>
 
+                {{-- Month-end bonuses (PDF §7 for providers, §19 for clients) --}}
+                @php
+                    $bonusRules = $isSeller ? [
+                        'p_q_response_90'     => [__('Answer 90% of client messages'), 100, is_null($bonus['response_rate']) ? __('needs 3+ conversations') : round($bonus['response_rate'] * 100) . '%'],
+                        'p_q_completion_95'   => [__('Finish 95% of your jobs'), 150, is_null($bonus['completion_rate']) ? '—' : $bonus['completion_rate'] . '%'],
+                        'p_q_rating'          => [__('Keep an excellent rating'), 200, ($bonus['rating'] ?: '—') . ' ★ · ' . $bonus['done'] . '/3 ' . __('jobs')],
+                        'p_q_zero_cancel'     => [__('No cancellations after 5 jobs'), 150, $bonus['done'] . '/5 ' . __('jobs') . ' · ' . $bonus['cancelled'] . ' ' . __('cancelled')],
+                        'p_q_zero_complaints' => [__('No upheld complaints'), 100, $bonus['complaints'] . ' ' . __('complaints')],
+                        'p_q_repeat_5'        => [__('5 clients who booked twice'), 250, $bonus['repeat_clients'] . '/5'],
+                    ] : [
+                        'c_l_two_categories'   => [__('Book in 2 categories'), 50, $bonus['categories'] . '/2'],
+                        'c_l_three_categories' => [__('Book in 3 categories'), 100, $bonus['categories'] . '/3'],
+                        'c_l_three_no_cancel'  => [__('3 bookings, none cancelled'), 100, $bonus['done'] . '/3 · ' . $bonus['cancelled'] . ' ' . __('cancelled')],
+                        'c_l_five_bookings'    => [__('5 completed bookings'), 250, $bonus['done'] . '/5'],
+                        'c_l_same_provider'    => [__('Book the same provider twice'), 100, $bonus['same_provider'] . '/1'],
+                    ];
+                    $bonusTotal = collect($bonus['bonuses'])->filter()->keys()->sum(fn ($k) => $bonusRules[$k][1]);
+                @endphp
+                <div class="hc-card">
+                    <h3>{{ __('Month-end bonuses') }}</h3>
+                    <p style="margin:-6px 0 14px;font-size:13px;color:#6b7280">
+                        {{ __('Extra points paid at the end of the month, once cancellations and refunds are settled.') }}
+                        @if($bonusTotal)
+                            <strong style="color:#15803d">{{ __('On track for +:n HP', ['n' => number_format($bonusTotal)]) }}</strong>
+                        @endif
+                    </p>
+                    @foreach($bonusRules as $key => [$title, $hp, $progress])
+                        @php $earned = $bonus['bonuses'][$key]; @endphp
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f2f4f7;flex-wrap:wrap">
+                            <div>
+                                <span style="font-weight:600">{{ $earned ? '✅' : '⬜' }} {{ $title }}</span>
+                                <div style="font-size:12px;color:#8892a0">{{ $progress }}</div>
+                            </div>
+                            <span class="hc-pill {{ $earned ? 'confirmed' : '' }}">+{{ number_format($hp) }} HP</span>
+                        </div>
+                    @endforeach
+                </div>
+
                 @if($missions->count())
                     <div class="hc-card" id="hc-missions">
                         <h3>{{ __('Missions this month') }}</h3>

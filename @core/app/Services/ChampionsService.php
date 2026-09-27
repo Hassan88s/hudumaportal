@@ -775,6 +775,67 @@ class ChampionsService
         });
     }
 
+    /**
+     * PDF §7 — the numbers behind a provider's month-end quality bonuses, and
+     * which of the six they currently qualify for. Used by the month-end job and
+     * by the admin preview, so both always agree.
+     */
+    public function providerQuality(int $sellerId, ?string $season = null): array
+    {
+        $season = $season ?: $this->currentSeasonKey();
+        [$from, $to] = $this->seasonRangeUtc($season);
+
+        $done      = DB::table('orders')->where('seller_id', $sellerId)->where('status', 2)->whereBetween('updated_at', [$from, $to])->count();
+        $cancelled = DB::table('orders')->where('seller_id', $sellerId)->where('status', 4)->whereBetween('updated_at', [$from, $to])->count();
+        $rating    = (float) DB::table('reviews')->where('seller_id', $sellerId)->whereBetween('created_at', [$from, $to])->avg('rating');
+        $repeat    = DB::table('orders')->where('seller_id', $sellerId)->where('status', 2)->whereBetween('updated_at', [$from, $to])
+            ->select('buyer_id')->groupBy('buyer_id')->havingRaw('COUNT(*) > 1')->get()->count();
+        $rate       = $this->responseRate($sellerId, Carbon::parse($from), Carbon::parse($to));
+        $complaints = \Schema::hasTable('reports')
+            ? DB::table('reports')->where('seller_id', $sellerId)->whereBetween('created_at', [$from, $to])->count() : 0;
+        $total = $done + $cancelled;
+
+        return [
+            'done' => $done, 'cancelled' => $cancelled, 'rating' => round($rating, 2),
+            'repeat_clients' => $repeat, 'response_rate' => $rate, 'complaints' => $complaints,
+            'completion_rate' => $total > 0 ? round($done / $total * 100, 1) : null,
+            'bonuses' => [
+                'p_q_response_90'     => $rate !== null && $rate >= 0.9,
+                'p_q_completion_95'   => $total > 0 && $done / $total >= 0.95,
+                'p_q_rating'          => $rating >= 4.5 && $done >= 3,
+                'p_q_zero_cancel'     => $done >= 5 && $cancelled === 0,
+                'p_q_zero_complaints' => $done >= 1 && $complaints === 0,
+                'p_q_repeat_5'        => $repeat >= 5,
+            ],
+        ];
+    }
+
+    /** PDF §19 — the same for a client's loyalty bonuses. */
+    public function clientLoyalty(int $buyerId, ?string $season = null): array
+    {
+        $season = $season ?: $this->currentSeasonKey();
+        [$from, $to] = $this->seasonRangeUtc($season);
+
+        $completed = DB::table('orders')->where('orders.buyer_id', $buyerId)->where('orders.status', 2)
+            ->whereBetween('orders.updated_at', [$from, $to]);
+        $done      = (clone $completed)->count();
+        $cancelled = DB::table('orders')->where('orders.buyer_id', $buyerId)->where('orders.status', 4)
+            ->whereBetween('orders.updated_at', [$from, $to])->count();
+        $cats      = (clone $completed)->join('services', 'services.id', '=', 'orders.service_id')->distinct()->count('services.category_id');
+        $sameProv  = (clone $completed)->select('orders.seller_id')->groupBy('orders.seller_id')->havingRaw('COUNT(*) > 1')->get()->count();
+
+        return [
+            'done' => $done, 'cancelled' => $cancelled, 'categories' => $cats, 'same_provider' => $sameProv,
+            'bonuses' => [
+                'c_l_two_categories'   => $cats >= 2,
+                'c_l_three_categories' => $cats >= 3,
+                'c_l_three_no_cancel'  => $done >= 3 && $cancelled === 0,
+                'c_l_five_bookings'    => $done >= 5,
+                'c_l_same_provider'    => $sameProv >= 1,
+            ],
+        ];
+    }
+
     /** Share of client messages a provider answered in [from, to] (PDF §5 response-rate bonuses). */
     public function responseRate(int $sellerId, Carbon $from, Carbon $to): ?float
     {

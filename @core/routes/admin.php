@@ -456,6 +456,8 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
         Route::post('/champions/run','ChampionsAdminController@runJob')->name('admin.champions.run');
         Route::post('/champions/missions','ChampionsAdminController@missionStore')->name('admin.champions.mission.store');
         Route::post('/champions/missions/{id}/toggle','ChampionsAdminController@missionToggle')->name('admin.champions.mission.toggle')->where('id','[0-9]+');
+        Route::post('/champions/missions/{id}/update','ChampionsAdminController@missionUpdate')->name('admin.champions.mission.update')->where('id','[0-9]+');
+        Route::post('/champions/missions/{id}/delete','ChampionsAdminController@missionDelete')->name('admin.champions.mission.delete')->where('id','[0-9]+');
         Route::post('/champions/settings','ChampionsAdminController@settings')->name('admin.champions.settings');
         Route::get('/champions/analytics','ChampionsAdminController@analytics')->name('admin.champions.analytics');
 

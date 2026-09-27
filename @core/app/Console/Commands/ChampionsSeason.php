@@ -77,25 +77,12 @@ class ChampionsSeason extends Command
         $providers = DB::table('orders')->whereBetween('updated_at', [$from, $to])
             ->whereIn('status', [2, 4])->distinct()->pluck('seller_id');
 
+        // The same calculation the admin preview shows, so the two never disagree
         foreach ($providers as $sid) {
-            $done      = DB::table('orders')->where('seller_id', $sid)->where('status', 2)->whereBetween('updated_at', [$from, $to])->count();
-            $cancelled = DB::table('orders')->where('seller_id', $sid)->where('status', 4)->whereBetween('updated_at', [$from, $to])->count();
-            $rating    = (float) DB::table('reviews')->where('seller_id', $sid)->whereBetween('created_at', [$from, $to])->avg('rating');
-            $repeat    = DB::table('orders')->where('seller_id', $sid)->where('status', 2)->whereBetween('updated_at', [$from, $to])
-                ->select('buyer_id')->groupBy('buyer_id')->havingRaw('COUNT(*) > 1')->get()->count();
-
             $opt = ['season_key' => $season, 'source_type' => 'season', 'source_id' => null];
-            $total = $done + $cancelled;
-
-            if ($total > 0 && $done / $total >= 0.95)          $given += (int) (bool) $svc->award($sid, 'p_q_completion_95', $opt);
-            if ($rating >= 4.5 && $done >= 3)                   $given += (int) (bool) $svc->award($sid, 'p_q_rating', $opt);
-            if ($done >= 5 && $cancelled === 0)                 $given += (int) (bool) $svc->award($sid, 'p_q_zero_cancel', $opt);
-            if ($repeat >= 5)                                   $given += (int) (bool) $svc->award($sid, 'p_q_repeat_5', $opt);
-            if ($done >= 1 && !$this->hasUpheldComplaint($sid, $from, $to)) $given += (int) (bool) $svc->award($sid, 'p_q_zero_complaints', $opt);
-
-            // PDF §7 — 90%+ response rate across the whole season
-            $rate = $svc->responseRate((int) $sid, Carbon::parse($from), Carbon::parse($to));
-            if ($rate !== null && $rate >= 0.9) $given += (int) (bool) $svc->award($sid, 'p_q_response_90', $opt);
+            foreach ($svc->providerQuality((int) $sid, $season)['bonuses'] as $rule => $earned) {
+                if ($earned) $given += (int) (bool) $svc->award($sid, $rule, $opt);
+            }
         }
 
         // ── Clients (PDF §19) ──
@@ -103,23 +90,10 @@ class ChampionsSeason extends Command
             ->whereIn('status', [2, 4])->distinct()->pluck('buyer_id');
 
         foreach ($clients as $bid) {
-            // Columns are table-qualified: the category count joins services, where
-            // status / updated_at exist on both tables and would be ambiguous.
-            $completed = DB::table('orders')->where('orders.buyer_id', $bid)->where('orders.status', 2)
-                ->whereBetween('orders.updated_at', [$from, $to]);
-            $done      = (clone $completed)->count();
-            $cancelled = DB::table('orders')->where('orders.buyer_id', $bid)->where('orders.status', 4)
-                ->whereBetween('orders.updated_at', [$from, $to])->count();
-            $cats      = (clone $completed)->join('services', 'services.id', '=', 'orders.service_id')->distinct()->count('services.category_id');
-            $sameProv  = (clone $completed)->select('orders.seller_id')->groupBy('orders.seller_id')->havingRaw('COUNT(*) > 1')->get()->count();
-
             $opt = ['season_key' => $season, 'source_type' => 'season', 'source_id' => null];
-
-            if ($cats >= 2)                     $given += (int) (bool) $svc->award($bid, 'c_l_two_categories', $opt);
-            if ($cats >= 3)                     $given += (int) (bool) $svc->award($bid, 'c_l_three_categories', $opt);
-            if ($done >= 3 && $cancelled === 0) $given += (int) (bool) $svc->award($bid, 'c_l_three_no_cancel', $opt);
-            if ($done >= 5)                     $given += (int) (bool) $svc->award($bid, 'c_l_five_bookings', $opt);
-            if ($sameProv >= 1)                 $given += (int) (bool) $svc->award($bid, 'c_l_same_provider', $opt);
+            foreach ($svc->clientLoyalty((int) $bid, $season)['bonuses'] as $rule => $earned) {
+                if ($earned) $given += (int) (bool) $svc->award($bid, $rule, $opt);
+            }
         }
 
         $msg = "[Champions] {$season} month-end bonuses awarded: {$given}";

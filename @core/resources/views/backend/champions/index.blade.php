@@ -162,6 +162,103 @@
                 @endforeach
             </div>
 
+            {{-- Month-end bonus preview (PDF §7 and §19) --}}
+            @php
+                $qLabels = [
+                    'p_q_response_90'     => ['90%+ response rate', 100],
+                    'p_q_completion_95'   => ['95%+ completion rate', 150],
+                    'p_q_rating'          => ['Excellent rating', 200],
+                    'p_q_zero_cancel'     => ['Zero cancellations (5+ jobs)', 150],
+                    'p_q_zero_complaints' => ['Zero upheld complaints', 100],
+                    'p_q_repeat_5'        => ['5+ repeat clients', 250],
+                ];
+                $lLabels = [
+                    'c_l_two_categories'   => ['Booked 2 categories', 50],
+                    'c_l_three_categories' => ['Booked 3 categories', 100],
+                    'c_l_three_no_cancel'  => ['3 bookings, no cancels', 100],
+                    'c_l_five_bookings'    => ['5 completed bookings', 250],
+                    'c_l_same_provider'    => ['Same provider twice', 100],
+                ];
+                $yes = fn ($ok) => $ok
+                    ? '<span class="pill" style="background:#dcfce7;color:#166534">✓</span>'
+                    : '<span class="pill" style="background:#f3f4f6;color:#9ca3af">—</span>';
+            @endphp
+
+            <div class="box">
+                <div class="hd">
+                    <h3>{{ __('Month-end bonus preview') }} · {{ $season }}</h3>
+                    <small class="text-muted">{{ __('Who qualifies right now. Paid when the month-end job runs.') }}</small>
+                </div>
+                <div class="bd" style="padding:0;overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>{{ __('Provider') }}</th>
+                                <th>{{ __('Done') }}</th>
+                                <th>{{ __('Cancel') }}</th>
+                                <th>{{ __('Completion') }}</th>
+                                <th>{{ __('Rating') }}</th>
+                                <th>{{ __('Replies') }}</th>
+                                <th>{{ __('Repeat') }}</th>
+                                @foreach($qLabels as [$label, $hp])<th title="{{ $label }}">+{{ $hp }}</th>@endforeach
+                                <th>{{ __('Would earn') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @forelse($quality as $q)
+                            @php $sum = collect($q->bonuses)->filter()->keys()->sum(fn ($k) => $qLabels[$k][1]); @endphp
+                            <tr>
+                                <td><a href="{{ route('admin.champions.ledger', ['userId' => $q->user_id, 'season' => $season]) }}">{{ $q->name }}</a></td>
+                                <td>{{ $q->done }}</td>
+                                <td>{{ $q->cancelled }}</td>
+                                <td>{{ is_null($q->completion_rate) ? '—' : $q->completion_rate . '%' }}</td>
+                                <td>{{ $q->rating ?: '—' }}</td>
+                                <td>{{ is_null($q->response_rate) ? '—' : round($q->response_rate * 100) . '%' }}</td>
+                                <td>{{ $q->repeat_clients }}</td>
+                                @foreach($qLabels as $key => $x)<td>{!! $yes($q->bonuses[$key]) !!}</td>@endforeach
+                                <td><strong>{{ $sum ? '+' . number_format($sum) : '—' }}</strong></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="14" class="text-center text-muted" style="padding:18px">{{ __('No provider activity this season yet.') }}</td></tr>
+                        @endforelse
+                        </tbody>
+                    </table>
+
+                    <table style="margin-top:6px">
+                        <thead>
+                            <tr>
+                                <th>{{ __('Client') }}</th>
+                                <th>{{ __('Bookings') }}</th>
+                                <th>{{ __('Cancel') }}</th>
+                                <th>{{ __('Categories') }}</th>
+                                <th>{{ __('Same provider') }}</th>
+                                @foreach($lLabels as [$label, $hp])<th title="{{ $label }}">+{{ $hp }}</th>@endforeach
+                                <th>{{ __('Would earn') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @forelse($loyalty as $l)
+                            @php $sum = collect($l->bonuses)->filter()->keys()->sum(fn ($k) => $lLabels[$k][1]); @endphp
+                            <tr>
+                                <td><a href="{{ route('admin.champions.ledger', ['userId' => $l->user_id, 'season' => $season]) }}">{{ $l->name }}</a></td>
+                                <td>{{ $l->done }}</td>
+                                <td>{{ $l->cancelled }}</td>
+                                <td>{{ $l->categories }}</td>
+                                <td>{{ $l->same_provider }}</td>
+                                @foreach($lLabels as $key => $x)<td>{!! $yes($l->bonuses[$key]) !!}</td>@endforeach
+                                <td><strong>{{ $sum ? '+' . number_format($sum) : '—' }}</strong></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="11" class="text-center text-muted" style="padding:18px">{{ __('No client activity this season yet.') }}</td></tr>
+                        @endforelse
+                        </tbody>
+                    </table>
+                    <div style="padding:10px 18px">
+                        <small class="text-muted">{{ __('Hover a +HP column for the rule. A dash means the threshold is not met yet — for example the response-rate bonus needs at least 3 client conversations, and the zero-cancellation bonus needs 5 completed jobs.') }}</small>
+                    </div>
+                </div>
+            </div>
+
             {{-- Program settings --}}
             <div class="box">
                 <div class="hd"><h3>{{ __('Program settings') }}</h3></div>
@@ -248,12 +345,34 @@
                             <tbody>
                             @forelse($missions as $m)
                                 <tr>
-                                    <td>{{ $m->league }}</td><td>{{ $m->type }}</td><td>{{ $m->title }}</td><td><code>{{ $m->mission_key }}</code></td>
-                                    <td>{{ $m->type === 'demand_bonus' ? '+'.$m->bonus_percent.'%' : $m->target.' → +'.$m->reward_hp.' HP' }}</td>
-                                    <td>{{ $m->season_key ?? __('every') }}</td>
-                                    <td>
-                                        <form method="post" action="{{ route('admin.champions.mission.toggle', $m->id) }}">@csrf
+                                    <td>{{ $m->league }}</td>
+                                    <td>{{ $m->type }}</td>
+                                    <td colspan="4">
+                                        <form method="post" action="{{ route('admin.champions.mission.update', $m->id) }}" class="form-row" style="gap:6px">
+                                            @csrf
+                                            <input name="title" value="{{ $m->title }}" required style="min-width:150px" title="{{ __('Title') }}">
+                                            <input name="description" value="{{ $m->description }}" placeholder="{{ __('Description') }}" style="min-width:150px">
+                                            <select name="mission_key" title="{{ __('Counter') }}">
+                                                @foreach(['completed_services','completed_bookings','repeat_bookings','reviews','portfolio_items','fast_responses','proposals_sent','new_categories','requests_created','demand'] as $k)
+                                                    <option value="{{ $k }}" @selected($m->mission_key === $k)>{{ $k }}</option>
+                                                @endforeach
+                                            </select>
+                                            <input name="target" type="number" min="1" value="{{ $m->target }}" style="width:70px" title="{{ __('Target') }}">
+                                            <input name="reward_hp" type="number" min="0" value="{{ $m->reward_hp }}" style="width:85px" title="{{ __('Reward HP') }}">
+                                            <input name="bonus_percent" type="number" min="1" value="{{ $m->bonus_percent }}" placeholder="%" style="width:65px" title="{{ __('Bonus %') }}">
+                                            <input name="city_id" type="number" value="{{ $m->city_id }}" placeholder="{{ __('City') }}" style="width:70px">
+                                            <input name="category_id" type="number" value="{{ $m->category_id }}" placeholder="{{ __('Cat') }}" style="width:70px">
+                                            <input name="season_key" value="{{ $m->season_key }}" placeholder="{{ __('every') }}" style="width:90px" title="{{ __('Season, blank = every month') }}">
+                                            <button class="btn btn-sm btn-primary">{{ __('Save') }}</button>
+                                        </form>
+                                    </td>
+                                    <td style="white-space:nowrap">
+                                        <form method="post" action="{{ route('admin.champions.mission.toggle', $m->id) }}" style="display:inline">@csrf
                                             <button class="btn btn-sm {{ $m->is_active ? 'btn-success' : 'btn-outline-secondary' }}">{{ $m->is_active ? __('On') : __('Off') }}</button>
+                                        </form>
+                                        <form method="post" action="{{ route('admin.champions.mission.delete', $m->id) }}" style="display:inline"
+                                              onsubmit="return confirm('{{ __('Delete this mission? Points already earned from it are kept.') }}')">@csrf
+                                            <button class="btn btn-sm btn-outline-danger">{{ __('Delete') }}</button>
                                         </form>
                                     </td>
                                 </tr>

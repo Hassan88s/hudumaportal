@@ -46,6 +46,14 @@ class ChampionsAdminController extends Controller
             foreach ($rows as $r) $risk[$lg][$r->user_id] = $this->svc->riskFlags((int) $r->user_id, $lg, $season);
         }
 
+        // PDF §7 / §19 — month-end bonus preview: who currently qualifies and why
+        $quality = $provider->take(10)->map(fn ($r) => (object) ([
+            'user_id' => $r->user_id, 'name' => $r->name,
+        ] + $this->svc->providerQuality((int) $r->user_id, $season)));
+        $loyalty = $client->take(10)->map(fn ($r) => (object) ([
+            'user_id' => $r->user_id, 'name' => $r->display_name,
+        ] + $this->svc->clientLoyalty((int) $r->user_id, $season)));
+
         return view('backend.champions.index', [
             'season'    => $season,
             'seasonRow' => DB::table('champion_seasons')->where('season_key', $season)->first(),
@@ -53,6 +61,8 @@ class ChampionsAdminController extends Controller
             'provider'  => $provider,
             'client'    => $client,
             'risk'      => $risk,
+            'quality'   => $quality,
+            'loyalty'   => $loyalty,
             'settings'  => [
                 'champions_min_order_tzs'      => get_static_option('champions_min_order_tzs') ?: 0,
                 'champions_pair_txn_cap'       => get_static_option('champions_pair_txn_cap') ?: 2,
@@ -275,6 +285,38 @@ class ChampionsAdminController extends Controller
         ]);
         foreach ($data as $name => $value) update_static_option($name, $value);
         return back()->with('success', __('Champions settings saved.'));
+    }
+
+    public function missionUpdate(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'title'         => 'required|string|max:160',
+            'description'   => 'nullable|string|max:255',
+            'mission_key'   => 'required|string|max:64',
+            'target'        => 'nullable|integer|min:1|max:1000',
+            'reward_hp'     => 'nullable|integer|min:0|max:10000',
+            'bonus_percent' => 'nullable|integer|min:1|max:200',
+            'city_id'       => 'nullable|integer',
+            'category_id'   => 'nullable|integer',
+            'season_key'    => 'nullable|regex:/^\d{4}-\d{2}$/',
+        ]);
+        abort_unless(DB::table('champion_missions')->where('id', $id)->exists(), 404);
+
+        DB::table('champion_missions')->where('id', $id)->update($data + [
+            'target' => $data['target'] ?? 1, 'reward_hp' => $data['reward_hp'] ?? 0, 'updated_at' => now(),
+        ]);
+        return back()->with('success', __('Mission updated.'));
+    }
+
+    public function missionDelete(int $id)
+    {
+        abort_unless(DB::table('champion_missions')->where('id', $id)->exists(), 404);
+
+        // Progress goes with it; points and badges people already earned stay
+        DB::table('champion_mission_progress')->where('mission_id', $id)->delete();
+        DB::table('champion_missions')->where('id', $id)->delete();
+
+        return back()->with('success', __('Mission deleted. Points already earned from it are kept.'));
     }
 
     public function missionToggle(int $id)
