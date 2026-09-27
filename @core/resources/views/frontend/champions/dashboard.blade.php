@@ -98,6 +98,45 @@
                     </div>
                 </div>
 
+                {{-- Referral points (PDF §8 for providers, §18 for clients) --}}
+                <div class="hc-card">
+                    <h3>{{ __('Referral points') }}</h3>
+                    <p style="margin:-6px 0 12px;font-size:13px;color:#6b7280">
+                        {{ __('Points for people you invite who become active. Up to :cap HP a month.', ['cap' => number_format($referral['cap'])]) }}
+                    </p>
+                    <div class="hc-bar"><span style="width:{{ min(100, $referral['cap'] ? round($referral['earned'] / $referral['cap'] * 100) : 0) }}%"></span></div>
+                    <div style="font-size:13px;color:#4b5563;margin-top:8px">
+                        <strong>{{ number_format($referral['earned']) }}</strong> / {{ number_format($referral['cap']) }} HP {{ __('this month') }}
+                    </div>
+
+                    @if($referral['rows']->count())
+                        <table class="hc-table" style="margin-top:10px">
+                            @foreach($referral['rows'] as $r)
+                                <tr>
+                                    <td>{{ $r->reason }} @if($r->n > 1)<span class="hc-pill">×{{ $r->n }}</span>@endif</td>
+                                    <td class="hp" style="text-align:right">+{{ number_format($r->hp) }}</td>
+                                </tr>
+                            @endforeach
+                        </table>
+                    @else
+                        <ul style="margin:10px 0 0;padding-left:18px;line-height:1.8;color:#4b5563;font-size:13px">
+                            @if($isSeller)
+                                <li>{{ __('A provider you invited becomes qualified') }} — <strong>+75 HP</strong></li>
+                                <li>{{ __('A client you invited completes their first transaction') }} — <strong>+100 HP</strong></li>
+                                <li>{{ __('A provider you invited completes their first booking') }} — <strong>+100 HP</strong></li>
+                            @else
+                                <li>{{ __('A client you invited verifies their account') }} — <strong>+25 HP</strong></li>
+                                <li>{{ __('A client you invited completes their first booking') }} — <strong>+100 HP</strong></li>
+                                <li>{{ __('A provider you invited becomes qualified') }} — <strong>+75 HP</strong></li>
+                                <li>{{ __('A provider you invited completes their first service') }} — <strong>+100 HP</strong></li>
+                            @endif
+                        </ul>
+                        @if(Route::has($isSeller ? 'seller.earn' : 'buyer.earn'))
+                            <a class="hc-btn ghost" style="margin-top:12px" href="{{ route($isSeller ? 'seller.earn' : 'buyer.earn') }}">{{ __('Get my invite link') }} →</a>
+                        @endif
+                    @endif
+                </div>
+
                 {{-- Month-end bonuses (PDF §7 for providers, §19 for clients) --}}
                 @php
                     $bonusRules = $isSeller ? [

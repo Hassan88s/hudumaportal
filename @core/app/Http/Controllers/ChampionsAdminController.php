@@ -37,22 +37,28 @@ class ChampionsAdminController extends Controller
             'dq'        => (int) DB::table('champion_disqualifications')->where('season_key', $season)->count(),
         ];
 
-        $provider = $this->svc->leaderboard('provider', $season, 20);
-        $client   = $this->svc->leaderboard('client', $season, 20);
+        // Whole boards, shown 20 at a time (the PDF's manual review is the first 20)
+        $providerBoard = $this->svc->leaderboard('provider', $season, 1000);
+        $clientBoard   = $this->svc->leaderboard('client', $season, 1000);
+        $provider = $this->paginate($providerBoard, 20, 'provider_page', $request);
+        $client   = $this->paginate($clientBoard, 20, 'client_page', $request);
 
-        // PDF §29/§30 — risk signals for the manual Top 20 review
+        // PDF §29/§30 — risk signals, for the rows on screen only
         $risk = [];
         foreach (['provider' => $provider, 'client' => $client] as $lg => $rows) {
             foreach ($rows as $r) $risk[$lg][$r->user_id] = $this->svc->riskFlags((int) $r->user_id, $lg, $season);
         }
 
-        // PDF §7 / §19 — month-end bonus preview: who currently qualifies and why
-        $quality = $provider->take(10)->map(fn ($r) => (object) ([
+        // PDF §7 / §19 — month-end bonus preview, calculated for the visible page
+        $quality = $this->paginate($providerBoard, 10, 'quality_page', $request);
+        $quality->setCollection($quality->getCollection()->map(fn ($r) => (object) ([
             'user_id' => $r->user_id, 'name' => $r->name,
-        ] + $this->svc->providerQuality((int) $r->user_id, $season)));
-        $loyalty = $client->take(10)->map(fn ($r) => (object) ([
+        ] + $this->svc->providerQuality((int) $r->user_id, $season))));
+
+        $loyalty = $this->paginate($clientBoard, 10, 'loyalty_page', $request);
+        $loyalty->setCollection($loyalty->getCollection()->map(fn ($r) => (object) ([
             'user_id' => $r->user_id, 'name' => $r->display_name,
-        ] + $this->svc->clientLoyalty((int) $r->user_id, $season)));
+        ] + $this->svc->clientLoyalty((int) $r->user_id, $season))));
 
         return view('backend.champions.index', [
             'season'    => $season,
@@ -71,8 +77,22 @@ class ChampionsAdminController extends Controller
             ],
             'winners'   => $winners,
             'stats'     => $stats,
-            'missions'  => DB::table('champion_missions')->orderByDesc('id')->get(),
+            'missions'  => DB::table('champion_missions')->orderByDesc('id')
+                ->paginate(10, ['*'], 'missions_page', max(1, (int) $request->query('missions_page', 1)))
+                ->withQueryString(),
         ]);
+    }
+
+    /** Page a collection that was built in memory (the cached leaderboards). */
+    protected function paginate($items, int $perPage, string $pageName, Request $request): \Illuminate\Pagination\LengthAwarePaginator
+    {
+        $items = collect($items)->values();
+        $page  = max(1, (int) $request->query($pageName, 1));
+
+        return (new \Illuminate\Pagination\LengthAwarePaginator(
+            $items->forPage($page, $perPage)->values(), $items->count(), $perPage, $page,
+            ['path' => $request->url(), 'pageName' => $pageName]
+        ))->withQueryString();
     }
 
     public function userLedger(Request $request, int $userId)

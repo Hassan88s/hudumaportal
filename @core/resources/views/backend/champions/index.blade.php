@@ -158,6 +158,7 @@
                                 </tbody>
                             </table>
                         </div>
+                        @if($rows->hasPages())<div style="padding:10px 18px">{{ $rows->links() }}</div>@endif
                     </div>
                 @endforeach
             </div>
@@ -223,6 +224,7 @@
                         @endforelse
                         </tbody>
                     </table>
+                    @if($quality->hasPages())<div style="padding:8px 18px">{{ $quality->links() }}</div>@endif
 
                     <table style="margin-top:6px">
                         <thead>
@@ -253,6 +255,7 @@
                         @endforelse
                         </tbody>
                     </table>
+                    @if($loyalty->hasPages())<div style="padding:8px 18px">{{ $loyalty->links() }}</div>@endif
                     <div style="padding:10px 18px">
                         <small class="text-muted">{{ __('Hover a +HP column for the rule. A dash means the threshold is not met yet — for example the response-rate bonus needs at least 3 client conversations, and the zero-cancellation bonus needs 5 completed jobs.') }}</small>
                     </div>
@@ -381,6 +384,7 @@
                             @endforelse
                             </tbody>
                         </table>
+                        @if($missions->hasPages())<div style="padding:8px 0">{{ $missions->links() }}</div>@endif
                     </div>
                 </div>
             </div>

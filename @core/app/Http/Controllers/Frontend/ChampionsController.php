@@ -161,6 +161,17 @@ class ChampionsController extends Controller
             'bonus'       => $league === 'provider'
                 ? $this->svc->providerQuality((int) $user->id, $season)
                 : $this->svc->clientLoyalty((int) $user->id, $season),
+            // PDF §8 / §18 — referral points earned this month, against the 500 HP cap
+            'referral'    => [
+                'earned' => (int) DB::table('champion_points')
+                    ->where(['user_id' => $user->id, 'season_key' => $season, 'cap_group' => 'referral'])
+                    ->where('status', '!=', 'reversed')->sum('points'),
+                'cap'    => ChampionsService::CAPS['referral'] ?? 500,
+                'rows'   => DB::table('champion_points')
+                    ->where(['user_id' => $user->id, 'season_key' => $season, 'cap_group' => 'referral'])
+                    ->where('status', '!=', 'reversed')
+                    ->selectRaw('reason, COUNT(*) as n, SUM(points) as hp')->groupBy('reason')->get(),
+            ],
             'onboardingDone' => DB::table('champion_points')
                 ->where(['user_id' => $user->id, 'rule_key' => $league === 'provider' ? 'p_onboarding_tutorial' : 'c_onboarding'])
                 ->where('status', '!=', 'reversed')->exists(),

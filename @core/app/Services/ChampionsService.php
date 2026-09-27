@@ -530,6 +530,9 @@ class ChampionsService
             $league = $this->leagueOfUser($u);
             $this->award($u->id, $league === 'provider' ? 'p_verify_account' : 'c_verify_account', ['source_type' => 'user', 'source_id' => $u->id]);
 
+            // A referred provider may become "qualified" the moment they verify
+            if ($league === 'provider') $this->referredProviderQualified((int) $u->id);
+
             // Referrer earns when a referred CLIENT verifies (PDF §18)
             if ($league === 'client' && $u->referred_by) {
                 $ref = DB::table('users')->where('id', $u->referred_by)->select('id', 'user_type')->first();
@@ -563,6 +566,33 @@ class ChampionsService
             }
         } catch (\Throwable $e) {
             \Log::warning('[Champions] onProfileUpdated failed: ' . $e->getMessage(), ['user_id' => $userId]);
+        }
+    }
+
+    /**
+     * PDF §8 / §18 — the person who referred a provider earns +75 once that
+     * provider is "qualified": account verified and at least one approved service.
+     */
+    public function referredProviderQualified(int $sellerId): void
+    {
+        try {
+            $u = DB::table('users')->where('id', $sellerId)
+                ->select('id', 'user_type', 'referred_by', 'otp_verified', 'email_verified')->first();
+            if (!$u || !$u->referred_by || $this->leagueOfUser($u) !== 'provider') return;
+            if ((int) $u->referred_by === $sellerId) return;
+
+            $verified = (int) $u->otp_verified === 1 || (string) $u->email_verified === '1';
+            if (!$verified) return;
+            if (!DB::table('services')->where('seller_id', $sellerId)->where('status', 1)->exists()) return;
+
+            $ref = DB::table('users')->where('id', $u->referred_by)->select('id', 'user_type')->first();
+            if (!$ref) return;
+
+            $this->award((int) $ref->id,
+                $this->leagueOfUser($ref) === 'provider' ? 'p_ref_provider_qualified' : 'c_ref_provider_qualified',
+                ['source_type' => 'referral_user', 'source_id' => $sellerId, 'counterparty_id' => $sellerId]);
+        } catch (\Throwable $e) {
+            \Log::warning('[Champions] referred provider qualified: ' . $e->getMessage(), ['seller_id' => $sellerId]);
         }
     }
 
@@ -625,6 +655,7 @@ class ChampionsService
             $opt = ['source_type' => 'service', 'source_id' => $s->id];
             if ($this->award((int) $s->seller_id, 'p_service_published', $opt)) $n['services']++;
             if ((float) $s->price > 0 && (int) $s->delivery_days > 0) $this->award((int) $s->seller_id, 'p_service_pricing', $opt);
+            $this->referredProviderQualified((int) $s->seller_id);   // PDF §8 / §18
         }
 
         // Proposals sent (PDF §5 +10) — catches the mobile-app path, which has no hook.
@@ -1083,6 +1114,6 @@ class ChampionsService
 
     public function forgetBoard(string $league, string $season): void
     {
-        foreach ([5, 10, 20, 30, 100, 100000] as $l) Cache::forget("champ_board_{$league}_{$season}_{$l}");
+        foreach ([5, 10, 20, 30, 100, 1000, 100000] as $l) Cache::forget("champ_board_{$league}_{$season}_{$l}");
     }
 }
