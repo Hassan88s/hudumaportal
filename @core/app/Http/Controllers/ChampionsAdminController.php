@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Admin tools for HUDUMA CHAMPIONS (PDF implementation checklist):
@@ -213,6 +214,39 @@ class ChampionsAdminController extends Controller
         }
         DB::table('champion_seasons')->where('season_key', $season)->update(['status' => 'announced', 'announced_at' => now(), 'updated_at' => now()]);
         return back()->with('success', __('Season announced — :n winners notified.', ['n' => $winners->count()]));
+    }
+
+    /**
+     * Undo a finalized/announced season so it can be judged again — for testing,
+     * or when a season was finalized too early. Points, penalties and
+     * disqualifications are untouched; only the Top Five result is cleared.
+     */
+    public function resetSeason(Request $request)
+    {
+        $data = $request->validate([
+            'season_key' => 'required|regex:/^\d{4}-\d{2}$/',
+            'confirm'    => 'required|in:RESET',
+        ]);
+        $season  = $data['season_key'];
+        $winners = DB::table('champion_winners')->where('season_key', $season)->get();
+
+        // Credits already on a wallet are real money to the user — say so, do not claw back
+        $paidCredit = $winners->where('status', 'paid')->where('reward_type', 'credit')->sum('reward_amount');
+
+        DB::table('champion_badges')->where('season_key', $season)
+            ->whereIn('badge_key', ['champion', 'runner_up', 'top_five'])->delete();
+        DB::table('champion_winners')->where('season_key', $season)->delete();
+        DB::table('champion_seasons')->where('season_key', $season)
+            ->update(['status' => 'open', 'finalized_at' => null, 'announced_at' => null, 'updated_at' => now()]);
+
+        foreach (['provider', 'client'] as $league) $this->svc->forgetBoard($league, $season);
+        Log::info("[Champions] {$season} reset by admin " . (Auth::guard('admin')->id() ?: '?') . " — {$winners->count()} winner rows removed.");
+
+        $msg = __('Season :s reset — :n winner rows and their badges removed. Run Finalize again to judge it.', ['s' => $season, 'n' => $winners->count()]);
+        if ($paidCredit > 0) {
+            $msg .= ' ' . __('Note: TZS :amt of service credit was already on wallets and has been left there.', ['amt' => number_format($paidCredit)]);
+        }
+        return back()->with('success', $msg);
     }
 
     public function runJob(Request $request)

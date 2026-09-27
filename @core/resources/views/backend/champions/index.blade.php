@@ -60,11 +60,22 @@
             <div class="box">
                 <div class="hd">
                     <h3>{{ __('Top Five — review & approve') }}</h3>
-                    @if($winners->whereIn('status', ['approved', 'paid'])->count())
-                        <form method="post" action="{{ route('admin.champions.announce', $season) }}" onsubmit="return confirm('{{ __('Notify approved winners and mark season announced?') }}')">
-                            @csrf <button class="btn btn-sm btn-success">{{ __('Announce winners') }}</button>
-                        </form>
-                    @endif
+                    <div class="form-row">
+                        @if($winners->whereIn('status', ['approved', 'paid'])->count())
+                            <form method="post" action="{{ route('admin.champions.announce', $season) }}" onsubmit="return confirm('{{ __('Notify approved winners and mark season announced?') }}')">
+                                @csrf <button class="btn btn-sm btn-success">{{ __('Announce winners') }}</button>
+                            </form>
+                        @endif
+                        @if($winners->count())
+                            <form method="post" action="{{ route('admin.champions.reset') }}"
+                                  onsubmit="return confirm('{{ __('Clear the Top Five result for') }} {{ $season }}? {{ __('Points, penalties and disqualifications are kept — only the winners and their badges are removed, so you can judge the season again. Service credit already on a wallet stays there.') }}')">
+                                @csrf
+                                <input type="hidden" name="season_key" value="{{ $season }}">
+                                <input type="hidden" name="confirm" value="RESET">
+                                <button class="btn btn-sm btn-outline-danger">{{ __('Reset this season\'s result') }}</button>
+                            </form>
+                        @endif
+                    </div>
                 </div>
                 <div class="bd" style="padding:0;overflow-x:auto">
                     <table>

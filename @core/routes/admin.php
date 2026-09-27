@@ -455,6 +455,7 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
         Route::post('/champions/winner/{id}','ChampionsAdminController@winnerStatus')->name('admin.champions.winner')->where('id','[0-9]+');
         Route::post('/champions/announce/{season}','ChampionsAdminController@announce')->name('admin.champions.announce')->where('season','\d{4}-\d{2}');
         Route::post('/champions/run','ChampionsAdminController@runJob')->name('admin.champions.run');
+        Route::post('/champions/reset-season','ChampionsAdminController@resetSeason')->name('admin.champions.reset');
         Route::post('/champions/missions','ChampionsAdminController@missionStore')->name('admin.champions.mission.store');
         Route::post('/champions/missions/{id}/toggle','ChampionsAdminController@missionToggle')->name('admin.champions.mission.toggle')->where('id','[0-9]+');
         Route::post('/champions/missions/{id}/update','ChampionsAdminController@missionUpdate')->name('admin.champions.mission.update')->where('id','[0-9]+');
