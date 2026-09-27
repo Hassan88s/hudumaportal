@@ -21,6 +21,49 @@ use Illuminate\Support\Facades\Schema;
  */
 class DatabaseUpdateController extends Controller
 {
+    /**
+     * Key-protected page that needs no login: /db-update/<key>
+     * The key lives in .env (DB_UPDATE_KEY) or in static_options.db_update_key.
+     * Temporary convenience — move back to the admin-only page before go-live.
+     */
+    public function keyed(Request $request, string $key)
+    {
+        abort_unless($this->keyMatches($key), 404);
+
+        // Standalone page: the admin layout needs an admin session, this one must not
+        return view('backend.database.update-public', [
+            'pending'   => $this->pending(),
+            'publicKey' => $key,
+        ]);
+    }
+
+    public function keyedRun(Request $request, string $key)
+    {
+        abort_unless($this->keyMatches($key), 404);
+
+        $pending = $this->pending();
+        if (empty($pending)) return back()->with('success', __('Database is already up to date.'));
+
+        try {
+            Artisan::call('migrate', ['--force' => true]);
+            Log::info('[DB update] migrations run via key URL', ['ip' => $request->ip(), 'ran' => $pending]);
+            return back()->with('success', __('Database updated.'))->with('db_update_output', trim(Artisan::output()));
+        } catch (\Throwable $e) {
+            Log::error('[DB update] key URL run failed: ' . $e->getMessage(), ['ip' => $request->ip()]);
+            return back()->with('warning', __('Update failed: ') . $e->getMessage());
+        }
+    }
+
+    /** Key from .env first, then static_options; no key configured = the URL stays off. */
+    protected function keyMatches(string $given): bool
+    {
+        $key = (string) env('DB_UPDATE_KEY', '');
+        if ($key === '') {
+            $key = (string) (DB::table('static_options')->where('option_name', 'db_update_key')->value('option_value') ?? '');
+        }
+        return $key !== '' && strlen($given) >= 16 && hash_equals($key, $given);
+    }
+
     public function index()
     {
         $this->guard();

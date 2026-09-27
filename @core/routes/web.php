@@ -28,6 +28,14 @@ Route::get('/leaderboard', 'Frontend\PublicLeaderboardController@index')
     ->middleware(['web', 'globalVariable', 'setlang'])
     ->name('referral.leaderboard.public');
 
+// Database update by secret key — no login, for deploying schema changes.
+// Only works when DB_UPDATE_KEY (.env) or static_options.db_update_key is set.
+// TEMPORARY: switch back to the admin-only page before go-live.
+Route::middleware(['web'])->group(function () {
+    Route::get('/db-update/{key}', 'DatabaseUpdateController@keyed')->name('database.update.key')->where('key', '[A-Za-z0-9]{16,64}');
+    Route::post('/db-update/{key}/run', 'DatabaseUpdateController@keyedRun')->name('database.update.key.run')->where('key', '[A-Za-z0-9]{16,64}');
+});
+
 // Top 100 Sellers — public ranking by completed orders
 // Hidden for now — re-enable by uncommenting (view + controller are kept).
 // Route::get('/top-sellers', 'Frontend\TopSellersController@index')
