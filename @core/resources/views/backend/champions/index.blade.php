@@ -2,37 +2,7 @@
 @section('site-title'){{ __('Huduma Champions') }}@endsection
 
 @section('style')
-<style>
-    /* The admin dark theme forces headings/labels to white — keep text dark inside our white boxes */
-    /* dark-mode.css uses `h1,h3,h5,h6{color:#f0f0f0 !important}`, so these need !important too */
-    .hc-adm .box,.hc-adm .stat{color:#1f2733 !important}
-    .hc-adm .box h3,.hc-adm .box h4,.hc-adm .box h5,.hc-adm .box label,.hc-adm .box td,.hc-adm .box strong,.hc-adm .box span:not(.pill){color:#1f2733 !important}
-    .hc-adm .box th,.hc-adm .box small,.hc-adm .box .text-muted,.hc-adm .stat small{color:#6b7280 !important}
-    .hc-adm .box a{color:#2563eb !important}
-    .hc-adm .box input,.hc-adm .box select{color:#1f2733 !important;background:#fff !important}
-    .hc-adm .box label{font-weight:600;display:inline-flex;flex-direction:column;gap:4px;margin:0}
-    .hc-adm .box{background:#fff;border:1px solid #e6e9ef;border-radius:10px;margin-bottom:18px;overflow:hidden}
-    .hc-adm .box .hd{padding:14px 18px;background:#f8f9fb;border-bottom:1px solid #e6e9ef;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-    .hc-adm .box .hd h3{font-size:14px;font-weight:700;margin:0;text-transform:uppercase;letter-spacing:.4px}
-    .hc-adm .box .bd{padding:16px 18px}
-    .hc-adm .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
-    .hc-adm .stat{background:#fff;border:1px solid #e6e9ef;border-radius:10px;padding:14px}
-    .hc-adm .stat small{color:#8892a0;text-transform:uppercase;font-size:11px;font-weight:600}
-    .hc-adm .stat div{font-size:22px;font-weight:800;color:#c2410c}
-    .hc-adm table{width:100%;border-collapse:collapse;font-size:13px}
-    .hc-adm th{padding:8px 12px;font-size:11px;text-transform:uppercase;color:#8892a0;text-align:left;border-bottom:1px solid #e6e9ef}
-    .hc-adm td{padding:9px 12px;border-bottom:1px solid #f2f4f7;vertical-align:middle}
-    .hc-adm .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-    .hc-adm .form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .hc-adm .form-row input,.hc-adm .form-row select{padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px}
-    .hc-adm .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#f3f4f6}
-    .hc-adm .pill.provisional{background:#fef3c7;color:#92400e}.hc-adm .pill.approved{background:#dbeafe;color:#1e40af}
-    .hc-adm .pill.paid{background:#dcfce7;color:#166534}.hc-adm .pill.disqualified{background:#fee2e2;color:#991b1b}
-    .hc-adm .pill.risk-high{background:#fee2e2;color:#991b1b}.hc-adm .pill.risk-medium{background:#fef3c7;color:#92400e}
-    .hc-adm .pill.risk-low{background:#f3f4f6;color:#4b5563}
-    .hc-adm .pill[title]{cursor:help;margin:1px 2px 1px 0}
-    @media (max-width:1000px){.hc-adm .grid2{grid-template-columns:1fr}.hc-adm .stats{grid-template-columns:repeat(2,1fr)}}
-</style>
+@include('backend.champions._style')
 @endsection
 
 @section('content')
@@ -42,6 +12,7 @@
             @include('backend.partials.message')
             @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
             @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
+            @include('backend.champions._nav')
 
             <div class="box">
                 <div class="hd">
@@ -53,6 +24,7 @@
                             @endforeach
                         </select>
                         <a href="{{ route('admin.champions.analytics', ['season' => $season]) }}" class="btn btn-sm btn-outline-primary">{{ __('Analytics') }}</a>
+                        <a href="{{ route('admin.champions.rewards', ['season' => $season]) }}" class="btn btn-sm btn-outline-primary">{{ __('Prizes & budget') }}</a>
                         @if(Route::has('champions.board'))
                             <a href="{{ route('champions.board') }}" target="_blank" class="btn btn-sm btn-outline-secondary">{{ __('Public board') }}</a>
                         @else
@@ -262,214 +234,6 @@
                 </div>
             </div>
 
-            {{-- Prize table + monthly reward budget --}}
-            <div class="box">
-                <div class="hd"><h3>{{ __('Prize table & monthly reward budget') }}</h3></div>
-                <div class="bd">
-                    <form method="post" action="{{ route('admin.champions.rewards.save') }}">
-                        @csrf
-                        <input type="hidden" name="season" value="{{ $season }}">
-                        <div class="grid2">
-                            @foreach(['provider' => __('Huduma Pro League (providers)'), 'client' => __('Huduma Client League (clients)')] as $lg => $lgLabel)
-                                <div>
-                                    <h5 style="font-size:13px;margin:0 0 8px;color:#f0f0f0 !important">{{ $lgLabel }}</h5>
-                                    <table class="table" style="margin:0">
-                                        <thead><tr>
-                                            <th style="width:60px">{{ __('Place') }}</th>
-                                            <th style="width:110px">{{ __('Type') }}</th>
-                                            <th style="width:130px">{{ __('Amount (TZS)') }}</th>
-                                            <th>{{ __('Other benefits') }}</th>
-                                        </tr></thead>
-                                        <tbody>
-                                        @foreach($rewards[$lg] as $rank => $r)
-                                            <tr>
-                                                <td><strong>#{{ $rank }}</strong></td>
-                                                <td>
-                                                    <select name="rewards[{{ $lg }}][{{ $rank }}][type]" style="width:100%">
-                                                        <option value="cash" @selected($r[0] === 'cash')>{{ __('Cash') }}</option>
-                                                        <option value="credit" @selected($r[0] === 'credit')>{{ __('Service credit') }}</option>
-                                                    </select>
-                                                </td>
-                                                <td><input name="rewards[{{ $lg }}][{{ $rank }}][amount]" type="number" min="0" step="1000" value="{{ (int) $r[1] }}" style="width:100%"></td>
-                                                <td><input name="rewards[{{ $lg }}][{{ $rank }}][benefits]" value="{{ $r[2] }}" style="width:100%" title="{{ __('Shown on the rewards page and saved with the winner') }}"></td>
-                                            </tr>
-                                        @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            @endforeach
-                        </div>
-                        <div class="form-row" style="margin-top:12px;align-items:center">
-                            <button class="btn btn-sm btn-primary">{{ __('Save prize table') }}</button>
-                            <span class="text-muted" style="font-size:12px">{{ __('Cash prizes are paid by hand and marked paid below. Service credits go on the winner\'s account.') }}</span>
-                        </div>
-                    </form>
-                    <form method="post" action="{{ route('admin.champions.rewards.reset') }}" onsubmit="return confirm('{{ __('Put the programme default amounts back?') }}')" style="margin-top:6px">
-                        @csrf
-                        <button class="btn btn-sm btn-secondary">{{ __('Reset to programme defaults') }}</button>
-                    </form>
-
-                    <table class="table" style="margin:14px 0 0;max-width:520px">
-                        <tbody>
-                            <tr><td>{{ __('Provider prizes') }}</td><td class="text-right"><strong>TZS {{ number_format($budget['provider']) }}</strong></td></tr>
-                            <tr><td>{{ __('Client prizes') }}</td><td class="text-right"><strong>TZS {{ number_format($budget['client']) }}</strong></td></tr>
-                            <tr><td>{{ __('Of which cash (paid out)') }}</td><td class="text-right">TZS {{ number_format($budget['cash']) }}</td></tr>
-                            <tr><td>{{ __('Of which service credit') }}</td><td class="text-right">TZS {{ number_format($budget['credit']) }}</td></tr>
-                            <tr><td><strong>{{ __('Monthly reward budget') }}</strong></td><td class="text-right"><strong>TZS {{ number_format($budget['total']) }}</strong></td></tr>
-                            <tr><td>{{ __('Annualised (× 12)') }}</td><td class="text-right">TZS {{ number_format($budget['total'] * 12) }}</td></tr>
-                        </tbody>
-                    </table>
-                    <small class="text-muted d-block" style="margin-top:8px">{{ __('This is the prize money only. Visibility rewards — featured profile, membership months, boosts — are fulfilled by hand and are not counted here.') }}</small>
-                </div>
-            </div>
-
-            {{-- Program settings --}}
-            <div class="box">
-                <div class="hd"><h3>{{ __('Program settings') }}</h3></div>
-                <div class="bd">
-                    <form method="post" action="{{ route('admin.champions.settings') }}" class="form-row">
-                        @csrf
-                        <label style="font-size:12px">{{ __('Minimum order (TZS)') }}
-                            <input name="champions_min_order_tzs" type="number" min="0" step="1" value="{{ $settings['champions_min_order_tzs'] }}" style="width:110px" title="{{ __('Completed orders below this total earn no points. 0 = off.') }}">
-                        </label>
-                        <label style="font-size:12px">{{ __('Full-points orders per pair / month') }}
-                            <input name="champions_pair_txn_cap" type="number" min="1" max="50" value="{{ $settings['champions_pair_txn_cap'] }}" style="width:70px">
-                        </label>
-                        <label style="font-size:12px">{{ __('Pending hold (days)') }}
-                            <input name="champions_pending_hold_days" type="number" min="0" max="60" value="{{ $settings['champions_pending_hold_days'] }}" style="width:70px">
-                        </label>
-                        <label style="font-size:12px">{{ __('Last #1 cannot win #1 again') }}
-                            <select name="champions_block_repeat_winner">
-                                <option value="1" @selected((string) $settings['champions_block_repeat_winner'] === '1')>{{ __('Yes') }}</option>
-                                <option value="0" @selected((string) $settings['champions_block_repeat_winner'] === '0')>{{ __('No') }}</option>
-                            </select>
-                        </label>
-                        <button class="btn btn-sm btn-primary">{{ __('Save settings') }}</button>
-                    </form>
-                    <small class="text-muted d-block" style="margin-top:8px">{{ __('Risk flags in the Top 20 tables are signals for review only — shared homes, offices and networks are normal. Hover a flag to see details; open the user to see all flags.') }}</small>
-                </div>
-            </div>
-
-            {{-- Adjust + disqualify --}}
-            <div class="grid2">
-                <div class="box">
-                    <div class="hd"><h3>{{ __('Manual HP adjustment') }}</h3></div>
-                    <div class="bd">
-                        <form method="post" action="{{ route('admin.champions.adjust') }}" class="form-row">
-                            @csrf
-                            <input name="user_id" type="number" placeholder="{{ __('User ID') }}" required style="width:100px">
-                            <select name="league"><option value="provider">{{ __('Provider') }}</option><option value="client">{{ __('Client') }}</option></select>
-                            <input name="points" type="number" placeholder="{{ __('HP (+/-)') }}" required style="width:100px">
-                            <input name="reason" placeholder="{{ __('Reason (e.g. verified problem report)') }}" required style="flex:1;min-width:180px">
-                            <button class="btn btn-sm btn-primary">{{ __('Apply') }}</button>
-                        </form>
-                    </div>
-                </div>
-                <div class="box">
-                    <div class="hd"><h3>{{ __('Apply a penalty') }}</h3></div>
-                    <div class="bd">
-                        <form method="post" action="{{ route('admin.champions.penalty') }}" class="form-row"
-                              onsubmit="return confirm('{{ __('Apply this penalty?') }}')">
-                            @csrf
-                            <input name="user_id" type="number" placeholder="{{ __('User ID') }}" required style="width:100px">
-                            <select name="rule" required>
-                                @foreach(\App\Http\Controllers\ChampionsAdminController::PENALTIES as $key => $label)
-                                    <option value="{{ $key }}">{{ __($label) }}</option>
-                                @endforeach
-                            </select>
-                            <input name="reason" placeholder="{{ __('What happened (kept in the record)') }}" required style="flex:1;min-width:180px">
-                            <button class="btn btn-sm btn-danger">{{ __('Apply penalty') }}</button>
-                        </form>
-                        <small class="text-muted d-block" style="margin-top:8px">
-                            {{ __('Set amounts from the rules: cancellation -100, slow responses -50, fake listing -500, fake review -500, policy violation -500, fake request -100, repeated client cancellation -75. For a confirmed fake booking, reverse that order\'s rows on the user page instead.') }}
-                        </small>
-                    </div>
-                </div>
-
-                <div class="box">
-                    <div class="hd"><h3>{{ __('Disqualify from season') }}</h3></div>
-                    <div class="bd">
-                        <form method="post" action="{{ route('admin.champions.disqualify') }}" class="form-row" onsubmit="return confirm('{{ __('Disqualify this user?') }}')">
-                            @csrf
-                            <input name="user_id" type="number" placeholder="{{ __('User ID') }}" required style="width:100px">
-                            <select name="league"><option value="provider">{{ __('Provider') }}</option><option value="client">{{ __('Client') }}</option></select>
-                            <input name="season_key" value="{{ $season }}" required style="width:90px">
-                            <input name="reason" placeholder="{{ __('Reason') }}" required style="flex:1;min-width:160px">
-                            <button class="btn btn-sm btn-danger">{{ __('Disqualify') }}</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Missions + demand bonuses --}}
-            <div class="box">
-                <div class="hd"><h3>{{ __('Missions & demand bonuses') }}</h3></div>
-                <div class="bd">
-                    <form method="post" action="{{ route('admin.champions.mission.store') }}" class="form-row" style="margin-bottom:14px">
-                        @csrf
-                        <select name="league"><option value="provider">{{ __('Provider') }}</option><option value="client">{{ __('Client') }}</option></select>
-                        <select name="type"><option value="mission">{{ __('Mission') }}</option><option value="demand_bonus">{{ __('Demand bonus') }}</option></select>
-                        <select name="mission_key">
-                            @foreach(['completed_services','completed_bookings','repeat_bookings','reviews','portfolio_items','fast_responses','proposals_sent','new_categories','requests_created','demand'] as $k)
-                                <option value="{{ $k }}">{{ $k }}</option>
-                            @endforeach
-                        </select>
-                        <input name="title" placeholder="{{ __('Title') }}" required>
-                        <input name="description" placeholder="{{ __('Description') }}">
-                        <input name="target" type="number" placeholder="{{ __('Target') }}" style="width:80px">
-                        <input name="reward_hp" type="number" placeholder="{{ __('Reward HP') }}" style="width:100px">
-                        <input name="bonus_percent" type="number" placeholder="{{ __('Bonus %') }}" style="width:90px">
-                        <input name="city_id" type="number" placeholder="{{ __('City ID') }}" style="width:80px">
-                        <input name="category_id" type="number" placeholder="{{ __('Category ID') }}" style="width:100px">
-                        <input name="season_key" placeholder="YYYY-MM ({{ __('blank = every month') }})" style="width:170px">
-                        <button class="btn btn-sm btn-primary">{{ __('Create') }}</button>
-                    </form>
-                    <div style="overflow-x:auto">
-                        <table>
-                            <thead><tr><th>{{ __('League') }}</th><th>{{ __('Type') }}</th><th>{{ __('Title') }}</th><th>{{ __('Counter') }}</th><th>{{ __('Target / Reward') }}</th><th>{{ __('Season') }}</th><th>{{ __('Active') }}</th></tr></thead>
-                            <tbody>
-                            @forelse($missions as $m)
-                                <tr>
-                                    <td>{{ $m->league }}</td>
-                                    <td>{{ $m->type }}</td>
-                                    <td colspan="4">
-                                        <form method="post" action="{{ route('admin.champions.mission.update', $m->id) }}" class="form-row" style="gap:6px">
-                                            @csrf
-                                            <input name="title" value="{{ $m->title }}" required style="min-width:150px" title="{{ __('Title') }}">
-                                            <input name="description" value="{{ $m->description }}" placeholder="{{ __('Description') }}" style="min-width:150px">
-                                            <select name="mission_key" title="{{ __('Counter') }}">
-                                                @foreach(['completed_services','completed_bookings','repeat_bookings','reviews','portfolio_items','fast_responses','proposals_sent','new_categories','requests_created','demand'] as $k)
-                                                    <option value="{{ $k }}" @selected($m->mission_key === $k)>{{ $k }}</option>
-                                                @endforeach
-                                            </select>
-                                            <input name="target" type="number" min="1" value="{{ $m->target }}" style="width:70px" title="{{ __('Target') }}">
-                                            <input name="reward_hp" type="number" min="0" value="{{ $m->reward_hp }}" style="width:85px" title="{{ __('Reward HP') }}">
-                                            <input name="bonus_percent" type="number" min="1" value="{{ $m->bonus_percent }}" placeholder="%" style="width:65px" title="{{ __('Bonus %') }}">
-                                            <input name="city_id" type="number" value="{{ $m->city_id }}" placeholder="{{ __('City') }}" style="width:70px">
-                                            <input name="category_id" type="number" value="{{ $m->category_id }}" placeholder="{{ __('Cat') }}" style="width:70px">
-                                            <input name="season_key" value="{{ $m->season_key }}" placeholder="{{ __('every') }}" style="width:90px" title="{{ __('Season, blank = every month') }}">
-                                            <button class="btn btn-sm btn-primary">{{ __('Save') }}</button>
-                                        </form>
-                                    </td>
-                                    <td style="white-space:nowrap">
-                                        <form method="post" action="{{ route('admin.champions.mission.toggle', $m->id) }}" style="display:inline">@csrf
-                                            <button class="btn btn-sm {{ $m->is_active ? 'btn-success' : 'btn-outline-secondary' }}">{{ $m->is_active ? __('On') : __('Off') }}</button>
-                                        </form>
-                                        <form method="post" action="{{ route('admin.champions.mission.delete', $m->id) }}" style="display:inline"
-                                              onsubmit="return confirm('{{ __('Delete this mission? Points already earned from it are kept.') }}')">@csrf
-                                            <button class="btn btn-sm btn-outline-danger">{{ __('Delete') }}</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="7" class="text-center text-muted" style="padding:16px">{{ __('No missions yet.') }}</td></tr>
-                            @endforelse
-                            </tbody>
-                        </table>
-                        @if($missions->hasPages())<div style="padding:8px 0">{{ $missions->links() }}</div>@endif
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>

@@ -459,6 +459,12 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
         Route::post('/champions/missions/{id}/toggle','ChampionsAdminController@missionToggle')->name('admin.champions.mission.toggle')->where('id','[0-9]+');
         Route::post('/champions/missions/{id}/update','ChampionsAdminController@missionUpdate')->name('admin.champions.mission.update')->where('id','[0-9]+');
         Route::post('/champions/missions/{id}/delete','ChampionsAdminController@missionDelete')->name('admin.champions.mission.delete')->where('id','[0-9]+');
+        Route::get('/champions/rewards','ChampionsAdminController@rewards')->name('admin.champions.rewards');
+        Route::get('/champions/missions','ChampionsAdminController@missionsPage')->name('admin.champions.missions');
+        Route::get('/champions/manual-hp','ChampionsAdminController@adjustPage')->name('admin.champions.adjust.page');
+        Route::get('/champions/penalties','ChampionsAdminController@penaltiesPage')->name('admin.champions.penalties');
+        Route::get('/champions/disqualifications','ChampionsAdminController@disqualificationsPage')->name('admin.champions.disqualifications');
+        Route::get('/champions/settings','ChampionsAdminController@settingsPage')->name('admin.champions.settings.page');
         Route::post('/champions/rewards','ChampionsAdminController@rewardsSave')->name('admin.champions.rewards.save');
         Route::post('/champions/rewards/reset','ChampionsAdminController@rewardsReset')->name('admin.champions.rewards.reset');
         Route::post('/champions/settings','ChampionsAdminController@settings')->name('admin.champions.settings');

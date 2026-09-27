@@ -158,10 +158,36 @@
                     </li>
 
                     {{-- ═══ Huduma Champions ═══ --}}
-                    <li class="{{ active_menu('admin-home/general-settings/champions') }}">
-                        <a href="{{ route('admin.champions.index') }}"><i class="ti-cup"></i>
+                    <li class="@if(request()->is('admin-home/general-settings/champions*')) active @endif">
+                        <a href="javascript:void(0)" aria-expanded="true"><i class="ti-cup"></i>
                             <span>{{ __('Huduma Champions') }}</span>
                         </a>
+                        <ul class="collapse">
+                            <li class="{{ active_menu('admin-home/general-settings/champions') }}">
+                                <a href="{{ route('admin.champions.index') }}">{{ __('Seasons & Winners') }}</a>
+                            </li>
+                            <li class="{{ active_menu('admin-home/general-settings/champions/rewards') }}">
+                                <a href="{{ route('admin.champions.rewards') }}">{{ __('Prizes & Budget') }}</a>
+                            </li>
+                            <li class="{{ active_menu('admin-home/general-settings/champions/missions') }}">
+                                <a href="{{ route('admin.champions.missions') }}">{{ __('Missions & Bonuses') }}</a>
+                            </li>
+                            <li class="{{ active_menu('admin-home/general-settings/champions/manual-hp') }}">
+                                <a href="{{ route('admin.champions.adjust.page') }}">{{ __('Manual HP') }}</a>
+                            </li>
+                            <li class="{{ active_menu('admin-home/general-settings/champions/penalties') }}">
+                                <a href="{{ route('admin.champions.penalties') }}">{{ __('Penalties') }}</a>
+                            </li>
+                            <li class="{{ active_menu('admin-home/general-settings/champions/disqualifications') }}">
+                                <a href="{{ route('admin.champions.disqualifications') }}">{{ __('Disqualifications') }}</a>
+                            </li>
+                            <li class="{{ active_menu('admin-home/general-settings/champions/settings') }}">
+                                <a href="{{ route('admin.champions.settings.page') }}">{{ __('Program Settings') }}</a>
+                            </li>
+                            <li class="{{ active_menu('admin-home/general-settings/champions/analytics') }}">
+                                <a href="{{ route('admin.champions.analytics') }}">{{ __('Analytics') }}</a>
+                            </li>
+                        </ul>
                     </li>
 
                     @if(auth()->guard('admin')->user()->hasRole('Super Admin'))

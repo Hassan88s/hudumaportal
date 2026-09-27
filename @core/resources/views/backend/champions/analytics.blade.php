@@ -2,6 +2,7 @@
 @section('site-title'){{ __('Huduma Champions — Analytics') }}@endsection
 
 @section('style')
+@include('backend.champions._style')
 <style>
     .hc-kpi .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
     .hc-kpi .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
@@ -43,7 +44,8 @@
 @endphp
 <div class="col-lg-12 col-ml-12 padding-bottom-30">
     <div class="row">
-        <div class="col-12 mt-5 hc-kpi">
+        <div class="col-12 mt-5 hc-kpi hc-adm">
+            @include('backend.champions._nav')
             <div class="top">
                 <div>
                     <h4 style="margin:0">{{ __('Huduma Champions — Analytics') }}</h4>

@@ -69,19 +69,8 @@ class ChampionsAdminController extends Controller
             'risk'      => $risk,
             'quality'   => $quality,
             'loyalty'   => $loyalty,
-            'settings'  => [
-                'champions_min_order_tzs'      => get_static_option('champions_min_order_tzs') ?: 0,
-                'champions_pair_txn_cap'       => get_static_option('champions_pair_txn_cap') ?: 2,
-                'champions_pending_hold_days'  => get_static_option('champions_pending_hold_days') ?: 14,
-                'champions_block_repeat_winner'=> get_static_option('champions_block_repeat_winner') ?? 1,
-            ],
-            'rewards'   => $this->svc->rewards(),
-            'budget'    => $this->svc->rewardBudget(),
             'winners'   => $winners,
             'stats'     => $stats,
-            'missions'  => DB::table('champion_missions')->orderByDesc('id')
-                ->paginate(10, ['*'], 'missions_page', max(1, (int) $request->query('missions_page', 1)))
-                ->withQueryString(),
         ]);
     }
 
@@ -332,13 +321,132 @@ class ChampionsAdminController extends Controller
     public function settings(Request $request)
     {
         $data = $request->validate([
+            'champions_enabled'             => 'nullable|in:0,1',
             'champions_min_order_tzs'       => 'required|numeric|min:0|max:100000000',
             'champions_pair_txn_cap'        => 'required|integer|min:1|max:50',
             'champions_pending_hold_days'   => 'required|integer|min:0|max:60',
             'champions_block_repeat_winner' => 'required|in:0,1',
         ]);
+        $data['champions_enabled'] = $data['champions_enabled'] ?? 1;
         foreach ($data as $name => $value) update_static_option($name, $value);
+        \Cache::forget('champions_tables_ok');
         return back()->with('success', __('Champions settings saved.'));
+    }
+
+    /** The season list every sub-page offers, newest first. */
+    protected function seasonList(string $season)
+    {
+        return DB::table('champion_seasons')->orderByDesc('season_key')->pluck('season_key')->push($season)->unique()->sortDesc()->values();
+    }
+
+    protected function seasonFrom(Request $request): string
+    {
+        return preg_match('/^\d{4}-\d{2}$/', (string) $request->query('season'))
+            ? $request->query('season') : $this->svc->currentSeasonKey();
+    }
+
+    /** Manual HP adjustments, with what has been adjusted this season. */
+    public function adjustPage(Request $request)
+    {
+        $season = $this->seasonFrom($request);
+
+        return view('backend.champions.adjust', [
+            'season'  => $season,
+            'seasons' => $this->seasonList($season),
+            'rows'    => DB::table('champion_points as p')
+                ->leftJoin('users as u', 'u.id', '=', 'p.user_id')
+                ->leftJoin('admins as a', 'a.id', '=', 'p.admin_id')
+                ->where('p.season_key', $season)->where('p.rule_key', 'admin_adjustment')
+                ->select('p.*', 'u.name', 'a.name as admin_name')
+                ->orderByDesc('p.id')->paginate(25)->withQueryString(),
+        ]);
+    }
+
+    /** Set penalties from the rules, with the ones already applied. */
+    public function penaltiesPage(Request $request)
+    {
+        $season = $this->seasonFrom($request);
+        $rules  = ChampionsService::RULES;
+
+        return view('backend.champions.penalties', [
+            'season'    => $season,
+            'seasons'   => $this->seasonList($season),
+            'penalties' => self::PENALTIES,
+            'amounts'   => collect(self::PENALTIES)->map(fn ($l, $k) => (int) ($rules[$k]['hp'] ?? 0))->all(),
+            'rows'      => DB::table('champion_points as p')
+                ->leftJoin('users as u', 'u.id', '=', 'p.user_id')
+                ->leftJoin('admins as a', 'a.id', '=', 'p.admin_id')
+                ->where('p.season_key', $season)->whereIn('p.rule_key', array_keys(self::PENALTIES))
+                ->select('p.*', 'u.name', 'a.name as admin_name')
+                ->orderByDesc('p.id')->paginate(25)->withQueryString(),
+        ]);
+    }
+
+    /** Season disqualifications (PDF §29). */
+    public function disqualificationsPage(Request $request)
+    {
+        $season = $this->seasonFrom($request);
+
+        return view('backend.champions.disqualifications', [
+            'season'  => $season,
+            'seasons' => $this->seasonList($season),
+            'rows'    => DB::table('champion_disqualifications as d')
+                ->leftJoin('users as u', 'u.id', '=', 'd.user_id')
+                ->where('d.season_key', $season)
+                ->select('d.*', 'u.name', 'u.email')
+                ->orderByDesc('d.id')->paginate(25)->withQueryString(),
+        ]);
+    }
+
+    /** Rotating missions and demand-balancing bonuses (PDF §24, §25). */
+    public function missionsPage(Request $request)
+    {
+        $season = $this->seasonFrom($request);
+
+        return view('backend.champions.missions', [
+            'season'   => $season,
+            'missions' => DB::table('champion_missions')->orderByDesc('id')
+                ->paginate(15, ['*'], 'missions_page', max(1, (int) $request->query('missions_page', 1)))
+                ->withQueryString(),
+        ]);
+    }
+
+    /** Programme settings and the manual job runner. */
+    public function settingsPage(Request $request)
+    {
+        $season = $this->seasonFrom($request);
+
+        return view('backend.champions.settings', [
+            'season'   => $season,
+            'settings' => [
+                'champions_enabled'             => get_static_option('champions_enabled') ?? 1,
+                'champions_min_order_tzs'       => get_static_option('champions_min_order_tzs') ?: 0,
+                'champions_pair_txn_cap'        => get_static_option('champions_pair_txn_cap') ?: 2,
+                'champions_pending_hold_days'   => get_static_option('champions_pending_hold_days') ?: 14,
+                'champions_block_repeat_winner' => get_static_option('champions_block_repeat_winner') ?? 1,
+            ],
+        ]);
+    }
+
+    /** Prizes and the monthly reward budget (PDF §12, §23, §24), on their own page. */
+    public function rewards(Request $request)
+    {
+        $season = preg_match('/^\d{4}-\d{2}$/', (string) $request->query('season')) ? $request->query('season') : $this->svc->currentSeasonKey();
+
+        $committed = DB::table('champion_winners')->where('season_key', $season)
+            ->selectRaw('status, COUNT(*) as winners,
+                         SUM(CASE WHEN reward_type = "cash" THEN reward_amount ELSE 0 END) as cash,
+                         SUM(CASE WHEN reward_type = "credit" THEN reward_amount ELSE 0 END) as credit')
+            ->groupBy('status')->orderBy('status')->get();
+
+        return view('backend.champions.rewards', [
+            'season'     => $season,
+            'seasons'    => DB::table('champion_seasons')->orderByDesc('season_key')->pluck('season_key')->push($season)->unique()->sortDesc(),
+            'rewards'    => $this->svc->rewards(),
+            'budget'     => $this->svc->rewardBudget(),
+            'committed'  => $committed,
+            'unpaidCash' => (int) DB::table('champion_winners')->where(['season_key' => $season, 'reward_type' => 'cash', 'status' => 'approved'])->sum('reward_amount'),
+        ]);
     }
 
     /** Save the Top Five prize table (PDF §12, §23) so it is not fixed in code. */
@@ -375,14 +483,14 @@ class ChampionsAdminController extends Controller
             }
         }
 
-        return back()->with('success', __('Prize table saved.'));
+        return redirect()->route('admin.champions.rewards', ['season' => $season])->with('success', __('Prize table saved.'));
     }
 
     /** Put the PDF's own amounts back. */
     public function rewardsReset()
     {
         update_static_option('champions_rewards', '');
-        return back()->with('success', __('Prize table reset to the programme defaults.'));
+        return redirect()->route('admin.champions.rewards')->with('success', __('Prize table reset to the programme defaults.'));
     }
 
     public function missionUpdate(Request $request, int $id)
