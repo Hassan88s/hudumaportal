@@ -143,6 +143,16 @@ class ChampionsController extends Controller
             ->select('m.*', DB::raw('COALESCE(p.progress,0) as progress'), 'p.completed_at')
             ->get();
 
+        // Demand bonuses are worth more to people than missions — they say where
+        // the extra points are right now, so they belong on the dashboard too.
+        $demand = DB::table('champion_missions as m')
+            ->leftJoin('service_cities as c', 'c.id', '=', 'm.city_id')
+            ->leftJoin('categories as cat', 'cat.id', '=', 'm.category_id')
+            ->where('m.league', $league)->where('m.is_active', 1)->where('m.type', 'demand_bonus')
+            ->where(fn ($q) => $q->whereNull('m.season_key')->orWhere('m.season_key', $season))
+            ->select('m.*', 'c.service_city as city_name', 'cat.name as category_name')
+            ->orderByDesc('m.bonus_percent')->get();
+
         $badges = DB::table('champion_badges')->where('user_id', $user->id)->orderByDesc('awarded_at')->get();
 
         return view('frontend.champions.dashboard', [
@@ -154,6 +164,7 @@ class ChampionsController extends Controller
             'level'       => $level,
             'history'     => $history,
             'missions'    => $missions,
+            'demand'      => $demand,
             'badges'      => $badges,
             'daysLeft'    => $this->svc->daysRemaining(),
             'isSeller'    => $league === 'provider',

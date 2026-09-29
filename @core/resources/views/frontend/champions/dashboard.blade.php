@@ -175,9 +175,37 @@
                     @endforeach
                 </div>
 
-                @if($missions->count())
-                    <div class="hc-card" id="hc-missions">
-                        <h3>{{ __('Missions this month') }}</h3>
+                @if($demand->count())
+                    <div class="hc-card">
+                        <h3>{{ __('Extra points right now') }}</h3>
+                        <div style="font-size:12px;color:#6b7280;margin:-6px 0 12px">{{ $isSeller
+                            ? __('Work in these places or categories this month and your points are increased.')
+                            : __('Book in these places or categories this month and your points are increased.') }}</div>
+                        @foreach($demand as $d)
+                            <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid #f1f3f6">
+                                <div>
+                                    <strong style="font-size:14px">{{ $d->title }}</strong>
+                                    @if($d->description)<div style="font-size:12px;color:#6b7280">{{ $d->description }}</div>@endif
+                                    @if($d->city_name || $d->category_name)
+                                        <div style="font-size:12px;color:#6b7280">
+                                            @if($d->category_name){{ $d->category_name }}@endif
+                                            @if($d->city_name && $d->category_name) · @endif
+                                            @if($d->city_name){{ $d->city_name }}@endif
+                                        </div>
+                                    @endif
+                                </div>
+                                <span style="color:#c2410c;font-weight:700;white-space:nowrap">+{{ (int) $d->bonus_percent }}%</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                <div class="hc-card" id="hc-missions">
+                    <h3>{{ __('Missions this month') }}</h3>
+                    @if(!$missions->count())
+                        <div style="font-size:13px;color:#6b7280">{{ __('No missions running this month. Points for your everyday work carry on as usual — check the Rules page for everything that earns points.') }}</div>
+                    @endif
+                    @if($missions->count())
                         @foreach($missions as $m)
                             @php $mp = min(100, round($m->progress / max(1, $m->target) * 100)); @endphp
                             <div style="margin-bottom:14px">
@@ -190,8 +218,8 @@
                                 <div style="font-size:12px;color:#6b7280;margin-top:3px">{{ min($m->progress, $m->target) }} / {{ $m->target }}</div>
                             </div>
                         @endforeach
-                    </div>
-                @endif
+                    @endif
+                </div>
 
                 @if($badges->count())
                     <div class="hc-card">
