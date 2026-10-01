@@ -93,7 +93,6 @@ class ChampionsService
         'c_save_provider'       => ['league' => 'client', 'hp' => 5,  'cap' => 'save',    'label' => 'Saved a provider'],
         'c_request_created'     => ['league' => 'client', 'hp' => 30, 'limit' => 5,       'label' => 'Created service request'],
         'c_request_response'    => ['league' => 'client', 'hp' => 10, 'limit' => 5,       'label' => 'Received provider response'],
-        'c_compare_providers'   => ['league' => 'client', 'hp' => 5,  'cap' => 'compare', 'label' => 'Compared providers'],
 
         // ── CLIENT LEAGUE: bookings (PDF §16) ──
         'c_first_booking_month' => ['league' => 'client', 'hp' => 150, 'limit' => 'month', 'pending' => true, 'pair' => true, 'label' => 'First completed booking of the month'],
@@ -141,7 +140,6 @@ class ChampionsService
         'response' => 250,
         'referral' => 500,
         'save'     => 25,
-        'compare'  => 25,
     ];
 
     /** Level thresholds (PDF §10, §21) — calibrate after 2–3 months of data. */

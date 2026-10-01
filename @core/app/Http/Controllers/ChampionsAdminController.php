@@ -539,7 +539,7 @@ class ChampionsAdminController extends Controller
         ],
         'client' => [
             'Account'             => ['c_verify_account', 'c_profile_complete', 'c_preferences', 'c_onboarding'],
-            'Discovery'           => ['c_save_provider', 'c_request_created', 'c_request_response', 'c_compare_providers'],
+            'Discovery'           => ['c_save_provider', 'c_request_created', 'c_request_response'],
             'Bookings'            => ['c_first_booking_month', 'c_additional_booking', 'c_second_booking', 'c_bookings_3', 'c_bookings_5', 'c_rebook_provider', 'c_recurring_booking', 'c_new_category'],
             'Community'           => ['c_review', 'c_review_written', 'c_confirm_prompt', 'c_problem_report', 'c_safety_education'],
             'Referrals'           => ['c_ref_client_verified', 'c_ref_client_first_booking'],

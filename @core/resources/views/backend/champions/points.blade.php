@@ -97,7 +97,6 @@
                                 'response' => __('Replying to clients'),
                                 'referral' => __('Referrals'),
                                 'save'     => __('Saving providers'),
-                                'compare'  => __('Comparing providers'),
                             ] as $group => $label)
                                 <label style="font-size:12px">{{ $label }}
                                     <input name="caps[{{ $group }}]" type="number" min="0" step="25" value="{{ (int) ($caps[$group] ?? 0) }}" style="width:110px"
