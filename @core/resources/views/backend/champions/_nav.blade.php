@@ -2,6 +2,7 @@
 @php
     $hcNav = [
         'admin.champions.index'            => __('Seasons & Winners'),
+        'admin.champions.points'           => __('Points & Rules'),
         'admin.champions.rewards'          => __('Prizes & Budget'),
         'admin.champions.missions'         => __('Missions & Bonuses'),
         'admin.champions.adjust.page'      => __('Manual HP'),

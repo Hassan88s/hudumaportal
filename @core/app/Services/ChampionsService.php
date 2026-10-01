@@ -169,6 +169,39 @@ class ChampionsService
     ];
 
     /**
+     * The rule table in force: the programme defaults with whatever HP values
+     * admin has changed. Only the HP is editable — the league, limits, pending
+     * hold and cap group are behaviour, not a number on a page.
+     */
+    public function rules(): array
+    {
+        $saved = json_decode((string) get_static_option('champions_rule_hp'), true);
+        if (!is_array($saved)) return self::RULES;
+
+        $out = self::RULES;
+        foreach ($saved as $key => $hp) {
+            if (!isset($out[$key]) || !is_numeric($hp)) continue;
+            // A deduction stays a deduction and an award stays an award
+            $hp = (int) $hp;
+            $out[$key]['hp'] = self::RULES[$key]['hp'] < 0 ? -abs($hp) : $hp;
+        }
+        return $out;
+    }
+
+    /** Monthly shared caps, with admin's changes applied. */
+    public function caps(): array
+    {
+        $saved = json_decode((string) get_static_option('champions_caps'), true);
+        if (!is_array($saved)) return self::CAPS;
+
+        $out = self::CAPS;
+        foreach ($out as $group => $default) {
+            if (isset($saved[$group]) && is_numeric($saved[$group])) $out[$group] = max(0, (int) $saved[$group]);
+        }
+        return $out;
+    }
+
+    /**
      * The prize table in force: what admin saved, falling back to the PDF defaults.
      * Shape is identical to REWARDS — [league][rank] => [type, amount, benefits].
      */
@@ -268,7 +301,7 @@ class ChampionsService
     {
         if (!$this->enabled() || !isset(self::RULES[$ruleKey])) return null;
 
-        $rule    = self::RULES[$ruleKey];
+        $rule    = $this->rules()[$ruleKey];
         $league  = $opt['league'] ?? $rule['league'];
         $hp      = (int) ($opt['hp'] ?? $rule['hp']);
         $season  = $opt['season_key'] ?? $this->currentSeasonKey();
@@ -305,7 +338,7 @@ class ChampionsService
             $used = (int) DB::table('champion_points')
                 ->where('user_id', $userId)->where('season_key', $season)
                 ->where('cap_group', $capGroup)->where('status', '!=', 'reversed')->sum('points');
-            $left = (self::CAPS[$capGroup] ?? PHP_INT_MAX) - $used;
+            $left = ($this->caps()[$capGroup] ?? PHP_INT_MAX) - $used;
             if ($left <= 0) return null;
             $hp = min($hp, $left);
         }

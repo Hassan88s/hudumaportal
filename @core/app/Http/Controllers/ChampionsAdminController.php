@@ -139,11 +139,11 @@ class ChampionsAdminController extends Controller
         $id = $this->svc->award((int) $data['user_id'], $data['rule'], [
             'source_type' => 'admin', 'source_id' => Auth::guard('admin')->id(),
             'admin_id'    => Auth::guard('admin')->id(),
-            'reason'      => ChampionsService::RULES[$data['rule']]['label'] . ' — ' . $data['reason'],
+            'reason'      => $this->svc->rules()[$data['rule']]['label'] . ' — ' . $data['reason'],
         ]);
 
         return back()->with($id ? 'success' : 'warning', $id
-            ? __('Penalty applied: :hp HP.', ['hp' => ChampionsService::RULES[$data['rule']]['hp']])
+            ? __('Penalty applied: :hp HP.', ['hp' => $this->svc->rules()[$data['rule']]['hp']])
             : __('Nothing applied — that penalty is already recorded for this user.'));
     }
 
@@ -465,7 +465,7 @@ class ChampionsAdminController extends Controller
     public function penaltiesPage(Request $request)
     {
         $season = $this->seasonFrom($request);
-        $rules  = ChampionsService::RULES;
+        $rules  = $this->svc->rules();
 
         return view('backend.champions.penalties', [
             'season'    => $season,
@@ -525,6 +525,100 @@ class ChampionsAdminController extends Controller
                 'champions_block_repeat_winner' => get_static_option('champions_block_repeat_winner') ?? 1,
             ],
         ]);
+    }
+
+    /** How the rules are grouped on the points page — mirrors the programme document. */
+    public const RULE_GROUPS = [
+        'provider' => [
+            'Account & profile'   => ['p_verify_account', 'p_profile_80', 'p_profile_100', 'p_identity_verified', 'p_portfolio_item', 'p_service_pricing', 'p_service_published', 'p_onboarding_tutorial'],
+            'Engagement'          => ['p_enquiry_response', 'p_fast_response', 'p_proposal_sent', 'p_proposal_accepted', 'p_first_booking_month', 'p_weekly_response_90'],
+            'Transactions'        => ['p_service_completed', 'p_repeat_client', 'p_milestone_3', 'p_milestone_5', 'p_milestone_10', 'p_review_received', 'p_recurring_completed'],
+            'Month-end quality'   => ['p_q_response_90', 'p_q_completion_95', 'p_q_rating', 'p_q_zero_cancel', 'p_q_zero_complaints', 'p_q_repeat_5'],
+            'Referrals'           => ['p_ref_provider_qualified', 'p_ref_client_first_txn', 'p_ref_provider_first_booking'],
+            'Deductions'          => ['p_cancel_no_reason', 'p_slow_responses', 'p_fake_listing', 'p_fake_review', 'p_policy_violation'],
+        ],
+        'client' => [
+            'Account'             => ['c_verify_account', 'c_profile_complete', 'c_preferences', 'c_onboarding'],
+            'Discovery'           => ['c_save_provider', 'c_request_created', 'c_request_response', 'c_compare_providers'],
+            'Bookings'            => ['c_first_booking_month', 'c_additional_booking', 'c_second_booking', 'c_bookings_3', 'c_bookings_5', 'c_rebook_provider', 'c_recurring_booking', 'c_new_category'],
+            'Community'           => ['c_review', 'c_review_written', 'c_confirm_prompt', 'c_problem_report', 'c_safety_education'],
+            'Referrals'           => ['c_ref_client_verified', 'c_ref_client_first_booking'],
+            'Month-end loyalty'   => ['c_l_two_categories', 'c_l_three_categories', 'c_l_three_no_cancel', 'c_l_five_bookings', 'c_l_same_provider', 'c_l_recurring'],
+            'Deductions'          => ['c_fake_request', 'c_repeated_cancel', 'c_fake_review'],
+        ],
+    ];
+
+    /** Every HP value in the programme, editable (PDF §4–§20). */
+    public function points(Request $request)
+    {
+        $season  = $this->seasonFrom($request);
+        $rules   = $this->svc->rules();
+        $changed = json_decode((string) get_static_option('champions_rule_hp'), true) ?: [];
+
+        // Anything not in a group still has to be editable, or it silently can't be changed
+        $grouped = [];
+        foreach (self::RULE_GROUPS as $league => $groups) {
+            foreach ($groups as $title => $keys) {
+                $grouped[$league][$title] = array_values(array_filter($keys, fn ($k) => isset($rules[$k])));
+            }
+        }
+        $listed = collect($grouped)->flatten()->all();
+        foreach ($rules as $key => $r) {
+            if (in_array($key, $listed, true) || !($r['league'] ?? null)) continue;
+            $grouped[$r['league']][__('Other')][] = $key;
+        }
+
+        return view('backend.champions.points', [
+            'season'  => $season,
+            'rules'   => $rules,
+            'groups'  => $grouped,
+            'caps'    => $this->svc->caps(),
+            'changed' => array_keys(array_filter($changed, fn ($hp, $k) => isset($rules[$k])
+                && (int) $hp !== (int) abs(ChampionsService::RULES[$k]['hp']), ARRAY_FILTER_USE_BOTH)),
+        ]);
+    }
+
+    /** Save the HP values and the monthly caps. */
+    public function pointsSave(Request $request)
+    {
+        $data = $request->validate([
+            'hp'     => 'required|array',
+            'hp.*'   => 'required|numeric|min:0|max:100000',
+            'caps'   => 'nullable|array',
+            'caps.*' => 'nullable|numeric|min:0|max:1000000',
+        ]);
+
+        // Store only what differs from the programme defaults, as a positive
+        // number — rules()  puts the minus back on deductions.
+        $hp = [];
+        foreach ($data['hp'] as $key => $value) {
+            if (!isset(ChampionsService::RULES[$key])) continue;
+            $value = (int) round((float) $value);
+            if ($value !== (int) abs(ChampionsService::RULES[$key]['hp'])) $hp[$key] = $value;
+        }
+        update_static_option('champions_rule_hp', $hp ? json_encode($hp) : '');
+
+        $caps = [];
+        foreach (($data['caps'] ?? []) as $group => $value) {
+            if (!isset(ChampionsService::CAPS[$group]) || $value === null || $value === '') continue;
+            $value = (int) round((float) $value);
+            if ($value !== ChampionsService::CAPS[$group]) $caps[$group] = $value;
+        }
+        update_static_option('champions_caps', $caps ? json_encode($caps) : '');
+
+        Log::info('[Champions] point values changed by admin ' . (Auth::guard('admin')->id() ?: '?')
+            . ' — ' . count($hp) . ' rules, ' . count($caps) . ' caps.');
+
+        return redirect()->route('admin.champions.points')
+            ->with('success', trans_choice('{0}Points saved — everything is back to the programme defaults.|{1}Points saved — :count rule changed from the default.|[2,*]Points saved — :count rules changed from the default.', count($hp), ['count' => count($hp)]));
+    }
+
+    /** Put every HP value and cap back to the programme defaults. */
+    public function pointsReset()
+    {
+        update_static_option('champions_rule_hp', '');
+        update_static_option('champions_caps', '');
+        return redirect()->route('admin.champions.points')->with('success', __('All point values reset to the programme defaults.'));
     }
 
     /** Prizes and the monthly reward budget (PDF §12, §23, §24), on their own page. */

@@ -113,8 +113,8 @@ class ChampionsController extends Controller
     public function rules()
     {
         return view('frontend.champions.rules', [
-            'rules'   => ChampionsService::RULES,
-            'caps'    => ChampionsService::CAPS,
+            'rules'   => $this->svc->rules(),
+            'caps'    => $this->svc->caps(),
             'levels'  => ChampionsService::LEVELS,
             'rewards' => $this->svc->rewards(),
         ]);
@@ -177,7 +177,7 @@ class ChampionsController extends Controller
                 'earned' => (int) DB::table('champion_points')
                     ->where(['user_id' => $user->id, 'season_key' => $season, 'cap_group' => 'referral'])
                     ->where('status', '!=', 'reversed')->sum('points'),
-                'cap'    => ChampionsService::CAPS['referral'] ?? 500,
+                'cap'    => $this->svc->caps()['referral'] ?? 500,
                 'rows'   => DB::table('champion_points')
                     ->where(['user_id' => $user->id, 'season_key' => $season, 'cap_group' => 'referral'])
                     ->where('status', '!=', 'reversed')
