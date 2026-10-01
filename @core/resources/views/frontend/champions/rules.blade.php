@@ -50,7 +50,7 @@
                     </div>
                 </div>
 
-                <div class="hc-grid" style="grid-template-columns:1fr 1fr">
+                <div class="hc-grid two">
                     <div class="hc-card" style="margin:0">
                         <h3>{{ __('Monthly rewards') }}</h3>
                         <table class="hc-table">

@@ -18,7 +18,7 @@
 
     <section class="hc-body">
         <div class="container">
-            <div class="hc-grid" style="grid-template-columns:1fr 1fr">
+            <div class="hc-grid two">
                 @foreach(['provider' => __('Huduma Pro League — Providers'), 'client' => __('Huduma Client League — Clients')] as $lg => $title)
                     <div class="hc-card" style="margin:0">
                         <h3>{{ $title }}</h3>
@@ -37,13 +37,19 @@
                 @endforeach
             </div>
 
-            <div class="hc-grid" style="grid-template-columns:1fr 1fr;margin-top:18px">
+            <div class="hc-grid two" style="margin-top:18px">
                 @foreach(['provider' => __('Provider levels'), 'client' => __('Client levels')] as $lg => $title)
                     <div class="hc-card" style="margin:0">
                         <h3>{{ $title }}</h3>
                         <table class="hc-table">
                             @foreach($levels[$lg] as $min => $name)
-                                <tr><td><strong>{{ $name }}</strong></td><td style="text-align:right">{{ number_format($min) }}+ HP {{ __('in a month') }}</td></tr>
+                                <tr>
+                                    <td><strong>{{ $name }}</strong></td>
+                                    <td class="nowrap" style="text-align:right">
+                                        <strong>{{ number_format($min) }}+ HP</strong>
+                                        <div style="font-size:12px;color:#6b7280">{{ __('in a month') }}</div>
+                                    </td>
+                                </tr>
                             @endforeach
                         </table>
                     </div>

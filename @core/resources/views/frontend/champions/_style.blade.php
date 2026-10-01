@@ -15,6 +15,10 @@
     .hc-card{background:#fff;border:1px solid #eef0f3;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.04);padding:20px 22px;margin-bottom:18px}
     .hc-card h3{font-size:15px;font-weight:800;margin:0 0 12px;color:#1f2733;text-transform:uppercase;letter-spacing:.4px}
     .hc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+    /* Two-up on desktop. Use the class, never an inline style — an inline
+       grid-template-columns beats the media queries below and the page stops
+       stacking on a phone. */
+    .hc-grid.two{grid-template-columns:1fr 1fr}
     .hc-stat{background:#fff;border:1px solid #eef0f3;border-radius:14px;padding:16px 18px}
     .hc-stat .lbl{font-size:11px;color:#8892a0;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
     .hc-stat .val{font-size:26px;font-weight:800;color:#c2410c;margin-top:4px}
@@ -38,5 +42,12 @@
     .hc-empty{padding:40px 20px;text-align:center;color:#8892a0}
     .hc-scroll{overflow-x:auto}
     @media (max-width:900px){.hc-grid{grid-template-columns:repeat(2,1fr)}}
-    @media (max-width:560px){.hc-hero h1{font-size:30px}.hc-grid{grid-template-columns:1fr}.hc-table th,.hc-table td{padding:9px 8px}}
+    @media (max-width:700px){.hc-grid.two{grid-template-columns:1fr}}
+    @media (max-width:560px){
+        .hc-hero h1{font-size:30px}
+        .hc-grid,.hc-grid.two{grid-template-columns:1fr}
+        .hc-table th,.hc-table td{padding:9px 8px}
+        /* Keep the right-hand figure on one line instead of wrapping to three */
+        .hc-table td.nowrap{white-space:nowrap}
+    }
 </style>

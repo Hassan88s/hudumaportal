@@ -36,7 +36,7 @@
                     <a class="hc-btn" style="margin-top:14px" href="{{ route('champions.board') }}">{{ __('See the live leaderboard') }} →</a>
                 </div>
             @else
-                <div class="hc-grid" style="grid-template-columns:1fr 1fr">
+                <div class="hc-grid two">
                     @foreach(['provider' => [__('Huduma Pro League'), $provider], 'client' => [__('Huduma Client League'), $client]] as $lg => [$title, $rows])
                         <div class="hc-card" style="margin:0;padding:0">
                             <div style="padding:16px 22px;border-bottom:1px solid #eef0f3"><h3 style="margin:0">{{ $title }}</h3></div>
