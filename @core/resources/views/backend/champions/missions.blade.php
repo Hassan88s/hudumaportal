@@ -44,7 +44,7 @@
                 <div class="bd" style="padding:0 18px">
                     <div style="overflow-x:auto">
                         <table>
-                            <thead><tr><th>{{ __('League') }}</th><th>{{ __('Type') }}</th><th>{{ __('Title, counter, target & reward') }}</th><th>{{ __('Active') }}</th></tr></thead>
+                            <thead><tr><th>{{ __('League') }}</th><th>{{ __('Type') }}</th><th>{{ __('Title, counter, target & reward') }}</th><th>{{ __('Shown to users') }}</th><th>{{ __('Active') }}</th></tr></thead>
                             <tbody>
                             @forelse($missions as $m)
                                 <tr>
@@ -67,6 +67,15 @@
                                             <button class="btn btn-sm btn-primary">{{ __('Save') }}</button>
                                         </form>
                                     </td>
+                                    <td style="font-size:12px;min-width:150px">
+                                        @if($m->hidden)
+                                            <span class="pill" style="background:#fee2e2;color:#991b1b">{{ __('Hidden') }}</span>
+                                            <div class="text-muted" style="margin-top:4px">{{ $m->hidden }}</div>
+                                        @else
+                                            <span class="pill" style="background:#dcfce7;color:#166534">{{ __('Visible') }}</span>
+                                            <div class="text-muted" style="margin-top:4px">{{ __('to :who this month', ['who' => $m->audience]) }}</div>
+                                        @endif
+                                    </td>
                                     <td style="white-space:nowrap">
                                         <form method="post" action="{{ route('admin.champions.mission.toggle', $m->id) }}" style="display:inline">@csrf
                                             <button class="btn btn-sm {{ $m->is_active ? 'btn-success' : 'btn-outline-secondary' }}">{{ $m->is_active ? __('On') : __('Off') }}</button>
@@ -78,7 +87,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="4" class="text-center text-muted" style="padding:16px">{{ __('No missions yet.') }}</td></tr>
+                                <tr><td colspan="5" class="text-center text-muted" style="padding:16px">{{ __("No missions yet.") }}</td></tr>
                             @endforelse
                             </tbody>
                         </table>

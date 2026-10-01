@@ -502,12 +502,23 @@ class ChampionsAdminController extends Controller
     {
         $season = $this->seasonFrom($request);
 
-        return view('backend.champions.missions', [
-            'season'   => $season,
-            'missions' => DB::table('champion_missions')->orderByDesc('id')
-                ->paginate(15, ['*'], 'missions_page', max(1, (int) $request->query('missions_page', 1)))
-                ->withQueryString(),
-        ]);
+        $missions = DB::table('champion_missions')->orderByDesc('id')
+            ->paginate(15, ['*'], 'missions_page', max(1, (int) $request->query('missions_page', 1)))
+            ->withQueryString();
+
+        // Say plainly whether users can see each one, and if not, why — being
+        // switched off or pinned to a month that has passed is easy to miss.
+        $now = $this->svc->currentSeasonKey();
+        $missions->setCollection($missions->getCollection()->map(function ($m) use ($now) {
+            if (!$m->is_active)                                   $m->hidden = __('Switched off — nobody can see it');
+            elseif ($m->season_key && $m->season_key < $now)      $m->hidden = __('Only ran in :s, which has finished', ['s' => $m->season_key]);
+            elseif ($m->season_key && $m->season_key > $now)      $m->hidden = __('Starts in :s', ['s' => $m->season_key]);
+            else                                                  $m->hidden = null;
+            $m->audience = $m->league === 'provider' ? __('sellers') : __('buyers');
+            return $m;
+        }));
+
+        return view('backend.champions.missions', ['season' => $season, 'missions' => $missions]);
     }
 
     /** Programme settings and the manual job runner. */
