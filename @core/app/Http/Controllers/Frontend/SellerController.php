@@ -2374,7 +2374,7 @@ class SellerController extends Controller
     public function pendingOrders(Request $request)
     {
         if(!empty($request->order_id || $request->order_date)){
-            $order_query = Order::with('service')->where('seller_id', Auth::guard('web')->user()->id)->where('status',0);
+            $order_query = Order::with('service')->where('seller_id', Auth::guard('web')->user()->id)->whereNot('payment_status', '')->where('status',0);
 
             if (!empty($request->order_id)){
                 $order_query->where('id', $request->order_id);
@@ -2464,12 +2464,12 @@ class SellerController extends Controller
 
         }
 
-        $orders = Order::where('seller_id', Auth::guard('web')->user()->id)->where('job_post_id', NULL)->get();
+        $orders = Order::where('seller_id', Auth::guard('web')->user()->id)->where('job_post_id', NULL)->whereNot('payment_status', '')->get();
         $pending_orders = Order::where('seller_id', Auth::guard('web')->user()->id)->where('job_post_id', NULL)->whereNot('payment_status', '')->where('status',0);
-        $active_orders = Order::where('seller_id', Auth::guard('web')->user()->id)->where('job_post_id', NULL)->where('status',1);
-        $complete_orders = Order::where('seller_id', Auth::guard('web')->user()->id)->where('job_post_id', NULL)->where('status',2);
-        $deliver_orders = Order::where('seller_id', Auth::guard('web')->user()->id)->where('job_post_id', NULL)->where('status',3);
-        $cancel_orders = Order::where('seller_id', Auth::guard('web')->user()->id)->where('job_post_id', NULL)->where('status',4);
+        $active_orders = Order::where('seller_id', Auth::guard('web')->user()->id)->where('job_post_id', NULL)->whereNot('payment_status', '')->where('status',1);
+        $complete_orders = Order::where('seller_id', Auth::guard('web')->user()->id)->where('job_post_id', NULL)->whereNot('payment_status', '')->where('status',2);
+        $deliver_orders = Order::where('seller_id', Auth::guard('web')->user()->id)->where('job_post_id', NULL)->whereNot('payment_status', '')->where('status',3);
+        $cancel_orders = Order::where('seller_id', Auth::guard('web')->user()->id)->where('job_post_id', NULL)->whereNot('payment_status', '')->where('status',4);
    
         return view('frontend.user.seller.order.services', compact('orders','active_orders','complete_orders','deliver_orders','cancel_orders', 'all_orders', 'pending_orders'));
     }

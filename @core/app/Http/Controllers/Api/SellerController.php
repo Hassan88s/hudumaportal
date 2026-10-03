@@ -232,11 +232,12 @@ class SellerController extends Controller
         
         $total_earnings = 0;
         $seller_id = Auth::guard('sanctum')->user()->id;
-        $pending_order = Order::where(['status'=>0,'seller_id'=>$seller_id])->count();
-        $complete_order = Order::where(['status'=>2,'seller_id'=>$seller_id])->count();
+        // Unpaid orders are not the seller's business until the money arrives
+        $pending_order = Order::where(['status'=>0,'seller_id'=>$seller_id])->whereNot('payment_status','')->count();
+        $complete_order = Order::where(['status'=>2,'seller_id'=>$seller_id])->whereNot('payment_status','')->count();
         
         //
-        $get_sum = Order::where(['status'=>2,'seller_id'=>$seller_id]);
+        $get_sum = Order::where(['status'=>2,'seller_id'=>$seller_id])->whereNot('payment_status','');
         $complete_order_balance_with_tax = $get_sum->sum('total');
         $complete_order_tax = $get_sum->sum('tax');
         $complete_order_balance_without_tax = $complete_order_balance_with_tax - $complete_order_tax;
@@ -268,7 +269,7 @@ class SellerController extends Controller
         for($i=11; $i>=0;$i--){
             $chart_data[] = [
                 "monthName" => Carbon::today()->startOfMonth()->subMonth($i)->format('M'),
-                "totalOrder" => Order::where('seller_id',auth('sanctum')->id())->whereYear('created_at',Carbon::now()->year)
+                "totalOrder" => Order::where('seller_id',auth('sanctum')->id())->whereNot('payment_status','')->whereYear('created_at',Carbon::now()->year)
                 ->whereMonth('created_at',Carbon::now()->subMonth($i))
                 ->count()
             ];
@@ -288,7 +289,7 @@ class SellerController extends Controller
         if($request->has('item')){
             $item = $request->item;
         }
-        $recent_order = Order::select('id','name','status','email','total')->where('seller_id',$seller_id)->latest()->take($item)->get()->transform(function($info){
+        $recent_order = Order::select('id','name','status','email','total')->where('seller_id',$seller_id)->whereNot('payment_status','')->latest()->take($item)->get()->transform(function($info){
             $info->order_status = $this->orderStatusText($info->status);
             $info->total = number_format($info->total,2,'.','');
             return $info;
@@ -329,7 +330,7 @@ class SellerController extends Controller
         }
         
         $uesr_info = auth('sanctum')->user()->id;
-        $my_orders = $my_orders->where('seller_id',$uesr_info)->orderBy('id','desc')->paginate(10)->through(function ($item) {
+        $my_orders = $my_orders->where('seller_id',$uesr_info)->whereNot('payment_status','')->orderBy('id','desc')->paginate(10)->through(function ($item) {
            $item->payment_status =  !empty($item->payment_status) ? $item->payment_status : 'pending';
            $item->date = null;
            
@@ -358,7 +359,11 @@ class SellerController extends Controller
             return response()->error(['message' => __('no order found')]);
         }
         
-        $orderInfo = Order::with('service')->where('id',$request->id)->first();
+        $orderInfo = Order::with('service')->where('id',$request->id)
+            ->where('seller_id', auth('sanctum')->id())->whereNot('payment_status','')->first();
+        if (!$orderInfo) {
+            return response()->error(['message' => __('no order found')]);
+        }
         $orderInfo->payment_status = !empty($orderInfo->payment_status) ? $orderInfo->payment_status : 'pending';
         $orderInfo->total = amount_with_currency_symbol($orderInfo->total);
         $orderInfo->tax = amount_with_currency_symbol($orderInfo->tax);
