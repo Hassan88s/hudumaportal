@@ -814,9 +814,17 @@ class JobPostController extends Controller
                           }
                         
                 
-        
+            // A paid package here only completes through wallet or flutterwave,
+            // both of which return above. Reaching this point on a paid package
+            // means an unsupported gateway and a silent no-op — say so instead.
+            if ($request->package_id != 1) {
+                return back()->with([
+                    'msg'  => __('This payment method is not available for job promotion yet. Please choose Wallet, or pick the Regular (free) package.'),
+                    'type' => 'danger',
+                ]);
+            }
          }
-        
+
         $job = BuyerJob::with('area')->find($id);
         $areas = ServiceArea::where('status',1)->get();
         $categories = Category::where('status',1)->get();
