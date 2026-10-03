@@ -391,6 +391,19 @@ class JobPostController extends Controller
                             }
   
                           }
+
+            // A paid promotion is only actually charged through wallet or
+            // flutterwave above; both set $created_job (wallet) or return early
+            // (flutterwave). If we reach here on a paid package with any other
+            // gateway, no job was created and no money was taken — stop here with
+            // a clear message instead of a 500 on an undefined $created_job.
+            if (empty($created_job)) {
+                return back()->with([
+                    'msg'  => __('This payment method is not available for job promotion yet. Please choose Wallet, or pick the Regular (free) package.'),
+                    'type' => 'danger',
+                ]);
+            }
+
             // admin notification add
             AdminNotification::create(['job_post_id' => $created_job->id]);
 

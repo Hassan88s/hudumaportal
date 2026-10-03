@@ -273,7 +273,7 @@
                     <div class="card text-center p-3">
                        <h6>{{ __($package->name) }}</h6>
                         <p class="fw-bold">{{ (float) $package->price > 0 ? float_amount_with_currency_symbol($package->price) : __('Free') }}</p>
-                        <input type="radio" name="package_id" value="{{ $package->id }}" class="package-radio" data-name="{{ strtolower($package->name) }}" required>
+                        <input type="radio" name="package_id" value="{{ $package->id }}" class="package-radio" data-name="{{ strtolower($package->name) }}" data-price="{{ (float) $package->price }}" required>
                     </div>
                 </div>
             @endforeach
@@ -451,16 +451,20 @@
         let packageRadios = document.querySelectorAll('.package-radio');
         let daysInput = document.getElementById('daysInput');
 
+        // Show the checkout (wallet + payment gateways) whenever the chosen
+        // package costs money, whatever it is named. Matching on the name broke
+        // as soon as a package was renamed or a new paid one was added.
+        let togglePayment = function (radio) {
+            if (!daysInput) return;
+            let price = parseFloat(radio.getAttribute('data-price') || '0');
+            daysInput.style.display = price > 0 ? 'block' : 'none';
+            let daysField = document.getElementById('days');
+            if (price <= 0 && daysField) daysField.value = '';
+        };
+
         packageRadios.forEach(radio => {
-            radio.addEventListener('change', function () {
-                let packageName = this.getAttribute('data-name');
-                if (packageName === 'featured' || packageName === 'urgent') {
-                    daysInput.style.display = 'block';
-                } else {
-                    daysInput.style.display = 'none';
-                    document.getElementById('days').value = ''; // Clear input if hidden
-                }
-            });
+            radio.addEventListener('change', function () { togglePayment(this); });
+            if (radio.checked) togglePayment(radio); // honour a pre-selected package on load
         });
     });
 

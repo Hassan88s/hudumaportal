@@ -317,8 +317,9 @@
                 <div class="card text-center p-3">
                     <h5>{{ __($package->name) }}</h5>
                     <p class="fw-bold">{{ (float) $package->price > 0 ? float_amount_with_currency_symbol($package->price) : __('Free') }}</p>
-                    <input type="radio" name="package_id" value="{{ $package->id }}" class="package-radio" 
-                           data-name="{{ strtolower($package->name) }}" 
+                    <input type="radio" name="package_id" value="{{ $package->id }}" class="package-radio"
+                           data-name="{{ strtolower($package->name) }}"
+                           data-price="{{ (float) $package->price }}"
                            {{ $job->package_id == $package->id ? 'checked' : '' }}>
                 </div>
             </div>
@@ -641,16 +642,19 @@
         let packageRadios = document.querySelectorAll('.package-radio');
         let daysInput = document.getElementById('daysInput');
 
+        // Reveal checkout whenever the chosen package costs money, whatever its
+        // name — and honour the package this job is already on when the page loads.
+        let togglePayment = function (radio) {
+            if (!daysInput) return;
+            let price = parseFloat(radio.getAttribute('data-price') || '0');
+            daysInput.style.display = price > 0 ? 'block' : 'none';
+            let daysField = document.getElementById('days');
+            if (price <= 0 && daysField) daysField.value = '';
+        };
+
         packageRadios.forEach(radio => {
-            radio.addEventListener('change', function () {
-                let packageName = this.getAttribute('data-name');
-                if (packageName === 'featured' || packageName === 'urgent') {
-                    daysInput.style.display = 'block';
-                } else {
-                    daysInput.style.display = 'none';
-                    document.getElementById('days').value = ''; // Clear input if hidden
-                }
-            });
+            radio.addEventListener('change', function () { togglePayment(this); });
+            if (radio.checked) togglePayment(radio);
         });
     });
 
