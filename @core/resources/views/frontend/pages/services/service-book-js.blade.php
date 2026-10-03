@@ -608,7 +608,14 @@
                     formContainer.find('input[name=date]').val(available_date);
                     let available_schedule = $('.available_schedule').text();
                     formContainer.find('input[name=schedule]').val(available_schedule);
-                    let coupon_code = $('.coupon_code').val();
+                    // The page has more than one .coupon_code input (desktop + mobile),
+                    // so read whichever one the buyer actually typed into, not just
+                    // the first in the DOM (which is often the hidden/empty one).
+                    let coupon_code = '';
+                    $('.coupon_code').each(function () {
+                        let v = $.trim($(this).val() || '');
+                        if (v) { coupon_code = v; return false; }
+                    });
                     formContainer.find('input[name=coupon_code]').val(coupon_code);
 
                     let services = [];
@@ -645,7 +652,15 @@
                 $(document).on('click','.apply-coupon',function(e){
                     e.preventDefault();
                     let total_amount = $('.total_amount_for_coupon').text().replace(',','').replace(site_default_currency_symbol,'');
-                    let coupon_code = $('.coupon_code').val();
+                    // Read whichever coupon field the buyer filled in (desktop or mobile),
+                    // preferring the one next to the button they clicked.
+                    let coupon_code = $.trim($(this).closest('.coupon_input_field, .mobile-coupon-inline').find('.coupon_code').val() || '');
+                    if (!coupon_code) {
+                        $('.coupon_code').each(function () {
+                            let v = $.trim($(this).val() || '');
+                            if (v) { coupon_code = v; return false; }
+                        });
+                    }
                     let seller_id = $('#seller_id').val();
 
                     $.ajax({
