@@ -214,6 +214,17 @@ class ClickPesaWebhookController extends Controller
                     ->update(['is_hired' => 1]);
             }
         }
+
+        // The order was hidden from the seller while it was unpaid — tell them now
+        try {
+            $seller = \App\User::find($order->seller_id);
+            if ($seller) {
+                \App\AdminNotification::create(['order_id' => $id]);
+                $seller->notify(new \App\Notifications\OrderNotification($id, $order->service_id, $order->seller_id, null, __('You have a new order')));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[ClickPesa] seller notification failed for order ' . $id . ': ' . $e->getMessage());
+        }
     }
 
     protected function markExtraServicePaid(int $id, string $txn): void

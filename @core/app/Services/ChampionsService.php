@@ -481,6 +481,12 @@ class ChampionsService
             if (!$o || (int) $o->status !== 2 || empty($o->seller_id) || empty($o->buyer_id)) return;
             if ((int) $o->seller_id === (int) $o->buyer_id) return; // self-booking never scores
 
+            // Money has to have changed hands. 'complete' is a paid gateway or
+            // wallet order; 'pending' is cash on delivery or a bank slip, which
+            // only counts once the seller or admin confirms it as paid. An empty
+            // status is an abandoned checkout and never scores.
+            if (!in_array((string) $o->payment_status, ['complete', 'paid'], true)) return;
+
             // PDF §30 — minimum qualifying transaction (0 = off). Tiny bookings can't farm HP.
             $minTotal = (float) (get_static_option('champions_min_order_tzs') ?: 0);
             if ($minTotal > 0 && (float) ($o->total ?? 0) < $minTotal) return;

@@ -191,7 +191,7 @@ class ServicePaymentController extends Controller
         if (isset($payment_data['status']) && $payment_data['status'] === 'complete'){
             $this->update_database($payment_data['order_id'], $payment_data['transaction_id']);
             $this->send_order_mail($payment_data['order_id']);
-            $this->send_order_notification($payment_data['order_id']);
+            // update_database() now notifies the seller — no second call here
              $order_id = $payment_data['order_id'];
                          // SMS Notifications
                   $buyer_id = Auth::guard('web')->check() ? Auth::guard('web')->user()->id : NULL;
@@ -693,12 +693,25 @@ class ServicePaymentController extends Controller
 
     private function update_database($order_id, $transaction_id)
     {
+        // Only the first confirmation counts — gateways retry their callbacks
+        $was_unpaid = Order::where('id', $order_id)->where('payment_status', '!=', 'complete')->exists();
+
         Order::where('id', $order_id)->update([
             'payment_status' => 'complete',
             'status' => 0,
             'transaction_id' => $transaction_id,
         ]);
-        
+
+        // The order was hidden from the seller while it was unpaid, so this is
+        // the moment to tell them about it.
+        if ($was_unpaid) {
+            try {
+                $this->send_order_notification($order_id);
+            } catch (\Throwable $e) {
+                \Log::warning('[Order] seller notification failed for order ' . $order_id . ': ' . $e->getMessage());
+            }
+        }
+
         $pusher_auth = get_static_option('pusher_app_push_notification_auth_token'); //"A4EEE003A0AEB2B95F78FAD12EA11D8E1C281448DD8D9B33B47F6E5EC47CEDEA";
         $pusher_auth_url = get_static_option('pusher_app_push_notification_auth_url'); //'https://fcaf9caf-509c-4611-a225-2e508593d6af.pushnotifications.pusher.com/publish_api/v1/instances/fcaf9caf-509c-4611-a225-2e508593d6af/publishes';
         

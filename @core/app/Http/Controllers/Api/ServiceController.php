@@ -646,10 +646,13 @@ class ServiceController extends Controller
 
         $commission = AdminCommission::first();
 
+        // Cash on delivery and manual (bank slip) orders are genuinely awaiting
+        // payment and the seller is meant to see them. Everything else must stay
+        // blank until the gateway confirms, or an unpaid order reaches the seller.
         if($request->selected_payment_gateway=='cash_on_delivery' || $request->selected_payment_gateway == 'manual_payment'){
             $payment_status='pending';
         }else{
-            $payment_status='pending';
+            $payment_status='';
         }
 
 
@@ -806,23 +809,29 @@ class ServiceController extends Controller
             'commission_amount' => $commission_amount,
         ]);
 
-        //Send order notification to seller
         $seller = User::where('id',$request->seller_id)->first();
-        $order_message = __('You have a new order');
-        $seller->notify(new OrderNotification($last_order_id,$request->service_id, $request->seller_id, $request->buyer_id,$order_message));
-
         $order_details = Order::find($last_order_id);
 
-        //Send order email to buyer for cash on delivery
-        try {
-            $mail_subject = get_static_option('new_order_email_subject') ?? __('New Order #');
-            $message_for_buyer = get_static_option('new_order_buyer_message') ?? __('You have successfully placed an order #');
-            $message_for_seller_admin = get_static_option('new_order_admin_seller_message') ?? __('You have a new order #');
-            Mail::to($order_details->email)->send(new OrderMail($mail_subject,$order_details,$message_for_buyer));
-            Mail::to($seller->email)->send(new OrderMail($mail_subject,$order_details, $message_for_seller_admin));
-            Mail::to(get_static_option('site_global_email'))->send(new OrderMail($mail_subject,$order_details, $message_for_seller_admin));
-        } catch (\Exception $e) {
-            //return response()->error($e->getMessage());
+        // Only tell the seller about an order they can act on. A gateway order is
+        // still unpaid at this point — its notification and emails are sent from
+        // the payment callback once the money has actually arrived.
+        if ($payment_status !== '') {
+            $order_message = __('You have a new order');
+            $seller->notify(new OrderNotification($last_order_id,$request->service_id, $request->seller_id, $request->buyer_id,$order_message));
+        }
+
+        //Send order email to buyer for cash on delivery / manual payment
+        if ($payment_status !== '') {
+            try {
+                $mail_subject = get_static_option('new_order_email_subject') ?? __('New Order #');
+                $message_for_buyer = get_static_option('new_order_buyer_message') ?? __('You have successfully placed an order #');
+                $message_for_seller_admin = get_static_option('new_order_admin_seller_message') ?? __('You have a new order #');
+                Mail::to($order_details->email)->send(new OrderMail($mail_subject,$order_details,$message_for_buyer));
+                Mail::to($seller->email)->send(new OrderMail($mail_subject,$order_details, $message_for_seller_admin));
+                Mail::to(get_static_option('site_global_email'))->send(new OrderMail($mail_subject,$order_details, $message_for_seller_admin));
+            } catch (\Exception $e) {
+                //return response()->error($e->getMessage());
+            }
         }
         //todo send success/cancel url
         //todo is it has paytm parameter then return paytm object instance
@@ -899,11 +908,30 @@ class ServiceController extends Controller
           $request->validate([
             'order_id' => 'required|integer'
         ]);
-        $order_details = Order::find($request->order_id);
-
         $user_id = Auth::guard("sanctum")->id();
+
+        // Only the buyer who placed the order may report it paid, and only once.
+        // Without this any signed-in user could mark any order complete by id.
+        $order_details = Order::where('id', $request->order_id)->where('buyer_id', $user_id)->first();
+        if (!$order_details) {
+            return response()->error(['message' => __('Order not found')]);
+        }
+        if ($order_details->payment_status === 'complete') {
+            return response()->error(['message' => __('payment status update success')]);
+        }
+
         $order_details->payment_status = 'complete';
         $order_details->save();
+
+        // It was hidden from the seller while unpaid, so tell them it has arrived
+        try {
+            $seller = User::find($order_details->seller_id);
+            if ($seller) {
+                $seller->notify(new OrderNotification($order_details->id, $order_details->service_id, $order_details->seller_id, $user_id, __('You have a new order')));
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('[Order] seller notification failed for order ' . $order_details->id . ': ' . $e->getMessage());
+        }
 
         if($request->has('job_id') && $request->job_id === $order_details->job_post_id){
             BuyerJob::where('id',$request->job_id)->update(['status' => 1]);
