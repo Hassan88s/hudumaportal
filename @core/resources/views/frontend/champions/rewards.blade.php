@@ -6,6 +6,16 @@
 @endsection
 
 @section('content')
+@php
+    // Show only the viewer's own league when they are logged in; both when not.
+    $allLeagues = [
+        'provider' => ['rewards' => __('Huduma Pro League — Providers'), 'levels' => __('Provider levels')],
+        'client'   => ['rewards' => __('Huduma Client League — Clients'), 'levels' => __('Client levels')],
+    ];
+    $viewerLeague = $league ?? null;
+    $shownLeagues = ($viewerLeague && isset($allLeagues[$viewerLeague])) ? [$viewerLeague => $allLeagues[$viewerLeague]] : $allLeagues;
+    $gridClass    = count($shownLeagues) > 1 ? 'hc-grid two' : 'hc-grid';
+@endphp
 <div class="hc-page">
     <section class="hc-hero">
         <div class="container">
@@ -18,10 +28,10 @@
 
     <section class="hc-body">
         <div class="container">
-            <div class="hc-grid two">
-                @foreach(['provider' => __('Huduma Pro League — Providers'), 'client' => __('Huduma Client League — Clients')] as $lg => $title)
+            <div class="{{ $gridClass }}">
+                @foreach($shownLeagues as $lg => $titles)
                     <div class="hc-card" style="margin:0">
-                        <h3>{{ $title }}</h3>
+                        <h3>{{ $titles['rewards'] }}</h3>
                         <table class="hc-table">
                             @foreach($rewards[$lg] as $rank => [$type, $amount, $benefits])
                                 <tr class="top5">
@@ -37,10 +47,10 @@
                 @endforeach
             </div>
 
-            <div class="hc-grid two" style="margin-top:18px">
-                @foreach(['provider' => __('Provider levels'), 'client' => __('Client levels')] as $lg => $title)
+            <div class="{{ $gridClass }}" style="margin-top:18px">
+                @foreach($shownLeagues as $lg => $titles)
                     <div class="hc-card" style="margin:0">
-                        <h3>{{ $title }}</h3>
+                        <h3>{{ $titles['levels'] }}</h3>
                         <table class="hc-table">
                             @foreach($levels[$lg] as $min => $name)
                                 <tr>

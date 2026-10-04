@@ -107,6 +107,9 @@ class ChampionsController extends Controller
             'rewards' => $this->svc->rewards(),
             'levels'  => ChampionsService::LEVELS,
             'badges'  => $user ? DB::table('champion_badges')->where('user_id', $user->id)->orderByDesc('awarded_at')->get() : collect(),
+            // A logged-in seller sees only the provider side, a buyer only the
+            // client side; a visitor who is not logged in sees both leagues.
+            'league'  => $user ? $this->leagueFor($user) : null,
         ]);
     }
 
