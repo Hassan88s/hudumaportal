@@ -19,6 +19,9 @@
        grid-template-columns beats the media queries below and the page stops
        stacking on a phone. */
     .hc-grid.two{grid-template-columns:1fr 1fr}
+    /* One league only (a logged-in seller or buyer): a single readable column,
+       not a lone card squeezed into the 4-column default. */
+    .hc-grid.one{grid-template-columns:1fr;max-width:620px}
     .hc-stat{background:#fff;border:1px solid #eef0f3;border-radius:14px;padding:16px 18px}
     .hc-stat .lbl{font-size:11px;color:#8892a0;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
     .hc-stat .val{font-size:26px;font-weight:800;color:#c2410c;margin-top:4px}

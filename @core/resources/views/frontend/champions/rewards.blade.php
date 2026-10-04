@@ -14,7 +14,7 @@
     ];
     $viewerLeague = $league ?? null;
     $shownLeagues = ($viewerLeague && isset($allLeagues[$viewerLeague])) ? [$viewerLeague => $allLeagues[$viewerLeague]] : $allLeagues;
-    $gridClass    = count($shownLeagues) > 1 ? 'hc-grid two' : 'hc-grid';
+    $gridClass    = count($shownLeagues) > 1 ? 'hc-grid two' : 'hc-grid one';
 @endphp
 <div class="hc-page">
     <section class="hc-hero">
