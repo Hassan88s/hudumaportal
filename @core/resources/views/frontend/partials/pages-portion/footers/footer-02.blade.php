@@ -24,14 +24,6 @@
                            onmouseout="this.style.color='rgba(255,255,255,.85)'">
                             <i class="las la-medal"></i> {{ __('Huduma Champions') }}
                         </a>
-                        @if(Route::has('champions.rewards'))
-                        <a href="{{ route('champions.rewards') }}"
-                           style="color:rgba(255,255,255,.85);text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:color .15s"
-                           onmouseover="this.style.color='#ff8a54'"
-                           onmouseout="this.style.color='rgba(255,255,255,.85)'">
-                            <i class="las la-gem"></i> {{ __('Champions Rewards') }}
-                        </a>
-                        @endif
                         @endif
                         <a href="{{ url('/leaderboard') }}"
                            style="color:rgba(255,255,255,.85);text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:color .15s"
