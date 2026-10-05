@@ -10,10 +10,10 @@
                 </div>
                 <div class="modal-body">
                     <div class="custom-form">
-                        <form action="{{ route('seller.to.buyer.review') }}" method="post">
+                        <form action="{{ route('service.review.from.dashboard') }}" method="post">
                             @csrf
                             <input type="hidden" id="rating" name="rating" class="form-control form-control-sm">
-                            <input type="hidden" id="buyer_id" name="buyer_id" class="form-control form-control-sm">
+                            <input type="hidden" id="review_seller_id" name="seller_id" class="form-control form-control-sm">
                             <input type="hidden" id="service_id" name="service_id" class="form-control form-control-sm">
                             <input type="hidden" id="order_id" name="order_id" class="form-control form-control-sm">
                             <div class="row g-4">
@@ -508,18 +508,15 @@ var timer = setInterval(function () {
                 });
 
 
-                // seller to buyer review start
+                // buyer-to-seller review — fill the modal with the seller being reviewed
                 $(document).on('click', '.review_add_modal', function () {
                     let el = $(this);
-
-                    let buyer_id = el.data('buyer_id');
-
+                    let seller_id = el.data('seller_id');
                     let service_id = el.data('service_id');
-
                     let order_id = el.data('order_id');
 
                     let form = $('#reviewModal');
-                    form.find('#buyer_id').val(buyer_id);
+                    form.find('[name=seller_id]').val(seller_id);
                     form.find('#service_id').val(service_id);
                     form.find('#order_id').val(order_id);
                 });
@@ -649,7 +646,7 @@ function setModalContent(content) {
                     let service_id = el.data('service_id');
                     let order_id = el.data('order_id');
                     let form = $('#reviewModal');
-                    form.find('#seller_id').val(seller_id);
+                    form.find('[name=seller_id]').val(seller_id);
                     form.find('#service_id').val(service_id);
                     form.find('#order_id').val(order_id);
                 });

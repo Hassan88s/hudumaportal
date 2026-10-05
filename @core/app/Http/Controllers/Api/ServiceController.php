@@ -237,6 +237,7 @@ class ServiceController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'message' => $request->message,
+                'type' => 1, // buyer -> seller, so it shows on the seller's reviews
             ]);
     
             return response()->success([
