@@ -63,14 +63,27 @@
     </div>
     
      <div class="mb-3">
-        <label class="form-label">{{ __('Maximum Cost')}}:</label>
-          <input type="text" name="cost" value="{{ $portfolio->project_cost }}" class="form-control" >
+        <label class="form-label">{{ __('Maximum Cost')}} ({{ site_currency_symbol(true) }}):</label>
+          <input type="number" name="cost" min="0" step="any" value="{{ $portfolio->project_cost }}" class="form-control" placeholder="{{ __('Amount in') }} {{ site_currency_symbol(true) }}">
     </div>
-    
-    
+
+    @php
+        $durParts = preg_split('/\s+/', trim((string) $portfolio->timeline));
+        $durNum   = is_numeric($durParts[0] ?? '') ? $durParts[0] : '';
+        $durUnit  = ucfirst(strtolower($durParts[1] ?? 'Days'));
+        if (!in_array($durUnit, ['Days','Weeks','Months','Years'])) $durUnit = 'Days';
+    @endphp
     <div class="mb-3">
-        <label class="form-label">{{ __('Duration')}}:</label>
-        <input type="text" name="Duration" value="{{ $portfolio->timeline }}" class="form-control" >
+        <label class="form-label">{{ __('Project Duration')}}:</label>
+        <div class="d-flex" style="gap:10px">
+            <input type="number" name="Duration" min="1" step="1" value="{{ $durNum }}" class="form-control" placeholder="{{ __('e.g. 3') }}">
+            <select name="duration_unit" class="form-control" style="max-width:160px">
+                @foreach(['Days','Weeks','Months','Years'] as $u)
+                    <option value="{{ $u }}" @selected($durUnit === $u)>{{ __($u) }}</option>
+                @endforeach
+            </select>
+        </div>
+        <small class="text-muted">{{ __('Enter a number and choose the unit (days, weeks, months or years).') }}</small>
     </div>
 
 

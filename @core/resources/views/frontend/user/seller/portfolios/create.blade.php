@@ -64,14 +64,23 @@
     </div>
     
     <div class="mb-3">
-        <label class="form-label">{{ __('Maximum Cost')}}:</label>
-          <input type="text" name="cost" class="form-control" >
+        <label class="form-label">{{ __('Maximum Cost')}} ({{ site_currency_symbol(true) }}):</label>
+          <input type="number" name="cost" min="0" step="any" class="form-control" placeholder="{{ __('Amount in') }} {{ site_currency_symbol(true) }}">
     </div>
-    
-    
+
+
     <div class="mb-3">
-        <label class="form-label">{{ __('Duration')}}:</label>
-        <input type="text" name="Duration" class="form-control" >
+        <label class="form-label">{{ __('Project Duration')}}:</label>
+        <div class="d-flex" style="gap:10px">
+            <input type="number" name="Duration" min="1" step="1" class="form-control" placeholder="{{ __('e.g. 3') }}">
+            <select name="duration_unit" class="form-control" style="max-width:160px">
+                <option value="Days">{{ __('Days') }}</option>
+                <option value="Weeks">{{ __('Weeks') }}</option>
+                <option value="Months">{{ __('Months') }}</option>
+                <option value="Years">{{ __('Years') }}</option>
+            </select>
+        </div>
+        <small class="text-muted">{{ __('Enter a number and choose the unit (days, weeks, months or years).') }}</small>
     </div>
 
    <div class="mb-3">

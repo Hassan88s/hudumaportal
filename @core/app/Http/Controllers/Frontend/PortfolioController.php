@@ -66,7 +66,11 @@ public function store(Request $request)
     $portfolio->name = $request->name;
     $portfolio->description = $request->description;
      $portfolio->project_cost = $request->cost;
-      $portfolio->timeline = $request->Duration;
+      // Store the duration together with its unit, e.g. "3 Months", so it is
+      // unambiguous on display.
+      $portfolio->timeline = $request->filled('Duration')
+          ? trim($request->Duration . ' ' . ($request->duration_unit ?: 'Days'))
+          : $request->Duration;
 
     if ($request->hasFile('video')) {
         $filename = time() . '_' . $request->file('video')->getClientOriginalName();
@@ -107,8 +111,10 @@ public function store(Request $request)
             'name' => $request->name,
             'description' => $request->description,
             'project_cost' => $request->cost,
-            'timeline' => $request->Duration,
-                 
+            'timeline' => $request->filled('Duration')
+                ? trim($request->Duration . ' ' . ($request->duration_unit ?: 'Days'))
+                : $request->Duration,
+
         ]);
 
         // if ($request->hasFile('video')) {

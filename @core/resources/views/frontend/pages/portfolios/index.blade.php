@@ -57,9 +57,9 @@
         <div class="new_serviceDetails__projectInfo">
             <div class="d-flex justify-content-between mt-3">
                 <div>
-                    <small class="text-muted">Project Cost</small>
+                    <small class="text-muted">{{ __('Maximum Cost') }}</small>
                     <p class="fw-bold mb-0">
-                        ${{ $portfolio->project_cost ?? '' }}
+                        {{ ($portfolio->project_cost ?? '') !== '' ? amount_with_currency_symbol($portfolio->project_cost) : '' }}
                     </p>
                 </div>
                 <div>
