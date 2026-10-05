@@ -48,51 +48,49 @@
 
                                                 <div class="mt-5"> <x-msg.error/> </div>
 
-                                                <form action="{{route('seller.profile.verify')}}" method="post">
+                                                @php
+                                                    $verifyDoc = function ($val) {
+                                                        if (empty($val)) return null;
+                                                        if (is_numeric($val)) return ['type' => 'media', 'val' => $val];
+                                                        $isPdf = \Illuminate\Support\Str::endsWith(strtolower($val), '.pdf');
+                                                        return ['type' => $isPdf ? 'pdf' : 'image', 'val' => $val];
+                                                    };
+                                                    $nid  = $verifyDoc(optional($seller_verify_info)->national_id);
+                                                    $addr = $verifyDoc(optional($seller_verify_info)->address);
+                                                @endphp
+                                                <form action="{{route('seller.profile.verify')}}" method="post" enctype="multipart/form-data">
                                                     @csrf
                                                     <div class="single-dashboard-input">
                                                         <div class="row">
                                                             <div class="col-xxl-6 col-lg-6">
                                                                 <div class="single-info-input margin-top-30">
                                                                     <div class="form-group">
-                                                                        <div class="media-upload-btn-wrapper">
-                                                                            <div class="img-wrap">
-                                                                                {!! render_image_markup_by_attachment_id(optional($seller_verify_info)->national_id ?? '','','large') !!}
+                                                                        <label class="form-label">{{ __('National ID') }}</label>
+                                                                        @if($nid)
+                                                                            <div class="img-wrap mb-2">
+                                                                                @if($nid['type'] === 'media') {!! render_image_markup_by_attachment_id($nid['val'],'','large') !!}
+                                                                                @elseif($nid['type'] === 'pdf') <a href="{{ asset($nid['val']) }}" target="_blank" class="btn btn-sm btn-outline-primary">{{ __('View uploaded National ID (PDF)') }}</a>
+                                                                                @else <img src="{{ asset($nid['val']) }}" alt="National ID" style="max-width:100%;height:auto;border-radius:8px"> @endif
                                                                             </div>
-                                                                            <input type="hidden" id="national_id" name="national_id"
-                                                                                   value="{{optional($seller_verify_info)->national_id ?? ''}}">
-                                                                            <button type="button" class="btn btn-success media_upload_form_btn"
-                                                                                    data-btntitle="{{__('Select Image')}}"
-                                                                                    data-modaltitle="{{__('Upload Image')}}" data-bs-toggle="modal"
-                                                                                    data-bs-target="#media_upload_modal">
-                                                                                {{__('Upload Your National ID')}}
-                                                                            </button>
-                                                                        </div>
-                                                                        <small class="form-text text-muted">{{__('allowed image format: jpg,jpeg,png')}}</small>
-                                                                        <br>
-                                                                        <small class="text-danger">{{ __('recommended size 740x504') }}</small>
+                                                                        @endif
+                                                                        <input type="file" name="national_id" accept=".jpg,.jpeg,.png,.pdf" class="form-control">
+                                                                        <small class="form-text text-muted">{{__('Upload your National ID — JPG, PNG or PDF (max 5 MB).')}}</small>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                             <div class="col-xxl-6 col-lg-6">
                                                                 <div class="single-info-input margin-top-30">
                                                                     <div class="form-group">
-                                                                        <div class="media-upload-btn-wrapper">
-                                                                            <div class="img-wrap">
-                                                                                {!! render_image_markup_by_attachment_id(optional($seller_verify_info)->address ?? '','','large') !!}
+                                                                        <label class="form-label">{{ __('Address Document') }}</label>
+                                                                        @if($addr)
+                                                                            <div class="img-wrap mb-2">
+                                                                                @if($addr['type'] === 'media') {!! render_image_markup_by_attachment_id($addr['val'],'','large') !!}
+                                                                                @elseif($addr['type'] === 'pdf') <a href="{{ asset($addr['val']) }}" target="_blank" class="btn btn-sm btn-outline-primary">{{ __('View uploaded Address Document (PDF)') }}</a>
+                                                                                @else <img src="{{ asset($addr['val']) }}" alt="Address document" style="max-width:100%;height:auto;border-radius:8px"> @endif
                                                                             </div>
-                                                                            <input type="hidden" id="address" name="address"
-                                                                                   value="{{optional($seller_verify_info)->address ?? ''}}">
-                                                                            <button type="button" class="btn btn-success media_upload_form_btn"
-                                                                                    data-btntitle="{{__('Select Image')}}"
-                                                                                    data-modaltitle="{{__('Upload Image')}}" data-bs-toggle="modal"
-                                                                                    data-bs-target="#media_upload_modal">
-                                                                                {{__('Upload Your Address Document')}}
-                                                                            </button>
-                                                                        </div>
-                                                                        <small class="form-text text-muted">{{__('allowed image format: jpg,jpeg,png')}}</small>
-                                                                        <br>
-                                                                        <small class="text-danger">{{ __('recommended size 740x504') }}</small>
+                                                                        @endif
+                                                                        <input type="file" name="address" accept=".jpg,.jpeg,.png,.pdf" class="form-control">
+                                                                        <small class="form-text text-muted">{{__('Upload a utility bill or similar address proof — JPG, PNG or PDF (max 5 MB).')}}</small>
                                                                     </div>
                                                                 </div>
                                                             </div>

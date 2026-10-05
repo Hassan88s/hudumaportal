@@ -3742,26 +3742,35 @@ $remaning_balance = $remaning_balance + $partial_payment_sum;
         $user = Auth::guard('web')->user()->id;
 
         if($request->isMethod('post')){
-            $request->validate([
-                'national_id' => 'required|max:191',
-            ]);
-
             $old_image = SellerVerify::select('national_id','address')->where('seller_id',$user)->first();
 
-            if(is_null($old_image)){
-                SellerVerify::create([
-                    'seller_id' => $user,
-                    'national_id' => $request->national_id ?? optional($old_image)->national_id,
-                    'address' => $request->address ?? optional($old_image)->address,
-                ]);
-            }else{
-                SellerVerify::where('seller_id', $user)
-                    ->update([
-                        'seller_id' => $user,
-                        'national_id' => $request->national_id ?? optional($old_image)->national_id,
-                        'address' => $request->address ?? optional($old_image)->address,
-                    ]);
-            }
+            // Accept a real document (image or PDF). National ID is required only
+            // when one is not already on file.
+            $request->validate([
+                'national_id' => (optional($old_image)->national_id ? 'nullable' : 'required') . '|file|mimes:jpg,jpeg,png,pdf|max:5120',
+                'address'     => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            ], [
+                'national_id.required' => __('Please upload your National ID document.'),
+                'national_id.mimes'    => __('The National ID must be a JPG, PNG or PDF file.'),
+                'address.mimes'        => __('The address document must be a JPG, PNG or PDF file.'),
+            ]);
+
+            $store = function ($field, $prefix) use ($request, $user, $old_image) {
+                if (!$request->hasFile($field)) return optional($old_image)->{$field};
+                $file = $request->file($field);
+                $name = $prefix . '_' . $user . '_' . time() . '_' . \Str::random(6) . '.' . strtolower($file->getClientOriginalExtension());
+                $file->move(public_path('assets/uploads/seller-verify'), $name);
+                return 'assets/uploads/seller-verify/' . $name;
+            };
+
+            SellerVerify::updateOrCreate(
+                ['seller_id' => $user],
+                [
+                    'national_id' => $store('national_id', 'nid'),
+                    'address'     => $store('address', 'addr'),
+                    'status'      => 0,
+                ]
+            );
 
             try {
                 $message = get_static_option('seller_verification_message');

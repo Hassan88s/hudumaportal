@@ -70,21 +70,32 @@
                     <div class="card">
                         <div class="card-body">
 
+                            @php
+                                $showVerifyDoc = function ($val) {
+                                    if (empty($val)) return '<span class="text-muted">' . __('Not provided') . '</span>';
+                                    if (is_numeric($val)) return render_image_markup_by_attachment_id($val, '', 'large');
+                                    $url = asset($val);
+                                    if (\Illuminate\Support\Str::endsWith(strtolower($val), '.pdf')) {
+                                        return '<a href="' . $url . '" target="_blank" class="btn btn-sm btn-primary"><i class="las la-file-pdf"></i> ' . __('View PDF') . '</a>';
+                                    }
+                                    return '<a href="' . $url . '" target="_blank"><img src="' . $url . '" style="max-width:320px;height:auto;border-radius:8px"></a>';
+                                };
+                            @endphp
                             <div class="border-bottom mb-3">
                                 <h5>{{ __('Seller National ID') }}</h5>
                             </div>
                             <div class="single-checbox">
                                 <div class="checkbox-inlines">
-                                    {!! render_image_markup_by_attachment_id(optional($seller_details->sellerVerify)->national_id,'','large') !!}
+                                    {!! $showVerifyDoc(optional($seller_details->sellerVerify)->national_id) !!}
                                 </div>
-                            </div>   
-                            
+                            </div>
+
                             <div class="border-bottom mt-5 mb-3">
                                 <h5>{{ __('Seller Address') }}</h5>
                             </div>
                             <div class="single-checbox">
                                 <div class="checkbox-inlines">
-                                    {!! render_image_markup_by_attachment_id(optional($seller_details->sellerVerify)->address,'','large') !!}
+                                    {!! $showVerifyDoc(optional($seller_details->sellerVerify)->address) !!}
                                 </div>
                                 <br>
 
