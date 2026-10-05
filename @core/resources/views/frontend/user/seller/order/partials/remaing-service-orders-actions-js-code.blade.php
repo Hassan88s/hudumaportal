@@ -592,6 +592,43 @@ function setModalContent(content) {
 
                         });
 
+                        // Seller marks a paid extra service as completed
+                        $(document).on('click','.extra_service_complete_btn',function (e){
+                            e.preventDefault();
+                            var id = $(this).data('id');
+                            var url = $(this).data('url');
+                            Swal.fire({
+                                title: '{{__("Mark this extra service as completed?")}}',
+                                text: '{{__("Only do this once you have delivered the work.")}}',
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonColor: '#3085d6',
+                                cancelButtonColor: '#d33',
+                                confirmButtonText: "{{__('Yes, mark completed')}}"
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    $.ajax({
+                                        "type":"POST",
+                                        'url': url,
+                                        data: { _token: "{{csrf_token()}}", id: id },
+                                        success: function (data){
+                                            Swal.fire({
+                                                position: 'top-end',
+                                                icon: 'success',
+                                                title: data.msg || "{{__('Completed')}}",
+                                                showConfirmButton: false,
+                                                timer: 1500
+                                            });
+                                            location.reload();
+                                        },
+                                        error: function (xhr){
+                                            Swal.fire({ icon: 'error', title: (xhr.responseJSON && xhr.responseJSON.msg) || "{{__('Something went wrong')}}" });
+                                        }
+                                    })
+                                }
+                            });
+                        });
+
                     });
 
 

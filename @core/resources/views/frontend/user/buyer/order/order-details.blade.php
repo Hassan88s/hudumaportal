@@ -188,6 +188,12 @@
                                                                         @if($ex_service->status === 2 && $ex_service->payment_status === 'pending')
                                                                             <span class="btn btn-dark">{{ __('Wait for admin approval') }}</span>
                                                                         @endif
+                                                                    @elseif($ex_service->payment_status === 'complete')
+                                                                        @if((int)$ex_service->status === 3)
+                                                                            <span class="alert alert-success">{{ __('Completed') }}</span>
+                                                                        @else
+                                                                            <span class="alert alert-info">{{ __('In Progress') }}</span>
+                                                                        @endif
                                                                     @else
                                                                         <span class="alert alert-{{$class_arry[$ex_service->payment_status]}}">{{__($ex_service->payment_status)}}</span>
                                                                     @endif

@@ -171,6 +171,13 @@
                                                                 <td>
                                                                     @if($ex_service->payment_status !== 'complete' && $order_details->payment_status === 'complete')
                                                                         <a href="#" data-url="{{route('seller.order.extra.service.delete')}}" data-id="{{ $ex_service->id }}" class="btn btn-danger extra_service_delete_btn">{{__('Delete')}}</a>
+                                                                    @elseif($ex_service->payment_status === 'complete')
+                                                                        @if((int)$ex_service->status === 3)
+                                                                            <span class="alert alert-success" style="padding:4px 10px">{{ __('Completed') }}</span>
+                                                                        @else
+                                                                            <span class="alert alert-info" style="padding:4px 10px">{{ __('In Progress') }}</span>
+                                                                            <a href="#" data-url="{{ route('seller.order.extra.service.complete') }}" data-id="{{ $ex_service->id }}" class="btn btn-success extra_service_complete_btn">{{ __('Mark as Completed') }}</a>
+                                                                        @endif
                                                                     @endif
                                                                 </td>
                                                             </tr>

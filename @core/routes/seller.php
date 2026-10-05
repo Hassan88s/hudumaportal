@@ -179,6 +179,7 @@ Route::group(['prefix'=>'seller','middleware'=>['auth','inactiveuser','BuyerChec
     /* extra order request */
     Route::post('order/extra-service','Frontend\SellerController@extraService')->name('seller.order.extra.service');
     Route::post('order/extra-service/delete','Frontend\SellerController@extraServiceDelete')->name('seller.order.extra.service.delete');
+    Route::post('order/extra-service/complete','Frontend\SellerController@extraServiceComplete')->name('seller.order.extra.service.complete');
 
     //notifications 
     Route::get('notification/all-notifications','Frontend\SellerController@allNotification')->name('seller.notification.all');

@@ -4054,6 +4054,26 @@ $remaning_balance = $remaning_balance + $partial_payment_sum;
         ]);
     }
 
+    /**
+     * Seller marks a paid extra service as delivered/completed.
+     * status 3 = completed by the seller (0=pending offer, 1=accepted & paid,
+     * 2=declined). Only the owning seller can do it, and only once paid.
+     */
+    public function extraServiceComplete(Request $request){
+        $request->validate(['id' => 'required|integer']);
+
+        $extra = ExtraService::with('order')->find($request->id);
+        abort_if(!$extra || optional($extra->order)->seller_id != Auth::guard('web')->id(), 403);
+
+        if ($extra->payment_status !== 'complete') {
+            return response(['msg' => __('This extra service is not paid yet.')], 422);
+        }
+
+        ExtraService::where('id', $extra->id)->update(['status' => 3]);
+
+        return response(['msg' => __('Extra service marked as completed.')]);
+    }
+
     public function orderRequestDeclineHistory($id)
     {
         $order_id = $id;
