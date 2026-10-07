@@ -161,47 +161,56 @@ public function Withdrwal_custom_offer($id){
                             Mail::to(get_static_option('site_global_email'))->send(new OrderMail(strip_tags($mail_subject).$order_Detials->id,$order_Detials, $message_for_seller_admin));
                 $seller_info = User::find($order_Detials->seller_id);
                 $buyer_info = User::find($order_Detials->buyer_id);
-                $messages = get_static_option('Deliverytimeextensiondecline_message') ?? '';
-                $messages = str_replace(["@name","@clientname","@newdate","@orderid"],[$seller_info->username,$buyer_info->username,$time_limit,$id],$messages);
                             Mail::to($seller_info->email)->send(new BasicMail([
-                    'subject' => get_static_option('Deliverytimeextensiondecline_subject') ??  __('Delivery Time Extension Request Declined'),
-                    'message' => $messages ?? '',
+                    'subject' => __('Order Cancellation Requested') . ' #' . $id,
+                    'message' => __('The buyer :buyer has requested to cancel order #:id. Please review it in your dashboard.', ['buyer' => $buyer_info->username, 'id' => $id]),
                 ]));
                  
                 $seller_id = $order_Detials->seller_id;
-              
+
                 notifySeller(
                     $seller_id,
-                    "Ombi lako la kuongezewa muda limekataliwa. / Your extension request was declined.", // p
-                    "Ombi lako la kuongezewa muda limekataliwa.Endelea kufanya kazi kwa tarehe ya awali ya kukamilisha " . $time_limit . ". ", // sms
+                    "Mnunuzi ameomba kughairi agizo #$id. / The buyer has requested to cancel order #$id.", // p
+                    "Mnunuzi ameomba kughairi agizo #$id. Tafadhali kagua agizo hilo. / The buyer requested to cancel order #$id. Please review it.", // sms
                     [
                         'type' => 'gernalnotifications',
-                        // 'service_id' => $service->id,
                         'id' => uniqid('notif_'),
-                        'details' => "Endelea kufanya kazi kwa tarehe ya awali ya kukamilisha " . $time_limit . " / Please continue working toward the original deadline: " . $time_limit . "."// p
+                        'details' => "Mnunuzi ameomba kughairi agizo #$id. Tafadhali kagua agizo. / The buyer requested to cancel order #$id. Please review the order." // p
                     ]
                 );
-                
-                // for buyer
-                
-                 $messages = get_static_option('buyer-delivery-time-extension-declined-by-freelancer_message') ?? '';
-                $messages = str_replace(["@name","@clientname","@orderid"],[$seller_info->username,$buyer_info->username,$id],$messages);
-               
+
+                // notifySeller only stores an in-app notification when the seller
+                // is online (otherwise it only sends an SMS). A cancellation
+                // request needs to reach them whenever they next log in, so store
+                // a database notification directly as well.
+                if ($seller_info) {
+                    try {
+                        $seller_info->notify(new \App\Notifications\GeneralNotification(
+                            "Mnunuzi ameomba kughairi agizo #$id. / The buyer requested to cancel order #$id.",
+                            $seller_info->id,
+                            ['type' => 'gernalnotifications', 'id' => uniqid('notif_'), 'details' => "The buyer requested to cancel order #$id. Please review it in your orders."]
+                        ));
+                    } catch (\Throwable $e) {
+                        \Log::warning('[Order cancel] seller notification failed for order ' . $id . ': ' . $e->getMessage());
+                    }
+                }
+
+                // for buyer — confirm their cancellation request was sent to the seller
                 Mail::to($buyer_info->email)->send(new BasicMail([
-                    'subject' => get_static_option('buyer-delivery-time-extension-declined-by-freelancer_subject') ??  __('You approved the service completion'),
-                    'message' => $messages ?? '',
+                    'subject' => __('Cancellation Request Sent') . ' #' . $id,
+                    'message' => __('Your request to cancel order #:id has been sent to the seller for review.', ['id' => $id]),
                 ]));
-                 
+
                 $seller_id = $buyer_info->id;
-              
+
                 notifySeller(
                     $seller_id,
-                    "Umekataa ombi la kuongeza muda wa kukamilisha (Order ID: $id). Mtoa huduma amepewa taarifa. / You declined the delivery time extension request (Order ID: $id). The freelancer has been notified.", //p
-                    "Umekataa ombi la kuongeza muda wa kukamilisha (Order ID: $id). Mtoa huduma amepewa taarifa.", //sms
+                    "Umeomba kughairi agizo #$id. Mtoa huduma amepewa taarifa. / You requested to cancel order #$id. The seller has been notified.", //p
+                    "Umeomba kughairi agizo #$id. Mtoa huduma amepewa taarifa. / You requested to cancel order #$id.", //sms
                     [
                         'type' => 'gernalnotifications',
                         'id' => uniqid('notif_'),
-                        'Umekataa ombi la kuongeza muda wa kukamilisha (Order ID: '.$id.'). Mtoa huduma amepewa taarifa. You declined the delivery time extension request (Order ID: '.$id.'). The freelancer has been notified.' //p
+                        'details' => "Umeomba kughairi agizo #$id. / You requested to cancel order #$id. The seller has been notified." //p
                     ]
                 );
                             
