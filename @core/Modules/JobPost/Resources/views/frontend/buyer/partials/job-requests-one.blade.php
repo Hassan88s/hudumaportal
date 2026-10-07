@@ -66,7 +66,7 @@
                                                 <td data-label="{{ __('Job Offer ID') }}"> {{ $job_req->id }} </td>
                                                 <td data-label="{{ __('Job ID') }}"> {{ optional($job_req->job)->id }} </td>
                                                 <td data-label="{{ __('Job Type') }}">
-                                                    {{ optional($job_req->job)->is_job_online ? 'Online' : 'Offline' }}
+                                                    {{ optional($job_req->job)->is_job_online ? __('Online') : __('Offline') }}
                                                 </td>
                                                 <td data-label="{{ __('Job Title') }}"> {{ Str::limit(optional($job_req->job)->title,50) }} </td>
                                                 <td data-label="{{ __('Seller Name') }}">
