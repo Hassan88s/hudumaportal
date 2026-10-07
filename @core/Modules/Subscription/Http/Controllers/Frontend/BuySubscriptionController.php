@@ -130,10 +130,26 @@ public function webhook(Request $request)
     }
 
     public function subscription_payment_success($id)
-    { 
-        $subscription_id = substr($id,30,-30);
-        $subscription_details = SellerSubscription::find($subscription_id);
-       
+    {
+        // Wallet/direct redirects wrap the id as random(30).id.random(30);
+        // the payment gateways pass the raw id straight through. Handle both.
+        $subscription_id = ctype_digit((string) $id) ? (int) $id : substr($id, 30, -30);
+        $subscription_details = ctype_digit((string) $subscription_id)
+            ? SellerSubscription::find($subscription_id)
+            : null;
+
+        // If the token could not be decoded, fall back to this seller's latest
+        // subscription so the success page still works instead of crashing.
+        if (!$subscription_details && Auth::guard('web')->check()) {
+            $subscription_details = SellerSubscription::where('seller_id', Auth::guard('web')->id())
+                ->latest('id')->first();
+        }
+
+        if (!$subscription_details) {
+            return redirect()->route('homepage')
+                ->with(['msg' => __('We could not find your subscription. If you were charged, please contact support.'), 'type' => 'danger']);
+        }
+
         return view('subscription::frontend.subscription.payment.success')->with(['subscription_details' => $subscription_details]);
     }
 
