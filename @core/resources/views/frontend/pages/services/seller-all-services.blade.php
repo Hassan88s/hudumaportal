@@ -31,7 +31,7 @@
                             <select id="search_by_category">
                                 <option>{{ __('Select Category') }}</option>
                                 @foreach($categories as $category)
-                                <option value="{{  $category->id }}">{{ $category->name }}</option>
+                                <option value="{{  $category->id }}">{{ __($category->name) }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -44,7 +44,7 @@
                             <select id="search_by_subcategory">
                                 <option>{{ __('Select Subcategory') }}</option>
                                 @foreach($sub_categories as $subcategory)
-                                <option value="{{  $subcategory->id }}">{{ $subcategory->name }}</option>
+                                <option value="{{  $subcategory->id }}">{{ __($subcategory->name) }}</option>
                                 @endforeach
                             </select>
                         </div>

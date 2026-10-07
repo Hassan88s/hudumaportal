@@ -68,7 +68,7 @@
                                     <td>
                                         <div>
                                             <span> {{ __('Title:') }}   <strong class="text-secondary"> {{ optional($subscription->subscription)->title }} </strong> </span> <br>
-                                            <span> {{ __('Type:') }}  <strong class="text-secondary">  {{ optional($subscription->subscription)->type }}  </strong></span> <br>
+                                            <span> {{ __('Type:') }}  <strong class="text-secondary">  {{ __(ucfirst(optional($subscription->subscription)->type)) }}  </strong></span> <br>
                                             {{--  <span> {{ __('Connect:') }}   <strong class="text-secondary"> {{ optional($subscription->subscription)->connect }} </strong> </span> <br>--}}
                                             <span> {{ __('Service:') }}  <strong class="text-secondary">  {{ optional($subscription->subscription)->service }}  </strong></span> <br>
                                             <span> {{ __('Job:') }}  <strong class="text-secondary">  {{ optional($subscription->subscription)->job }}  </strong></span> <br>
@@ -173,7 +173,7 @@
                                                 @else
                                                     {{float_amount_with_currency_symbol($data->price)}} <br>
                                                 @endif
-                                                {{ __('Type:') }} {{ucfirst($data->type)}} <br>
+                                                {{ __('Type:') }} {{ __(ucfirst($data->type)) }} <br>
                                                 @if($data->type != 'lifetime')
                                                    {{-- {{ __('Connect:') }}
                                                       @if($data->connect == 0)
@@ -248,4 +248,4 @@
                     });
                 })(jQuery);
             </script>
-@endsection
+@endsection

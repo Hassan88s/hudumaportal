@@ -660,7 +660,7 @@
                                                     <select id="search_by_category" name="cat">
                                                         <option value="">{{$category_text}}</option>
                                                         @foreach($categories as $cat)
-                                                            <option @if(!empty(request()->get("cat")) && request()->get("cat") == $cat->id) selected @endif value="{{$cat->id}}">{{$cat->name}}</option>
+                                                            <option @if(!empty(request()->get("cat")) && request()->get("cat") == $cat->id) selected @endif value="{{$cat->id}}">{{ __($cat->name) }}</option>
                                                         @endforeach
                                                     </select>
                                                 </div>
@@ -685,7 +685,7 @@
                                                     <select id="search_by_subcategory" name="subcat">
                                                         <option value="">{{$subcategory_text}}</option>
                                                         @foreach($sub_categories as $sub_cat)
-                                                            <option @if(!empty(request()->get("subcat")) && request()->get("subcat") == $sub_cat->id) selected @endif value="{{$sub_cat->id}}">{{$sub_cat->name}}</option>
+                                                            <option @if(!empty(request()->get("subcat")) && request()->get("subcat") == $sub_cat->id) selected @endif value="{{$sub_cat->id}}">{{ __($sub_cat->name) }}</option>
                                                         @endforeach
                                                     </select>
                                                 </div>
