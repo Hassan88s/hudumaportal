@@ -169,6 +169,9 @@
                             <li class="{{ active_menu('admin-home/general-settings/champions/points') }}">
                                 <a href="{{ route('admin.champions.points') }}">{{ __('Points & Rules') }}</a>
                             </li>
+                            <li class="{{ active_menu('admin-home/general-settings/champions/emails') }}">
+                                <a href="{{ route('admin.champions.emails') }}">{{ __('Email Alerts') }}</a>
+                            </li>
                             <li class="{{ active_menu('admin-home/general-settings/champions/rewards') }}">
                                 <a href="{{ route('admin.champions.rewards') }}">{{ __('Prizes & Budget') }}</a>
                             </li>

@@ -461,6 +461,9 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
         Route::post('/champions/missions/{id}/toggle','ChampionsAdminController@missionToggle')->name('admin.champions.mission.toggle')->where('id','[0-9]+');
         Route::post('/champions/missions/{id}/update','ChampionsAdminController@missionUpdate')->name('admin.champions.mission.update')->where('id','[0-9]+');
         Route::post('/champions/missions/{id}/delete','ChampionsAdminController@missionDelete')->name('admin.champions.mission.delete')->where('id','[0-9]+');
+        Route::get('/champions/emails','ChampionsAdminController@emails')->name('admin.champions.emails');
+        Route::post('/champions/emails','ChampionsAdminController@emailsSave')->name('admin.champions.emails.save');
+        Route::post('/champions/emails/reset','ChampionsAdminController@emailsReset')->name('admin.champions.emails.reset');
         Route::get('/champions/points','ChampionsAdminController@points')->name('admin.champions.points');
         Route::post('/champions/points','ChampionsAdminController@pointsSave')->name('admin.champions.points.save');
         Route::post('/champions/points/reset','ChampionsAdminController@pointsReset')->name('admin.champions.points.reset');

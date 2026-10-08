@@ -202,14 +202,45 @@ class ChampionsAdminController extends Controller
     public function announce(string $season)
     {
         $winners = DB::table('champion_winners')->where('season_key', $season)->whereIn('status', ['approved', 'paid'])->get();
+        $emailWinners = $this->svc->emailEnabledFor('winner_announcement');
         foreach ($winners as $w) {
             $label = \Carbon\Carbon::createFromFormat('Y-m', $season)->format('F Y');
             $league = $w->league === 'provider' ? __('Pro League') : __('Client League');
+            $user = \App\User::find($w->user_id);
+
+            // Persistent in-app notification (notifySeller only stores it when online)
+            try {
+                if ($user) {
+                    $user->notify(new \App\Notifications\GeneralNotification(
+                        __('Hongera! You finished #:rank in the :league — :season.', ['rank' => $w->rank, 'league' => $league, 'season' => $label]),
+                        $w->user_id,
+                        ['type' => 'gernalnotifications', 'details' => 'Huduma Champions Top Five', 'event' => 'champions_winner', 'id' => uniqid('win_')]
+                    ));
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('[Champions] winner notification failed for user ' . $w->user_id . ': ' . $e->getMessage());
+            }
+
             if (function_exists('notifySeller')) {
                 notifySeller($w->user_id,
                     __('Hongera! You finished #:rank in the :league — :season.', ['rank' => $w->rank, 'league' => $league, 'season' => $label]),
                     __('Hongera! Umeshika nafasi ya :rank kwenye :league — :season. / Congratulations, you are Top Five in Huduma Champions.', ['rank' => $w->rank, 'league' => $league, 'season' => $label]),
                     ['type' => 'gernalnotifications', 'details' => 'Huduma Champions Top Five', 'event' => 'champions_winner']);
+            }
+
+            // Email the winner (toggleable on the Email Alerts page)
+            if ($emailWinners && $user && !empty($user->email)) {
+                try {
+                    $reward = $w->reward_amount ? 'TZS ' . number_format($w->reward_amount) . ' ' . $w->reward_type : '';
+                    \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\BasicMail([
+                        'subject' => __('Hongera! You are a Huduma Champion — :season', ['season' => $label]),
+                        'message' => __('You finished #:rank in the :league for :season.', ['rank' => $w->rank, 'league' => $league, 'season' => $label])
+                            . ($reward ? ' ' . __('Your reward: :reward.', ['reward' => $reward]) : '')
+                            . ' ' . __('Thank you for being part of Huduma Champions.'),
+                    ]));
+                } catch (\Throwable $e) {
+                    \Log::warning('[Champions] winner email failed for user ' . $w->user_id . ': ' . $e->getMessage());
+                }
             }
         }
         DB::table('champion_seasons')->where('season_key', $season)->update(['status' => 'announced', 'announced_at' => now(), 'updated_at' => now()]);
@@ -630,6 +661,40 @@ class ChampionsAdminController extends Controller
         update_static_option('champions_rule_hp', '');
         update_static_option('champions_caps', '');
         return redirect()->route('admin.champions.points')->with('success', __('All point values reset to the programme defaults.'));
+    }
+
+    /** Email Alerts — turn the per-activity emails on or off. */
+    public function emails(Request $request)
+    {
+        return view('backend.champions.emails', [
+            'season'  => $this->seasonFrom($request),
+            'rules'   => $this->svc->rules(),
+            'groups'  => self::RULE_GROUPS,
+            'email'   => $this->svc->emailRules(),
+        ]);
+    }
+
+    public function emailsSave(Request $request)
+    {
+        $on = (array) $request->input('email', []); // only checked boxes are posted
+        $map = [];
+        foreach (ChampionsService::RULES as $key => $r) {
+            if (!($r['league'] ?? null)) continue;
+            $map[$key] = array_key_exists($key, $on);
+        }
+        foreach (ChampionsService::EMAIL_SPECIAL as $key) {
+            $map[$key] = array_key_exists($key, $on);
+        }
+        update_static_option('champions_email_rules', json_encode($map));
+
+        return redirect()->route('admin.champions.emails')
+            ->with('success', __('Email alerts saved — :n activities email the user.', ['n' => count(array_filter($map))]));
+    }
+
+    public function emailsReset()
+    {
+        update_static_option('champions_email_rules', '');
+        return redirect()->route('admin.champions.emails')->with('success', __('Email alerts reset to the defaults.'));
     }
 
     /** Prizes and the monthly reward budget (PDF §12, §23, §24), on their own page. */

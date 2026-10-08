@@ -295,6 +295,103 @@ class ChampionsService
      * @param array $opt  source_type, source_id, counterparty_id, reason,
      *                    hp (override, used by missions/admin), league (override)
      */
+    /**
+     * Rules that fire often and for tiny amounts — email is OFF for these by
+     * default (they still always get an in-app notification). Admin can turn
+     * any of them on from the Email Alerts page.
+     */
+    public const EMAIL_OFF_BY_DEFAULT = [
+        'p_enquiry_response', 'p_fast_response', 'p_proposal_sent', 'p_weekly_response_90',
+        'p_portfolio_item', 'p_service_pricing',
+        'c_save_provider', 'c_request_created', 'c_request_response', 'c_compare_providers',
+    ];
+
+    /** Extra email switches that are not point rules. */
+    public const EMAIL_SPECIAL = ['level_up', 'winner_announcement'];
+
+    /** Which activities email the user, as a [key => bool] map (defaults + admin overrides). */
+    public function emailRules(): array
+    {
+        $saved = json_decode((string) get_static_option('champions_email_rules'), true);
+        $saved = is_array($saved) ? $saved : [];
+
+        $out = [];
+        foreach (self::RULES as $key => $r) {
+            if (!($r['league'] ?? null)) continue; // skip shared/admin rules
+            $default = !in_array($key, self::EMAIL_OFF_BY_DEFAULT, true);
+            $out[$key] = array_key_exists($key, $saved) ? (bool) $saved[$key] : $default;
+        }
+        foreach (self::EMAIL_SPECIAL as $key) {
+            $out[$key] = array_key_exists($key, $saved) ? (bool) $saved[$key] : true; // on by default
+        }
+        return $out;
+    }
+
+    public function emailEnabledFor(string $key): bool
+    {
+        return (bool) ($this->emailRules()[$key] ?? false);
+    }
+
+    /**
+     * Tell the user they earned (or lost) HP: always an in-app notification,
+     * plus an email when that activity is switched on. Never throws — a
+     * notification problem must not stop scoring.
+     */
+    protected function pointAwarded(int $userId, string $ruleKey, int $hp, string $label): void
+    {
+        try {
+            $user = \App\User::find($userId);
+            if (!$user) return;
+
+            $sign    = $hp >= 0 ? '+' : '−';
+            $hpText  = $sign . number_format(abs($hp)) . ' HP';
+            $message = $hp >= 0
+                ? __(':hp — :label', ['hp' => $hpText, 'label' => __($label)])
+                : __(':hp — :label', ['hp' => $hpText, 'label' => __($label)]);
+
+            // In-app, persistent (stored in the notifications table) for every activity
+            $user->notify(new \App\Notifications\GeneralNotification(
+                $message, $userId,
+                ['type' => 'gernalnotifications', 'event' => 'champions_hp', 'rule' => $ruleKey, 'hp' => $hp, 'id' => uniqid('hp_')]
+            ));
+
+            // Email only when this activity is switched on
+            if ($this->emailEnabledFor($ruleKey) && !empty($user->email)) {
+                $subject = $hp >= 0
+                    ? __('You earned :hp on Huduma Champions', ['hp' => $hpText])
+                    : __('A Huduma Champions deduction: :hp', ['hp' => $hpText]);
+                \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\BasicMail([
+                    'subject' => $subject,
+                    'message' => $message . '. ' . __('Open your Champions dashboard to see your total.'),
+                ]));
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('[Champions] award notification failed for user ' . $userId . ': ' . $e->getMessage());
+        }
+    }
+
+    /** Congratulate a user who just reached a new level (in-app + optional email). */
+    protected function levelUp(int $userId, string $levelName, string $league): void
+    {
+        try {
+            $user = \App\User::find($userId);
+            if (!$user) return;
+            $message = __('Level up! You are now :level.', ['level' => __($levelName)]);
+            $user->notify(new \App\Notifications\GeneralNotification(
+                $message, $userId,
+                ['type' => 'gernalnotifications', 'event' => 'champions_levelup', 'level' => $levelName, 'id' => uniqid('lvl_')]
+            ));
+            if ($this->emailEnabledFor('level_up') && !empty($user->email)) {
+                \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\BasicMail([
+                    'subject' => __('Level up on Huduma Champions — :level', ['level' => __($levelName)]),
+                    'message' => $message . ' ' . __('Keep earning HP to climb higher this month.'),
+                ]));
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('[Champions] level-up notification failed for user ' . $userId . ': ' . $e->getMessage());
+        }
+    }
+
     public function award(int $userId, string $ruleKey, array $opt = []): ?int
     {
         if (!$this->enabled() || !isset(self::RULES[$ruleKey])) return null;
@@ -388,7 +485,14 @@ class ChampionsService
 
         $this->forgetBoard($league, $season);
         $this->advanceMissions($userId, $league, $ruleKey, $season);
-        if (!$pending) $this->grantLevelBadges($userId, $league, $season);
+
+        // Tell the user what they just earned (in-app always, email if switched on).
+        $this->pointAwarded($userId, $ruleKey, $hp, $opt['reason'] ?? $rule['label']);
+
+        if (!$pending) {
+            $newLevel = $this->grantLevelBadges($userId, $league, $season);
+            if ($newLevel) $this->levelUp($userId, $newLevel, $league);
+        }
 
         return $id;
     }
@@ -397,8 +501,9 @@ class ChampionsService
      * PDF §3 — levels reached stay on the account as permanent badges
      * ("Gold Provider · September 2026"). Idempotent via the badge unique key.
      */
-    public function grantLevelBadges(int $userId, string $league, string $season): void
+    public function grantLevelBadges(int $userId, string $league, string $season): ?string
     {
+        $newLevel = null;
         try {
             $hp = (int) DB::table('champion_points')
                 ->where(['user_id' => $userId, 'league' => $league, 'season_key' => $season, 'status' => 'confirmed'])
@@ -406,15 +511,17 @@ class ChampionsService
             $month = Carbon::createFromFormat('Y-m', $season)->format('F Y');
             foreach (self::LEVELS[$league] as $min => $name) {
                 if ($min <= 0 || $hp < $min) continue;
-                DB::table('champion_badges')->insertOrIgnore([
+                $inserted = DB::table('champion_badges')->insertOrIgnore([
                     'user_id' => $userId, 'badge_key' => 'level_' . \Illuminate\Support\Str::slug($name, '_'),
                     'label' => "{$name} · {$month}", 'season_key' => $season,
                     'awarded_at' => now(), 'created_at' => now(), 'updated_at' => now(),
                 ]);
+                if ($inserted) $newLevel = $name; // highest newly reached level this call
             }
         } catch (\Throwable $e) {
             \Log::warning('[Champions] level badge failed: ' . $e->getMessage());
         }
+        return $newLevel;
     }
 
     /** Reverse every non-reversed row tied to a source (refund / cancellation / fraud). */
