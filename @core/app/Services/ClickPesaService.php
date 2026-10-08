@@ -22,6 +22,9 @@ class ClickPesaService
     protected string $currency;
     protected int    $timeout = 30;
 
+    /** The reason the last token request failed, for surfacing to the user/logs. */
+    public ?string $lastError = null;
+
     public function __construct()
     {
         $this->baseUrl  = rtrim(env('CLICKPESA_BASE_URL', 'https://api.clickpesa.com'), '/');
@@ -58,6 +61,7 @@ class ClickPesaService
                 ->post($this->baseUrl . '/third-parties/generate-token');
 
             if (!$response->successful()) {
+                $this->lastError = 'auth HTTP ' . $response->status() . ' — ' . \Illuminate\Support\Str::limit(strip_tags($response->body()), 160);
                 Log::warning('ClickPesa generate-token failed', [
                     'status' => $response->status(),
                     'body'   => $response->body(),
@@ -69,6 +73,7 @@ class ClickPesaService
             $token = $json['token'] ?? null;
 
             if (!$token) {
+                $this->lastError = 'auth response had no token';
                 Log::warning('ClickPesa generate-token returned no token', ['body' => $json]);
                 return null;
             }
@@ -79,6 +84,7 @@ class ClickPesaService
             Cache::put($cacheKey, $token, now()->addMinutes(55));
             return $token;
         } catch (\Throwable $e) {
+            $this->lastError = 'auth request failed: ' . $e->getMessage();
             Log::error('ClickPesa token exception: ' . $e->getMessage());
             return null;
         }
@@ -105,7 +111,7 @@ class ClickPesaService
 
         $token = $this->getToken();
         if (!$token) {
-            return ['ok' => false, 'error' => 'Could not obtain ClickPesa auth token.'];
+            return ['ok' => false, 'error' => 'Could not obtain ClickPesa auth token. (' . ($this->lastError ?: 'no detail') . ')'];
         }
 
         $orderReference = preg_replace('/[^A-Za-z0-9]/', '', (string) ($payload['orderReference'] ?? ''));
