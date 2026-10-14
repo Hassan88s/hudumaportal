@@ -15,6 +15,7 @@
     <style>
         body{margin:0;padding:0;background-color:#eef1f6;-webkit-font-smoothing:antialiased;}
         img{border:0;outline:none;text-decoration:none;}
+        img.mail-logo{max-height:46px;width:auto;max-width:210px;display:inline-block;}
         a{color:{{ $brand }};}
         .hp-wrap table{border-collapse:collapse;}
         /* Make any table the message injects look tidy */
@@ -45,7 +46,7 @@
                     <td align="center" style="background-color:#111d5c;border-radius:16px 16px 0 0;padding:24px 32px;">
                         @if(!empty($logoId))
                             <a href="{{ url('/') }}" style="text-decoration:none;">
-                                {!! render_image_markup_by_attachment_id($logoId, 'mail-logo', 'logo') !!}
+                                {!! render_image_markup_by_attachment_id($logoId, 'mail-logo') !!}
                             </a>
                         @else
                             <a href="{{ url('/') }}" style="text-decoration:none;font-size:21px;font-weight:800;letter-spacing:.4px;color:#ffffff;">{{ $siteTitle }}</a>
