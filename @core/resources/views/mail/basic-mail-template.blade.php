@@ -4,6 +4,20 @@
     $brand        = get_static_option('site_color') ?: '#ff6b2c';
     $siteTitle    = get_static_option('site_title') ?: 'Huduma Portal';
     $logoId       = get_static_option('site_logo');
+
+    // Build the logo URL directly. The usual helper hides it behind a
+    // file_exists() check against a working-directory-relative path, which
+    // fails when mail is rendered from the CLI/queue (cwd = @core, files are
+    // under public/) — that is why the logo showed as "no image".
+    $logoUrl = null;
+    if (!empty($logoId)) {
+        try {
+            $att = \App\MediaUpload::find($logoId);
+            if ($att && !empty($att->path)) {
+                $logoUrl = asset('assets/uploads/media-uploader/' . $att->path);
+            }
+        } catch (\Throwable $e) { $logoUrl = null; }
+    }
 @endphp
 <html lang="{{ $default_lang }}" dir="{{ get_user_lang_direction() }}">
 <head>
@@ -44,9 +58,9 @@
                 {{-- Brand header --}}
                 <tr>
                     <td align="center" style="background-color:#111d5c;border-radius:16px 16px 0 0;padding:24px 32px;">
-                        @if(!empty($logoId))
+                        @if(!empty($logoUrl))
                             <a href="{{ url('/') }}" style="text-decoration:none;">
-                                {!! render_image_markup_by_attachment_id($logoId, 'mail-logo') !!}
+                                <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" class="mail-logo" style="max-height:46px;width:auto;max-width:210px;">
                             </a>
                         @else
                             <a href="{{ url('/') }}" style="text-decoration:none;font-size:21px;font-weight:800;letter-spacing:.4px;color:#ffffff;">{{ $siteTitle }}</a>
