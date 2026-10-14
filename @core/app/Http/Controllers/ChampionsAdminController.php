@@ -232,11 +232,20 @@ class ChampionsAdminController extends Controller
             if ($emailWinners && $user && !empty($user->email)) {
                 try {
                     $reward = $w->reward_amount ? 'TZS ' . number_format($w->reward_amount) . ' ' . $w->reward_type : '';
+                    $box = '<div style="text-align:center;background:#f6f8fc;border:1px solid #e6eaf2;border-radius:12px;padding:26px;margin:20px 0;">'
+                        . '<div style="font-size:46px;line-height:1;">🏆</div>'
+                        . '<div style="margin-top:10px;font-size:26px;font-weight:800;color:#111d5c;">' . __('#:rank', ['rank' => $w->rank]) . ' · ' . e($league) . '</div>'
+                        . ($reward ? '<div style="margin-top:8px;color:#16a34a;font-weight:700;font-size:16px;">' . e($reward) . '</div>' : '')
+                        . '</div>';
                     \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\BasicMail([
-                        'subject' => __('Hongera! You are a Huduma Champion — :season', ['season' => $label]),
-                        'message' => __('You finished #:rank in the :league for :season.', ['rank' => $w->rank, 'league' => $league, 'season' => $label])
-                            . ($reward ? ' ' . __('Your reward: :reward.', ['reward' => $reward]) : '')
-                            . ' ' . __('Thank you for being part of Huduma Champions.'),
+                        'subject'  => __('Hongera! You are a Huduma Champion — :season', ['season' => $label]),
+                        'message'  => '<h1 style="margin:0 0 14px;">' . __('Hongera, you are a Champion! 🎉') . '</h1>'
+                            . '<p>' . __('Hi :name,', ['name' => e($user->username ?: $user->name)]) . '</p>'
+                            . '<p>' . __('You finished in the Top Five for :season.', ['season' => $label]) . '</p>'
+                            . $box
+                            . '<p>' . __('Thank you for being part of Huduma Champions.') . '</p>',
+                        'url'      => url('/champions/winners'),
+                        'btn_text' => __('See the winners'),
                     ]));
                 } catch (\Throwable $e) {
                     \Log::warning('[Champions] winner email failed for user ' . $w->user_id . ': ' . $e->getMessage());

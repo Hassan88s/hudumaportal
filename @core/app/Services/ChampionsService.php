@@ -360,9 +360,20 @@ class ChampionsService
                 $subject = $hp >= 0
                     ? __('You earned :hp on Huduma Champions', ['hp' => $hpText])
                     : __('A Huduma Champions deduction: :hp', ['hp' => $hpText]);
+                $name  = e($user->username ?: $user->name);
+                $title = $hp >= 0 ? __('You earned points!') : __('Points deducted');
+                $box   = '<div style="text-align:center;background:#f6f8fc;border:1px solid #e6eaf2;border-radius:12px;padding:24px;margin:20px 0;">'
+                       . '<div style="font-size:38px;font-weight:800;line-height:1;color:' . ($hp >= 0 ? '#16a34a' : '#b91c1c') . ';">' . e($hpText) . '</div>'
+                       . '<div style="margin-top:8px;color:#6b7280;font-size:14px;">' . e(__($label)) . '</div></div>';
+                $body  = '<h1 style="margin:0 0 14px;">🏆 ' . e($title) . '</h1>'
+                       . '<p>' . __('Hi :name,', ['name' => $name]) . '</p>'
+                       . $box
+                       . '<p>' . __('Keep earning HP this month to climb the leaderboard and reach the Top Five.') . '</p>';
                 \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\BasicMail([
-                    'subject' => $subject,
-                    'message' => $message . '. ' . __('Open your Champions dashboard to see your total.'),
+                    'subject'  => $subject,
+                    'message'  => $body,
+                    'url'      => url('/champions/me'),
+                    'btn_text' => __('View my Champions dashboard'),
                 ]));
             }
         } catch (\Throwable $e) {
@@ -382,9 +393,14 @@ class ChampionsService
                 ['type' => 'gernalnotifications', 'event' => 'champions_levelup', 'level' => $levelName, 'id' => uniqid('lvl_')]
             ));
             if ($this->emailEnabledFor('level_up') && !empty($user->email)) {
+                $box = '<div style="text-align:center;background:#fff3ec;border:1px solid #ffd9c2;border-radius:12px;padding:24px;margin:20px 0;">'
+                     . '<div style="font-size:40px;line-height:1;">⭐</div>'
+                     . '<div style="margin-top:10px;font-size:24px;font-weight:800;color:#c2410c;">' . e(__($levelName)) . '</div></div>';
                 \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\BasicMail([
-                    'subject' => __('Level up on Huduma Champions — :level', ['level' => __($levelName)]),
-                    'message' => $message . ' ' . __('Keep earning HP to climb higher this month.'),
+                    'subject'  => __('Level up on Huduma Champions — :level', ['level' => __($levelName)]),
+                    'message'  => '<h1 style="margin:0 0 14px;">' . __('Level up!') . '</h1><p>' . __('Hi :name,', ['name' => e($user->username ?: $user->name)]) . '</p>' . $box . '<p>' . __('You reached a new level. Keep earning HP to climb higher this month.') . '</p>',
+                    'url'      => url('/champions/me'),
+                    'btn_text' => __('View my Champions dashboard'),
                 ]));
             }
         } catch (\Throwable $e) {
