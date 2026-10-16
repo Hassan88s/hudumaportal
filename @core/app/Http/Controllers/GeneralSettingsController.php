@@ -51,6 +51,21 @@ class GeneralSettingsController extends Controller
         $all_home_pages = Page::where(['status'=> 'publish'])->get();
         return view('backend.general-settings.reading',compact('all_home_pages'));
     }
+
+    /** Coming Soon / pre-launch mode. */
+    public function comingSoon()
+    {
+        return view('backend.general-settings.coming-soon');
+    }
+
+    public function update_comingSoon(Request $request)
+    {
+        update_static_option('coming_soon_enabled', $request->filled('coming_soon_enabled') ? 1 : 0);
+        foreach (['coming_soon_headline', 'coming_soon_subheadline', 'coming_soon_note'] as $field) {
+            update_static_option($field, $request->$field);
+        }
+        return redirect()->back()->with(FlashMsg::settings_update());
+    }
     public function RefferalSetting($id=null){
         // Legacy fields (kept for backward-compat with pre-Rafiki-Rewards code)
         $sign_up_points        = StaticOption::where(['option_name'=> 'sign_up_points'])->first();

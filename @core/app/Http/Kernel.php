@@ -28,6 +28,7 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\ActivityByUser::class,
             \App\Http\Middleware\RecordChampionSignal::class,
+            \App\Http\Middleware\ComingSoon::class,
         ],
         'api' => [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,

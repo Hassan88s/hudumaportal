@@ -71,6 +71,7 @@ Route::group(['middleware' => ['globalVariable', 'maintains_mode','setlang']], f
 
        
     Route::get('/', 'FrontendController@index')->name('homepage');
+    Route::get('/queue', 'FrontendController@coming_soon_queue')->name('coming.soon.queue');
     Route::get('/ticket', 'FrontendController@ticket')->name('ticket');
      Route::post('language-chnage', 'FrontendController@set_language')->name('frontend.langchange');
     Route::get('/home-search', 'FrontendController@home_search')->name('frontend.home.search');

@@ -846,6 +846,9 @@
                                     <li class="{{ active_menu('admin-home/general-settings/reading') }}"><a
                                             href="{{ route('admin.general.reading') }}">{{ __('Reading') }}</a>
                                     </li>
+                                    <li class="{{ active_menu('admin-home/general-settings/coming-soon') }}"><a
+                                            href="{{ route('admin.general.coming.soon') }}">{{ __('Coming Soon') }}</a>
+                                    </li>
                                 @endcan
                                 @can('general-settings-adspace-settings')
                                     <li class="{{ active_menu('admin-home/general-settings/adspace') }}"><a

@@ -117,6 +117,15 @@ class FrontendController extends Controller
     public function ticket(){
          return view('frontend.ticket');
     }
+
+    /** Waitlist page shown to users who registered while Coming Soon mode is on. */
+    public function coming_soon_queue(){
+         // If coming-soon is off, there is no queue — send them to the homepage.
+         if ((int) get_static_option('coming_soon_enabled') !== 1) {
+             return redirect()->route('homepage');
+         }
+         return view('frontend.coming-soon-queue');
+    }
     public function home_page_change($id)
     {
           
