@@ -27,30 +27,39 @@ class SubscriptionExpireReminder extends Command
             ->whereHas('subscribedSeller')
             ->get();
         foreach ($all_user as $user){
+            $expireRaw = optional($user->subscribedSeller)->expire_date;
+            if (empty($expireRaw)) {
+                continue;
+            }
+
+            // Signed days from today to expiry: positive = days left, negative = already expired.
+            $expire        = \Carbon\Carbon::parse($expireRaw)->startOfDay();
+            $daysRemaining = \Carbon\Carbon::today()->diffInDays($expire, false);
+
+            // Once the plan has expired there are no "days left" to count — skip,
+            // otherwise the old code counted the days SINCE expiry and the number
+            // kept going up.
+            if ($daysRemaining < 0) {
+                continue;
+            }
+
             $day_list = json_decode(get_static_option('package_expire_notify_mail_days')) ?? [];
-            rsort($day_list);
-            foreach ($day_list as $day){
+            $day_list = array_map('intval', (array) $day_list);
 
+            // Remind on the configured days-before-expiry (e.g. 7, 5, 3, 1).
+            if (in_array($daysRemaining, $day_list, true)) {
+                $daysText = $daysRemaining === 0
+                    ? __('today')
+                    : ($daysRemaining === 1 ? __('1 day') : $daysRemaining . ' ' . __('days'));
 
-                $startDate = Carbon::today();
-                $notification_date = \Carbon\Carbon::parse(optional($user->subscribedSeller)->expire_date)->subDay($day);
-                $compareDays = $notification_date->lt($startDate);
-
-                if ($compareDays){
-
-                    $days_reaming = $startDate->diffInDays(\Carbon\Carbon::parse(optional($user->subscribedSeller)->expire_date));
-
-                    try {
-                        $message_body = __('Your Subscription will expire very soon. Only'). $days_reaming. __('Days Left. Please subscribe to a plan before expiration');
-                        Mail::to($user->email)->send(new BasicMail([
-                            'subject' => __('Subscription Expire Reminder'),
-                            'message' => $message_body
-                        ]));
-                    } catch (\Exception $e) {
-                       //
-                    }
-                    break;
-                
+                try {
+                    $message_body = __('Your subscription will expire in :days. Please renew before it expires to keep your account active.', ['days' => $daysText]);
+                    Mail::to($user->email)->send(new BasicMail([
+                        'subject' => __('Subscription Expiry Reminder'),
+                        'message' => $message_body,
+                    ]));
+                } catch (\Exception $e) {
+                    //
                 }
             }
         }
