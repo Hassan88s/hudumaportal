@@ -48,7 +48,12 @@
 <body>
     <div class="cs-top">
         <div class="cs-logo">
-            @if($logoUrl)<img src="{{ $logoUrl }}" alt="{{ $siteTitle }}">@else<span class="word">{{ $siteTitle }}</span>@endif
+            @if($logoUrl)
+                <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" onerror="this.style.display='none';document.getElementById('cs-word').style.display='inline';">
+                <span id="cs-word" class="word" style="display:none;">{{ $siteTitle }}</span>
+            @else
+                <span class="word">{{ $siteTitle }}</span>
+            @endif
         </div>
         <div class="cs-badge">🚀 {{ __('Launching Soon') }}</div>
         <h1>{{ $headline }}</h1>

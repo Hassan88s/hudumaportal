@@ -34,7 +34,12 @@
 <body>
     <div class="q-card">
         <div class="q-logo">
-            @if($logoUrl)<img src="{{ $logoUrl }}" alt="{{ $siteTitle }}">@else<span class="word">{{ $siteTitle }}</span>@endif
+            @if($logoUrl)
+                <img src="{{ $logoUrl }}" alt="{{ $siteTitle }}" onerror="this.style.display='none';document.getElementById('q-word').style.display='inline';">
+                <span id="q-word" class="word" style="display:none;">{{ $siteTitle }}</span>
+            @else
+                <span class="word">{{ $siteTitle }}</span>
+            @endif
         </div>
         <div class="q-check">✅</div>
         <h1>{{ __('You\'re on the list') }}@if($name), {{ $name }}@endif!</h1>
