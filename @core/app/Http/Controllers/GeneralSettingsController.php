@@ -60,7 +60,7 @@ class GeneralSettingsController extends Controller
 
     public function update_comingSoon(Request $request)
     {
-        update_static_option('coming_soon_enabled', $request->filled('coming_soon_enabled') ? 1 : 0);
+        update_static_option('coming_soon_enabled', (int) $request->coming_soon_enabled === 1 ? 1 : 0);
         foreach (['coming_soon_headline', 'coming_soon_subheadline', 'coming_soon_note'] as $field) {
             update_static_option($field, $request->$field);
         }
