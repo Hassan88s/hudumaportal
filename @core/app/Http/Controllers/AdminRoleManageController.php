@@ -78,6 +78,14 @@ class AdminRoleManageController extends Controller
         ];
 
         $admin = Admin::findOrFail($request->user_id);
+
+        // Never let the last Super Admin be demoted — it would lock everyone
+        // out of role management.
+        if ($admin->hasRole('Super Admin') && $request->role !== 'Super Admin'
+            && Admin::role('Super Admin')->where('id','!=',$admin->id)->count() === 0){
+            return redirect()->back()->with(['msg' => __('You cannot remove the last Super Admin. Assign the Super Admin role to another admin first.'),'type' =>'danger' ]);
+        }
+
         $admin->update($data);
         DB::table('model_has_roles')->where('model_id',$admin->id)->delete();
         $admin->assignRole($request->role);
@@ -85,7 +93,13 @@ class AdminRoleManageController extends Controller
         return redirect()->back()->with(['msg' => __('Admin Details Updated'),'type' =>'success' ]);
     }
     public function new_user_delete(Request $request,$id){
-        Admin::findOrFail($id)->delete();
+        $admin = Admin::findOrFail($id);
+
+        if ($admin->hasRole('Super Admin') && Admin::role('Super Admin')->count() <= 1){
+            return redirect()->back()->with(['msg' => __('You cannot delete the last Super Admin.'),'type' =>'danger' ]);
+        }
+
+        $admin->delete();
         return redirect()->back()->with(['msg' => __('Admin Deleted'),'type' =>'danger' ]);
     }
     public function user_password_change(Request $request){
@@ -107,13 +121,17 @@ class AdminRoleManageController extends Controller
     }
 
     public function new_admin_role_index(){
-        $permissions = Permission::all();
-        return view(self::BASE_PATH.'role.create',compact('permissions'));
+        $permissionGroups = $this->grouped_permissions();
+        return view(self::BASE_PATH.'role.create',compact('permissionGroups'));
     }
 
     public function store_new_admin_role(Request $request){
         $this->validate($request,[
-            'name' => 'required|string|max:191|unique:roles,name'
+            'name' => 'required|string|max:191|unique:roles,name',
+            'permission' => 'required|array|min:1',
+        ],[
+            'permission.required' => __('Please select at least one permission for this role.'),
+            'permission.min' => __('Please select at least one permission for this role.'),
         ]);
         $role = Role::create(['name' => $request->name,'guard_name' => 'admin']);
         $role->syncPermissions($request->permission);
@@ -121,18 +139,21 @@ class AdminRoleManageController extends Controller
     }
 
     public function edit_admin_role($id){
-        $role = Role::find($id);
-        $permissions = Permission::get();
+        $role = Role::findOrFail($id);
+        $permissionGroups = $this->grouped_permissions();
         $rolePermissions = DB::table("role_has_permissions")->where("role_has_permissions.role_id",$id)
             ->pluck('role_has_permissions.permission_id','role_has_permissions.permission_id')
             ->all();
-        return view(self::BASE_PATH.'role.edit',compact('role','permissions','rolePermissions'));
+        return view(self::BASE_PATH.'role.edit',compact('role','permissionGroups','rolePermissions'));
     }
 
     public function update_admin_role(Request $request){
         $this->validate($request,[
             'name' => 'required|string|max:191',
-            'permission' => 'required|array',
+            'permission' => 'required|array|min:1',
+        ],[
+            'permission.required' => __('Please select at least one permission for this role.'),
+            'permission.min' => __('Please select at least one permission for this role.'),
         ]);
         $role = Role::find($request->id);
         $role->name = $request->input('name');
@@ -143,7 +164,48 @@ class AdminRoleManageController extends Controller
     }
 
     public function delete_admin_role($id){
-        Role::findOrfail($id)->delete();
+        $role = Role::findOrFail($id);
+
+        if ($role->name === 'Super Admin'){
+            return back()->with(['msg' => __('The Super Admin role cannot be deleted.'),'type' => 'danger']);
+        }
+
+        if (DB::table('model_has_roles')->where('role_id',$role->id)->exists()){
+            return back()->with(['msg' => __('This role is assigned to one or more admins. Reassign those admins before deleting it.'),'type' => 'danger']);
+        }
+
+        $role->delete();
         return back()->with(FlashMsg::settings_delete('Role Deleted'));
+    }
+
+    /**
+     * Group every permission under a human label (config order), with any
+     * permission not listed in the config falling into an "Other" group so
+     * nothing is ever hidden from the role screen.
+     *
+     * @return array<string,\Illuminate\Support\Collection>
+     */
+    protected function grouped_permissions(){
+        $all = Permission::orderBy('name')->get()->keyBy('name');
+        $groups = [];
+        $used = [];
+
+        foreach (config('admin_permissions.groups', []) as $label => $names){
+            $items = collect($names)
+                ->map(fn ($name) => $all->get($name))
+                ->filter()
+                ->values();
+            foreach ($names as $name){ $used[$name] = true; }
+            if ($items->isNotEmpty()){
+                $groups[$label] = $items;
+            }
+        }
+
+        $others = $all->reject(fn ($permission) => isset($used[$permission->name]))->values();
+        if ($others->isNotEmpty()){
+            $groups[__('Other')] = $others;
+        }
+
+        return $groups;
     }
 }

@@ -2,6 +2,17 @@
 @section('site-title')
     {{__('Edit Role')}}
 @endsection
+@section('style')
+    <style>
+        .perm-group{border:1px solid #e9edf2;border-radius:8px;margin-bottom:18px;overflow:hidden;}
+        .perm-group__head{display:flex;align-items:center;justify-content:space-between;background:#f6f8fb;padding:12px 16px;border-bottom:1px solid #e9edf2;}
+        .perm-group__head h5{margin:0;font-size:15px;font-weight:600;}
+        .perm-group__count{font-size:12px;color:#8a94a6;margin-left:8px;font-weight:400;}
+        .perm-group__body{padding:14px 16px;}
+        .perm-item{margin-bottom:10px;}
+        .perm-item label.caption{display:block;font-size:13px;margin-bottom:4px;}
+    </style>
+@endsection
 @section('content')
     <div class="col-lg-12 col-ml-12 padding-bottom-30">
         <div class="row">
@@ -21,30 +32,45 @@
                             <input type="hidden" name="id" value="{{$role->id}}">
                             <div class="form-group">
                                 <label for="name">{{__('Name')}}</label>
-                                <input type="text" class="form-control"  value="{{$role->name}}" name="name" placeholder="{{__('Enter name')}}">
+                                <input type="text" class="form-control" id="name" value="{{$role->name}}" name="name" placeholder="{{__('Enter name')}}">
                             </div>
-                            <button type="button" class="btn btn-xs mb-4 btn-outline-dark checked_all">{{__('Check All')}}</button>
-                            <div class="row checkbox-wrapper">
-                                @foreach($permissions as $permission)
-                                    <div class="col-lg-2 col-md-2">
-                                        <div class="form-group">
-                                            <label ><strong>{{ucfirst(str_replace('-',' ',$permission->name))}}</strong></label>
-                                            <label class="switch role">
-                                                <input type="checkbox" name="permission[]" @if(in_array($permission->id,$rolePermissions)) checked @endif value="{{$permission->id}}" >
+
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <p class="mb-0 text-muted">{{__('Choose what this role is allowed to do.')}}</p>
+                                <button type="button" class="btn btn-xs btn-outline-dark checked_all">{{__('Toggle all permissions')}}</button>
+                            </div>
+
+                            <div class="checkbox-wrapper">
+                                @foreach($permissionGroups as $label => $permissions)
+                                    @php $gid = 'g'.$loop->index; @endphp
+                                    <div class="perm-group">
+                                        <div class="perm-group__head">
+                                            <h5>{{ __($label) }} <span class="perm-group__count">{{ $permissions->count() }}</span></h5>
+                                            <label class="switch mb-0" title="{{__('Select all in this group')}}">
+                                                <input type="checkbox" class="group-check-all" data-group="{{ $gid }}">
                                                 <span class="slider-yes-no"></span>
                                             </label>
                                         </div>
-
-{{--                                        <div class="switch-new ">--}}
-{{--                                            <label ><strong>{{ucfirst(str_replace('-',' ',$permission->name))}}</strong></label>--}}
-{{--                                            <input class="switch-input-new " type="checkbox" name="permission[]" @if(in_array($permission->id,$rolePermissions)) checked @endif value="{{$permission->id}}" >--}}
-{{--                                            <label class="switch-new-label switch role" for="toggle"></label>--}}
-{{--                                        </div>--}}
-
+                                        <div class="perm-group__body">
+                                            <div class="row">
+                                                @foreach($permissions as $permission)
+                                                    <div class="col-lg-3 col-md-4 col-6">
+                                                        <div class="perm-item">
+                                                            <label class="caption"><strong>{{ucfirst(str_replace('-',' ',$permission->name))}}</strong></label>
+                                                            <label class="switch mb-0">
+                                                                <input type="checkbox" class="group-perm {{ $gid }}" name="permission[]" @if(in_array($permission->id,$rolePermissions)) checked @endif value="{{$permission->id}}">
+                                                                <span class="slider-yes-no"></span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
                                     </div>
                                 @endforeach
                             </div>
-                            <button type="submit" class="btn btn-primary mt-4 pr-4 pl-4">{{__('Update')}}</button>
+
+                            <button type="submit" class="btn btn-primary mt-2 pr-4 pl-4">{{__('Update')}}</button>
                         </form>
                     </div>
                 </div>
@@ -57,17 +83,33 @@
         $(document).ready(function (){
            "use strict";
 
+           function syncGroupHead(gid){
+              var items = $('.group-perm.' + gid);
+              $('.group-check-all[data-group="' + gid + '"]').prop('checked', items.length > 0 && items.length === items.filter(':checked').length);
+           }
+
+           // Initialise each group header from the pre-checked items
+           $('.group-check-all').each(function(){ syncGroupHead($(this).data('group')); });
+
+           // Global toggle-all
            $(document).on('click','.checked_all',function (){
-              var allCheckbox =  $('.checkbox-wrapper input[type="checkbox"]');
-              $.each(allCheckbox,function (index,value){
-                  if ($(this).is(':checked')){
-                      $(this).prop('checked',false);
-                  }else{
-                      $(this).prop('checked',true);
-                  }
-              });
+              var boxes = $('.checkbox-wrapper input[type="checkbox"].group-perm');
+              var makeChecked = boxes.filter(':checked').length < boxes.length;
+              boxes.prop('checked', makeChecked);
+              $('.group-check-all').prop('checked', makeChecked);
            });
 
+           // Per-group toggle-all
+           $(document).on('change','.group-check-all',function (){
+              var gid = $(this).data('group');
+              $('.group-perm.' + gid).prop('checked', $(this).is(':checked'));
+           });
+
+           // Keep a group's header checkbox in sync with its items
+           $(document).on('change','.group-perm',function (){
+              var gid = $(this).attr('class').split(/\s+/).filter(function(c){ return c.charAt(0) === 'g' && !isNaN(c.slice(1)); })[0];
+              if (gid) syncGroupHead(gid);
+           });
         });
     </script>
 @endsection
