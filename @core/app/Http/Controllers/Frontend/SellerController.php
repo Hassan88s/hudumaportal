@@ -2691,11 +2691,26 @@ class SellerController extends Controller
             return redirect()->back();
         }
 
-        $payment_status = Order::select('id','payment_status','status','email','name')->where('id',$request->order_id)->first();
-           
-        $cancel_order_money_return = Order::select('id','cancel_order_money_return')->where('id',$request->order_id)->first();
-           
-        if($cancel_order_money_return->cancel_order_money_return === 1){
+        // Guard against a missing/invalid order id (e.g. the status modal's
+        // hidden field was not populated) so the action fails gracefully
+        // instead of throwing a 500.
+        $order = Order::select('id','payment_status','status','email','name','seller_id','cancel_order_money_return')
+            ->where('id', $request->order_id)->first();
+
+        if (! $order) {
+            toastr_error(__('Order not found. Please reopen the order and try again.'));
+            return redirect()->back();
+        }
+
+        // Only the seller who owns the order may change its status.
+        if ((int) $order->seller_id !== (int) Auth::guard('web')->id()) {
+            toastr_error(__('You are not allowed to update this order.'));
+            return redirect()->back();
+        }
+
+        $payment_status = $order;
+
+        if((int) $order->cancel_order_money_return === 1){
             toastr_error(__('You can not change status because earlier you canceled the order'));
             return redirect()->back();
         }
