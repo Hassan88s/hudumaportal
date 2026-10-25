@@ -118,6 +118,11 @@ class FrontendController extends Controller
          return view('frontend.ticket');
     }
 
+    /** Sample spin-wheel rewards page (preview / concept only, no DB yet). */
+    public function purposalwheel(){
+         return view('frontend.purposalwheel');
+    }
+
     /** Waitlist page shown to users who registered while Coming Soon mode is on. */
     public function coming_soon_queue(){
          // If coming-soon is off, there is no queue — send them to the homepage.
