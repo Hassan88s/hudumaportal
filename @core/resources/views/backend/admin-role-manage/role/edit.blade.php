@@ -4,13 +4,19 @@
 @endsection
 @section('style')
     <style>
-        .perm-group{border:1px solid #e9edf2;border-radius:8px;margin-bottom:18px;overflow:hidden;}
-        .perm-group__head{display:flex;align-items:center;justify-content:space-between;background:#f6f8fb;padding:12px 16px;border-bottom:1px solid #e9edf2;}
-        .perm-group__head h5{margin:0;font-size:15px;font-weight:600;}
-        .perm-group__count{font-size:12px;color:#8a94a6;margin-left:8px;font-weight:400;}
-        .perm-group__body{padding:14px 16px;}
-        .perm-item{margin-bottom:10px;}
-        .perm-item label.caption{display:block;font-size:13px;margin-bottom:4px;}
+        .perm-toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin:6px 0 20px;}
+        .perm-toolbar .perm-search{flex:1;min-width:220px;max-width:360px;}
+        .perm-count-pill{font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;border:1px solid rgba(135,138,160,.35);opacity:.9;white-space:nowrap;}
+        .perm-group{border:1px solid rgba(135,138,160,.28);border-radius:10px;margin-bottom:16px;overflow:hidden;}
+        .perm-group__head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:rgba(135,138,160,.10);border-bottom:1px solid rgba(135,138,160,.22);}
+        .perm-group__title{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:inherit;}
+        .perm-group__count{font-size:12px;font-weight:600;opacity:.6;}
+        .perm-group__all{display:flex;align-items:center;gap:8px;font-size:12px;opacity:.85;cursor:pointer;margin:0;}
+        .perm-group__body{padding:14px 16px 6px;}
+        .perm-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;margin-bottom:10px;border:1px solid rgba(135,138,160,.18);border-radius:8px;}
+        .perm-item .cap{font-size:13px;font-weight:600;color:inherit;opacity:.95;}
+        .perm-item .switch{margin:0;flex:none;}
+        .perm-savebar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:18px;padding:14px 16px;border-top:1px solid rgba(135,138,160,.28);background:rgba(135,138,160,.06);backdrop-filter:blur(2px);}
     </style>
 @endsection
 @section('content')
@@ -27,36 +33,37 @@
                         </div>
                         <x-msg.error/>
                         <x-msg.success/>
-                        <form action="{{route('admin.user.role.update')}}" method="post" enctype="multipart/form-data">
+                        <form action="{{route('admin.user.role.update')}}" method="post" id="roleForm">
                             @csrf
                             <input type="hidden" name="id" value="{{$role->id}}">
                             <div class="form-group">
-                                <label for="name">{{__('Name')}}</label>
+                                <label for="name">{{__('Role Name')}}</label>
                                 <input type="text" class="form-control" id="name" value="{{$role->name}}" name="name" placeholder="{{__('Enter name')}}">
                             </div>
 
-                            <div class="d-flex align-items-center justify-content-between mb-3">
-                                <p class="mb-0 text-muted">{{__('Choose what this role is allowed to do.')}}</p>
-                                <button type="button" class="btn btn-xs btn-outline-dark checked_all">{{__('Toggle all permissions')}}</button>
+                            <div class="perm-toolbar">
+                                <input type="text" class="form-control perm-search" id="permSearch" placeholder="🔍 {{__('Search permissions…')}}">
+                                <span class="perm-count-pill"><span id="selCount">0</span> / {{ collect($permissionGroups)->flatten()->count() }} {{__('selected')}}</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary checked_all">{{__('Select / clear all')}}</button>
                             </div>
 
                             <div class="checkbox-wrapper">
                                 @foreach($permissionGroups as $label => $permissions)
                                     @php $gid = 'g'.$loop->index; @endphp
-                                    <div class="perm-group">
+                                    <div class="perm-group" data-group-wrap="{{ $gid }}">
                                         <div class="perm-group__head">
-                                            <h5>{{ __($label) }} <span class="perm-group__count">{{ $permissions->count() }}</span></h5>
-                                            <label class="switch mb-0" title="{{__('Select all in this group')}}">
-                                                <input type="checkbox" class="group-check-all" data-group="{{ $gid }}">
-                                                <span class="slider-yes-no"></span>
+                                            <span class="perm-group__title">{{ __($label) }} <span class="perm-group__count">{{ $permissions->count() }}</span></span>
+                                            <label class="perm-group__all">
+                                                <span>{{__('All')}}</span>
+                                                <label class="switch mb-0"><input type="checkbox" class="group-check-all" data-group="{{ $gid }}"><span class="slider-yes-no"></span></label>
                                             </label>
                                         </div>
                                         <div class="perm-group__body">
                                             <div class="row">
                                                 @foreach($permissions as $permission)
-                                                    <div class="col-lg-3 col-md-4 col-6">
-                                                        <div class="perm-item">
-                                                            <label class="caption"><strong>{{ucfirst(str_replace('-',' ',$permission->name))}}</strong></label>
+                                                    <div class="col-lg-4 col-md-6 perm-col">
+                                                        <div class="perm-item" data-name="{{ strtolower(str_replace('-',' ',$permission->name)) }}">
+                                                            <span class="cap">{{ ucfirst(str_replace('-',' ',$permission->name)) }}</span>
                                                             <label class="switch mb-0">
                                                                 <input type="checkbox" class="group-perm {{ $gid }}" name="permission[]" @if(in_array($permission->id,$rolePermissions)) checked @endif value="{{$permission->id}}">
                                                                 <span class="slider-yes-no"></span>
@@ -70,7 +77,10 @@
                                 @endforeach
                             </div>
 
-                            <button type="submit" class="btn btn-primary mt-2 pr-4 pl-4">{{__('Update')}}</button>
+                            <div class="perm-savebar">
+                                <span class="text-muted">{{__('Update what this role is allowed to do, then save.')}}</span>
+                                <button type="submit" class="btn btn-primary pr-4 pl-4">{{__('Update Role')}}</button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -79,37 +89,5 @@
     </div>
 @endsection
 @section('script')
-    <script>
-        $(document).ready(function (){
-           "use strict";
-
-           function syncGroupHead(gid){
-              var items = $('.group-perm.' + gid);
-              $('.group-check-all[data-group="' + gid + '"]').prop('checked', items.length > 0 && items.length === items.filter(':checked').length);
-           }
-
-           // Initialise each group header from the pre-checked items
-           $('.group-check-all').each(function(){ syncGroupHead($(this).data('group')); });
-
-           // Global toggle-all
-           $(document).on('click','.checked_all',function (){
-              var boxes = $('.checkbox-wrapper input[type="checkbox"].group-perm');
-              var makeChecked = boxes.filter(':checked').length < boxes.length;
-              boxes.prop('checked', makeChecked);
-              $('.group-check-all').prop('checked', makeChecked);
-           });
-
-           // Per-group toggle-all
-           $(document).on('change','.group-check-all',function (){
-              var gid = $(this).data('group');
-              $('.group-perm.' + gid).prop('checked', $(this).is(':checked'));
-           });
-
-           // Keep a group's header checkbox in sync with its items
-           $(document).on('change','.group-perm',function (){
-              var gid = $(this).attr('class').split(/\s+/).filter(function(c){ return c.charAt(0) === 'g' && !isNaN(c.slice(1)); })[0];
-              if (gid) syncGroupHead(gid);
-           });
-        });
-    </script>
+    @include('backend.admin-role-manage.role._script')
 @endsection

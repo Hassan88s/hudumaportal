@@ -106,6 +106,10 @@ return [
             'general-settings-global-footer-settings', 'general-settings-global-navbar-settings',
         ],
 
+        'Programs' => [
+            'champions-manage', 'referral-manage',
+        ],
+
     ],
 
     /*
@@ -199,6 +203,21 @@ return [
         'admin.general.global.variant.footer'        => 'general-settings-global-footer-settings',
         'admin.general.global.variant.navbar'        => 'general-settings-global-navbar-settings',
 
+    ],
+
+    /*
+    | Path-prefix enforcement — for whole sections that have many routes under
+    | one URL prefix (so we don't have to list every route name). The middleware
+    | blocks any admin-home request whose path starts with one of these prefixes
+    | when the admin lacks the mapped permission. Super Admin still bypasses.
+    */
+    'path_map' => [
+        'admin-home/general-settings/champions'            => 'champions-manage',
+        'admin-home/general-settings/RefferalSetting'      => 'referral-manage',
+        'admin-home/general-settings/referrals'            => 'referral-manage',
+        'admin-home/general-settings/referral-rewards'     => 'referral-manage',
+        'admin-home/general-settings/referral-clicks'      => 'referral-manage',
+        'admin-home/general-settings/referrer-leaderboard' => 'referral-manage',
     ],
 
 ];

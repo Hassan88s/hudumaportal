@@ -130,6 +130,7 @@
                     @endif
 
                     {{-- ═══ Referral Program ═══ --}}
+                    @can('referral-manage')
                     <li class="@if (request()->is('admin-home/general-settings/RefferalSetting*')
                                  || request()->is('admin-home/general-settings/referrals*')
                                  || request()->is('admin-home/general-settings/referral-rewards*')
@@ -156,8 +157,10 @@
                             </li>
                         </ul>
                     </li>
+                    @endcan
 
                     {{-- ═══ Huduma Champions ═══ --}}
+                    @can('champions-manage')
                     <li class="@if(request()->is('admin-home/general-settings/champions*')) active @endif">
                         <a href="javascript:void(0)" aria-expanded="true"><i class="ti-cup"></i>
                             <span>{{ __('Huduma Champions') }}</span>
@@ -195,6 +198,7 @@
                             </li>
                         </ul>
                     </li>
+                    @endcan
 
                     @if(auth()->guard('admin')->user()->hasRole('Super Admin'))
                         <li class="{{ active_menu('admin-home/general-settings/database-update') }}">
