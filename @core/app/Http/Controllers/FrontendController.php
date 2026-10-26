@@ -118,9 +118,28 @@ class FrontendController extends Controller
          return view('frontend.ticket');
     }
 
-    /** Sample spin-wheel rewards page (preview / concept only, no DB yet). */
-    public function purposalwheel(){
-         return view('frontend.purposalwheel');
+    /** Spin & Win page — logged-in buyers & sellers only. */
+    public function spinWheel(){
+         if (! auth()->guard('web')->check()) {
+             return redirect()->route('user.login')->with(['msg' => __('Please log in to spin the wheel.'), 'type' => 'info']);
+         }
+         $svc = app(\App\Services\SpinWheelService::class);
+         $settings = $svc->settings();
+         if (! $settings['enabled']) {
+             return redirect()->route('homepage')->with(['msg' => __('The Spin & Win game is not available right now.'), 'type' => 'info']);
+         }
+         $segments  = $svc->segments();
+         $triesLeft = $svc->triesLeft((int) auth()->guard('web')->id());
+         return view('frontend.spin-wheel', compact('settings', 'segments', 'triesLeft'));
+    }
+
+    /** Server-authoritative spin: the outcome is decided here, never trusted from the browser. */
+    public function spinWheelSpin(\Illuminate\Http\Request $request){
+         if (! auth()->guard('web')->check()) {
+             return response()->json(['ok' => false, 'reason' => 'auth'], 401);
+         }
+         $result = app(\App\Services\SpinWheelService::class)->spin((int) auth()->guard('web')->id());
+         return response()->json($result);
     }
 
     /** Waitlist page shown to users who registered while Coming Soon mode is on. */

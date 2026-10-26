@@ -200,6 +200,15 @@
                     </li>
                     @endcan
 
+                    {{-- ═══ Spin & Win ═══ --}}
+                    @can('spin-wheel-manage')
+                    <li class="{{ active_menu('admin-home/general-settings/spin-wheel') }}">
+                        <a href="{{ route('admin.spin.wheel') }}"><i class="ti-target"></i>
+                            <span>{{ __('Spin & Win') }}</span>
+                        </a>
+                    </li>
+                    @endcan
+
                     @if(auth()->guard('admin')->user()->hasRole('Super Admin'))
                         <li class="{{ active_menu('admin-home/general-settings/database-update') }}">
                             <a href="{{ route('admin.database.update') }}"><i class="ti-reload"></i>

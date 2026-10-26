@@ -429,6 +429,9 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
         Route::get('/reading','GeneralSettingsController@reading')->name('admin.general.reading');
         Route::get('/coming-soon','GeneralSettingsController@comingSoon')->name('admin.general.coming.soon');
         Route::post('/coming-soon/update','GeneralSettingsController@update_comingSoon')->name('admin.general.coming.soon.update');
+        // Spin & Win
+        Route::get('/spin-wheel','SpinWheelAdminController@index')->name('admin.spin.wheel');
+        Route::post('/spin-wheel','SpinWheelAdminController@update')->name('admin.spin.wheel.update');
         //  Route::get('/adspace','GeneralSettingsController@adspace')->name('admin.general.adspace');
          Route::get('/adspace/{id?}','GeneralSettingsController@adspace')->name('admin.general.adspace');
         Route::post('/update/adsensecode','GeneralSettingsController@update_adsensecode')->name('admin.general.adsensecode');

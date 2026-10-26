@@ -107,7 +107,7 @@ return [
         ],
 
         'Programs' => [
-            'champions-manage', 'referral-manage',
+            'champions-manage', 'referral-manage', 'spin-wheel-manage',
         ],
 
     ],
@@ -218,6 +218,7 @@ return [
         'admin-home/general-settings/referral-rewards'     => 'referral-manage',
         'admin-home/general-settings/referral-clicks'      => 'referral-manage',
         'admin-home/general-settings/referrer-leaderboard' => 'referral-manage',
+        'admin-home/general-settings/spin-wheel'           => 'spin-wheel-manage',
     ],
 
 ];
