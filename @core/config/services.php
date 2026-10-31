@@ -49,4 +49,12 @@ return [
         'redirect' => env('GOOGLE_CALLBACK_URL')
     ],
 
+    // NextSMS (messaging-service.co.tz). Kept here so the credentials still
+    // resolve when the config cache is built — a bare env() call in a helper
+    // returns null once `php artisan config:cache` has run.
+    'nextsms' => [
+        'key'    => env('NEXTSMS_AUTH_KEY'),
+        'sender' => env('NEXTSMS_SENDER', 'Hudumapotal'),
+    ],
+
 ];

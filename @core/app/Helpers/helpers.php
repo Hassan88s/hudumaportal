@@ -52,16 +52,64 @@ if (!function_exists('notifySeller')) {
     }
 }
 
+if (!function_exists('normalize_tz_phone')) {
+    /**
+     * NextSMS can only deliver to an international MSISDN. Tanzanian numbers
+     * are commonly stored locally as 0XXXXXXXXX, which the gateway rejects or
+     * silently fails to deliver, so normalise them to 255XXXXXXXXX.
+     */
+    function normalize_tz_phone($number)
+    {
+        $digits = preg_replace('/[^0-9]/', '', (string) $number);
+
+        if ($digits === '') {
+            return '';
+        }
+        if (strpos($digits, '255') === 0) {
+            return $digits;                       // already international
+        }
+        if (strpos($digits, '0') === 0) {
+            return '255' . substr($digits, 1);    // 0748249535 -> 255748249535
+        }
+        if (strlen($digits) === 9) {
+            return '255' . $digits;               // 748249535  -> 255748249535
+        }
+
+        return $digits;                           // leave other countries alone
+    }
+}
+
 if (!function_exists('sendSMS')) {
+    /**
+     * Send one SMS through NextSMS. Returns true only when the gateway
+     * actually accepted the message.
+     *
+     * Note: this used to log EVERY HTTP response as "SMS sent", so a rejected
+     * message (missing number, bad credentials, no balance) looked identical
+     * to a successful one in the logs. Real failures are now logged as errors.
+     */
     function sendSMS($receiverNumber, $message)
     {
-        $receiverNumber = preg_replace('/[^0-9+]/', '', $receiverNumber);
+        $receiverNumber = normalize_tz_phone($receiverNumber);
+
+        if ($receiverNumber === '' || strlen($receiverNumber) < 9) {
+            \Log::error('NextSMS: not sent — missing/invalid phone number ' . var_export($receiverNumber, true));
+            return false;
+        }
 
         try {
-            $from = env('NEXTSMS_SENDER', 'Hudumapotal'); // Fallback if not in .env
+            // Read through config() so the credentials survive `config:cache`
+            // (a bare env() call returns null once the config is cached).
+            $from    = config('services.nextsms.sender') ?: env('NEXTSMS_SENDER', 'Hudumapotal');
+            $authKey = config('services.nextsms.key') ?: env('NEXTSMS_AUTH_KEY');
+
+            if (empty($authKey)) {
+                \Log::error('NextSMS: not sent — NEXTSMS_AUTH_KEY is empty. If the config cache is built, env() returns null; run config:clear or set services.nextsms.key.');
+                return false;
+            }
+
             $reference = uniqid();
             $apiUrl = 'https://messaging-service.co.tz/api/sms/v1/text/single';
-            $authKey = env('NEXTSMS_AUTH_KEY');
 
             $postData = [
                 'from' => $from,
@@ -89,17 +137,36 @@ if (!function_exists('sendSMS')) {
             ]);
 
             $response = curl_exec($curl);
-            $error = curl_error($curl);
+            $error    = curl_error($curl);
+            $httpCode = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
             curl_close($curl);
 
             if ($error) {
-                \Log::error("NextSMS Error: " . $error);
-            } else {
-                \Log::info("SMS sent to {$receiverNumber}: " . $response);
+                \Log::error("NextSMS transport error for {$receiverNumber}: " . $error);
+                return false;
             }
 
-        } catch (\Exception $e) {
+            $decoded = json_decode($response, true);
+            $rejected = $httpCode < 200 || $httpCode >= 300
+                || (is_array($decoded) && (
+                        ($decoded['success'] ?? null) === false
+                        || isset($decoded['error'])
+                        || isset($decoded['errors'])
+                        || isset($decoded['requestError'])
+                   ));
+
+            if ($rejected) {
+                // e.g. invalid number, bad credentials, or an exhausted balance
+                \Log::error("NextSMS REJECTED for {$receiverNumber} (HTTP {$httpCode}): " . $response);
+                return false;
+            }
+
+            \Log::info("SMS sent to {$receiverNumber} (HTTP {$httpCode}): " . $response);
+            return true;
+
+        } catch (\Throwable $e) {
             \Log::error("SMS Exception: " . $e->getMessage());
+            return false;
         }
     }
 }
