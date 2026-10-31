@@ -138,9 +138,25 @@ public function Withdrwal_custom_offer($id){
       
         // deduct amount if cancel order
       $order_Detials =  Order::where('id',$id)->first();
+
+        if (empty($order_Detials)) {
+            toastr_error(__('Order not found.'));
+            return redirect()->back();
+        }
+
+        // Only the buyer who owns this order may request its cancellation.
+        if ((int) $order_Detials->buyer_id !== (int) Auth::guard('web')->id()) {
+            toastr_error(__('You are not allowed to cancel this order.'));
+            return redirect()->back();
+        }
+
       $user_id=  $order_Detials->buyer_id;
       
-        Order::where('id',$id)->update(['payment_status'=>'pending','status'=>5]);
+        // This is a cancellation REQUEST, not a refund: only move the order
+        // status. The payment record must NOT be rewritten here — a paid order
+        // stays 'complete' until the cancellation is approved and refunded
+        // (the refund path sets payment_status to 'return' at that point).
+        Order::where('id',$id)->update(['status'=>5]);
         CustomOffer::where('buyer_id',Auth::guard('web')->user()->id)->where('id', $order_Detials->Custom_offer_id)->update([
             'status' =>"6",
         ]);
@@ -156,28 +172,44 @@ public function Withdrwal_custom_offer($id){
                                                         ' / ' . __('Mnunuzi ameomba kughairi agizo kutokana na ucheleweshaji wa utoaji.');
 
 
-                            Mail::to($order_Detials->email)->send(new OrderMail(strip_tags($mail_subject).$order_Detials->id,$order_Detials, $message_for_buyer));
-                          //  Mail::to($seller->email)->send(new OrderMail(strip_tags($mail_subject).$order_Detials->id,$order_Detials,$message_for_seller_admin ));
-                            Mail::to(get_static_option('site_global_email'))->send(new OrderMail(strip_tags($mail_subject).$order_Detials->id,$order_Detials, $message_for_seller_admin));
                 $seller_info = User::find($order_Detials->seller_id);
                 $buyer_info = User::find($order_Detials->buyer_id);
-                            Mail::to($seller_info->email)->send(new BasicMail([
-                    'subject' => __('Order Cancellation Requested') . ' #' . $id,
-                    'message' => __('The buyer :buyer has requested to cancel order #:id. Please review it in your dashboard.', ['buyer' => $buyer_info->username, 'id' => $id]),
-                ]));
+
+                // Every e-mail is sent on its own below. Previously a single
+                // SMTP failure here aborted the whole try{} block, so the
+                // seller's notification further down never ran — the order
+                // status changed but the request never reached the seller.
+                try {
+                    Mail::to($order_Detials->email)->send(new OrderMail(strip_tags($mail_subject).$order_Detials->id,$order_Detials, $message_for_buyer));
+                } catch (\Throwable $e) { \Log::warning('[Order cancel] buyer OrderMail failed #'.$id.': '.$e->getMessage()); }
+
+                try {
+                    Mail::to(get_static_option('site_global_email'))->send(new OrderMail(strip_tags($mail_subject).$order_Detials->id,$order_Detials, $message_for_seller_admin));
+                } catch (\Throwable $e) { \Log::warning('[Order cancel] admin OrderMail failed #'.$id.': '.$e->getMessage()); }
+
+                try {
+                    if ($seller_info) {
+                        Mail::to($seller_info->email)->send(new BasicMail([
+                            'subject' => __('Order Cancellation Requested') . ' #' . $id,
+                            'message' => __('The buyer :buyer has requested to cancel order #:id. Please review it in your dashboard.', ['buyer' => optional($buyer_info)->username, 'id' => $id]),
+                        ]));
+                    }
+                } catch (\Throwable $e) { \Log::warning('[Order cancel] seller mail failed #'.$id.': '.$e->getMessage()); }
                  
                 $seller_id = $order_Detials->seller_id;
 
-                notifySeller(
-                    $seller_id,
-                    "Mnunuzi ameomba kughairi agizo #$id. / The buyer has requested to cancel order #$id.", // p
-                    "Mnunuzi ameomba kughairi agizo #$id. Tafadhali kagua agizo hilo. / The buyer requested to cancel order #$id. Please review it.", // sms
-                    [
-                        'type' => 'gernalnotifications',
-                        'id' => uniqid('notif_'),
-                        'details' => "Mnunuzi ameomba kughairi agizo #$id. Tafadhali kagua agizo. / The buyer requested to cancel order #$id. Please review the order." // p
-                    ]
-                );
+                try {
+                    notifySeller(
+                        $seller_id,
+                        "Mnunuzi ameomba kughairi agizo #$id. / The buyer has requested to cancel order #$id.", // p
+                        "Mnunuzi ameomba kughairi agizo #$id. Tafadhali kagua agizo hilo. / The buyer requested to cancel order #$id. Please review it.", // sms
+                        [
+                            'type' => 'gernalnotifications',
+                            'id' => uniqid('notif_'),
+                            'details' => "Mnunuzi ameomba kughairi agizo #$id. Tafadhali kagua agizo. / The buyer requested to cancel order #$id. Please review the order." // p
+                        ]
+                    );
+                } catch (\Throwable $e) { \Log::warning('[Order cancel] notifySeller failed #'.$id.': '.$e->getMessage()); }
 
                 // notifySeller only stores an in-app notification when the seller
                 // is online (otherwise it only sends an SMS). A cancellation
@@ -196,23 +228,27 @@ public function Withdrwal_custom_offer($id){
                 }
 
                 // for buyer — confirm their cancellation request was sent to the seller
-                Mail::to($buyer_info->email)->send(new BasicMail([
-                    'subject' => __('Cancellation Request Sent') . ' #' . $id,
-                    'message' => __('Your request to cancel order #:id has been sent to the seller for review.', ['id' => $id]),
-                ]));
+                try {
+                    Mail::to($buyer_info->email)->send(new BasicMail([
+                        'subject' => __('Cancellation Request Sent') . ' #' . $id,
+                        'message' => __('Your request to cancel order #:id has been sent to the seller for review.', ['id' => $id]),
+                    ]));
+                } catch (\Throwable $e) { \Log::warning('[Order cancel] buyer confirmation mail failed #'.$id.': '.$e->getMessage()); }
 
                 $seller_id = $buyer_info->id;
 
-                notifySeller(
-                    $seller_id,
-                    "Umeomba kughairi agizo #$id. Mtoa huduma amepewa taarifa. / You requested to cancel order #$id. The seller has been notified.", //p
-                    "Umeomba kughairi agizo #$id. Mtoa huduma amepewa taarifa. / You requested to cancel order #$id.", //sms
-                    [
-                        'type' => 'gernalnotifications',
-                        'id' => uniqid('notif_'),
-                        'details' => "Umeomba kughairi agizo #$id. / You requested to cancel order #$id. The seller has been notified." //p
-                    ]
-                );
+                try {
+                    notifySeller(
+                        $seller_id,
+                        "Umeomba kughairi agizo #$id. Mtoa huduma amepewa taarifa. / You requested to cancel order #$id. The seller has been notified.", //p
+                        "Umeomba kughairi agizo #$id. Mtoa huduma amepewa taarifa. / You requested to cancel order #$id.", //sms
+                        [
+                            'type' => 'gernalnotifications',
+                            'id' => uniqid('notif_'),
+                            'details' => "Umeomba kughairi agizo #$id. / You requested to cancel order #$id. The seller has been notified." //p
+                        ]
+                    );
+                } catch (\Throwable $e) { \Log::warning('[Order cancel] buyer notify failed #'.$id.': '.$e->getMessage()); }
                             
                         } catch (\Exception $e) {
                        

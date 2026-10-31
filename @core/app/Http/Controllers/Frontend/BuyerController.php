@@ -453,7 +453,59 @@ class BuyerController extends Controller
     
     public function orderCancel($id=null)
     {
+        $order = Order::where('id',$id)->first();
+
+        if (empty($order)) {
+            toastr_error(__('Order not found.'));
+            return redirect()->back();
+        }
+
+        // Only the buyer who owns the order may cancel it.
+        if ((int) $order->buyer_id !== (int) Auth::guard('web')->id()) {
+            toastr_error(__('You are not allowed to cancel this order.'));
+            return redirect()->back();
+        }
+
+        // This route is only offered for unpaid cash-on-delivery orders. A paid
+        // order must go through the cancellation-request / refund flow instead.
+        if (in_array((string) $order->payment_status, ['complete','paid'], true)) {
+            toastr_error(__('This order is already paid. Please request a cancellation instead.'));
+            return redirect()->back();
+        }
+
         Order::where('id',$id)->update(['payment_status'=>'','status'=>4]);
+
+        // Tell the seller the order was cancelled. Each channel is independent
+        // so a mail failure can never swallow the in-app notification.
+        $seller_info = User::find($order->seller_id);
+        $buyer_info  = User::find($order->buyer_id);
+
+        if ($seller_info) {
+            try {
+                $seller_info->notify(new \App\Notifications\GeneralNotification(
+                    "Mnunuzi ameghairi agizo #$id. / The buyer cancelled order #$id.",
+                    $seller_info->id,
+                    ['type' => 'gernalnotifications', 'id' => uniqid('notif_'), 'details' => "The buyer cancelled order #$id."]
+                ));
+            } catch (\Throwable $e) { \Log::warning('[Order cancel] seller db-notification failed #'.$id.': '.$e->getMessage()); }
+
+            try {
+                notifySeller(
+                    (int) $seller_info->id,
+                    "Mnunuzi ameghairi agizo #$id. / The buyer cancelled order #$id.",
+                    "Mnunuzi ameghairi agizo #$id. / The buyer cancelled order #$id.",
+                    ['type' => 'gernalnotifications', 'id' => uniqid('notif_'), 'details' => "Mnunuzi ameghairi agizo #$id. / The buyer cancelled order #$id."]
+                );
+            } catch (\Throwable $e) { \Log::warning('[Order cancel] notifySeller failed #'.$id.': '.$e->getMessage()); }
+
+            try {
+                Mail::to($seller_info->email)->send(new BasicMail([
+                    'subject' => __('Order Cancelled') . ' #' . $id,
+                    'message' => __('The buyer :buyer has cancelled order #:id.', ['buyer' => optional($buyer_info)->username, 'id' => $id]),
+                ]));
+            } catch (\Throwable $e) { \Log::warning('[Order cancel] seller mail failed #'.$id.': '.$e->getMessage()); }
+        }
+
         toastr_success(__('Order successfully cancelled.'));
         return redirect()->back();
     }
