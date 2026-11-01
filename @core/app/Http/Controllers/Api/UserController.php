@@ -42,17 +42,20 @@ class UserController extends Controller
     }
     public function walletDeduct(Request $request){
         
+        // Without numeric|min a NEGATIVE amount passed validation and
+        // "balance -= -500" increased the balance — free money.
         $request->validate([
-            'amount' => 'required'
+            'amount' => 'required|numeric|min:0.01'
         ]);
-        
+
         $buyer_id = auth('sanctum')->id();
         $user_column =  'buyer_id';
 
         $waller_details = Wallet::where($user_column,$buyer_id)->first();
         if (!is_null($waller_details)){
-            
-            if($waller_details->balance > $request->amount){
+
+            // >= so a buyer can spend their exact remaining balance.
+            if($waller_details->balance >= $request->amount){
                 
                 $waller_details->balance -= $request->amount;
                 $waller_details->save();
@@ -99,12 +102,24 @@ class UserController extends Controller
         $wallet_details = Wallet::where($user_column,$buyer_id)->first();
         
         $wallet_history = WalletHistory::where([$user_column => $buyer_id,'id' => $request->wallet_history_id ])->first();
+
+        // Not found (or belongs to somebody else) — don't fatal on null.
+        if (empty($wallet_history) || empty($wallet_details)) {
+            return response(['msg' => __('wallet deposit not found')],404);
+        }
+
+        // Replay guard: this used to credit the balance every time it was
+        // called, so confirming the same deposit twice paid out twice.
+        if ($wallet_history->payment_status === 'complete') {
+            return response(['msg' => __('wallet deposit already confirmed')],200);
+        }
+
         $wallet_history->payment_status = 'complete';
         $wallet_history->save();
-        
+
         $wallet_details->balance += $wallet_history->amount;
         $wallet_details->save();
-        
+
 
         return response(['msg' => __('wallet deposit success')],200);
     }
@@ -113,8 +128,10 @@ class UserController extends Controller
 
     public function walletDeposit(Request $request){
 
+        // 'required' alone let a negative amount through, and a non-numeric
+        // amount reached the INSERT and blew up with a database error.
         $request->validate([
-           'amount' => 'required',
+           'amount' => 'required|numeric|min:1',
            'payment_gateway' => 'required',
         ]);
 
