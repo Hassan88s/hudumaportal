@@ -87,6 +87,18 @@ class ServiceListController extends Controller
     {
       // var_dump($slug);die;
         $service_details = Service::with('seller')->where('slug', $slug)->firstOrFail();
+
+        // A service that is unapproved (status 0) or switched off by the seller
+        // must not be reachable publicly by guessing/sharing its URL — only the
+        // related-services list was filtered before, not the page itself.
+        // The owning seller and an admin can still open it to preview.
+        $isLive  = (int) $service_details->status === 1 && (int) $service_details->is_service_on === 1;
+        $isOwner = Auth::guard('web')->check()
+            && (int) Auth::guard('web')->id() === (int) $service_details->seller_id;
+        $isAdmin = Auth::guard('admin')->check();
+        if (! $isLive && ! $isOwner && ! $isAdmin) {
+            abort(404);
+        }
         //   $Related_service = Service::where('category_id',$service_details->category_id)->inRandomOrder()->take(2)->get();
     $Related_service = Service::where('category_id', $service_details->category_id)
     ->where('id', '!=', $service_details->id)
