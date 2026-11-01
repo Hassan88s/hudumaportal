@@ -202,6 +202,15 @@ class ChampionsAdminController extends Controller
     public function announce(string $season)
     {
         $winners = DB::table('champion_winners')->where('season_key', $season)->whereIn('status', ['approved', 'paid'])->get();
+
+        // Nothing approved yet — don't "announce" an empty season. Without this
+        // the season was still stamped announced/announced_at, so a mis-click
+        // before approving the winners marked the season done with 0 winners.
+        if ($winners->isEmpty()) {
+            $msg = __('No approved winners for this season yet — approve the winners first, then announce.');
+            return back()->with(['warning' => $msg, 'msg' => $msg, 'type' => 'warning']);
+        }
+
         $emailWinners = $this->svc->emailEnabledFor('winner_announcement');
         foreach ($winners as $w) {
             $label = \Carbon\Carbon::createFromFormat('Y-m', $season)->format('F Y');
