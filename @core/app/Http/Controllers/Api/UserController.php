@@ -652,8 +652,24 @@ class UserController extends Controller
         ]);
     }
 
+    //a ticket only belongs to the buyer who raised it
+    private function own_ticket($id)
+    {
+        $uid = auth('sanctum')->id();
+
+        return SupportTicket::where('id',$id)
+            ->where(function($q) use ($uid){
+                $q->where('buyer_id',$uid)->orWhere('user_id',$uid);
+            })
+            ->first();
+    }
+
     public function viewTickets(Request $request,$id= null)
     {
+        if (empty($this->own_ticket($id))){
+            return response(['msg' => __('ticket not found')],404);
+        }
+
         $all_messages = SupportTicketMessage::where(['support_ticket_id'=>$id])->get()->transform(function($item){
             $item->attachment = !empty($item->attachment) ? asset('assets/uploads/ticket/'.$item->attachment) : null;
             return $item;
@@ -675,9 +691,14 @@ class UserController extends Controller
             'file' => 'nullable|mimes:jpg,png,jpeg,gif',
         ]);
 
+        $ticket = $this->own_ticket($request->ticket_id);
+        if (empty($ticket)){
+            return response(['msg' => __('ticket not found')],404);
+        }
+
         $ticket_info = SupportTicketMessage::create([
-            'support_ticket_id' => $request->ticket_id,
-            'type' => $request->user_type,
+            'support_ticket_id' => $ticket->id,
+            'type' => 'buyer',
             'message' => $request->message,
         ]);
 

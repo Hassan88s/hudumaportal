@@ -22,7 +22,7 @@ class AdminTicketViewController extends Controller
         return view('backend.pages.ticket.tickets',compact('all_tickets'));
     }
 
-    public function ticketDetails($id){
+    public function ticketDetails(Request $request, $id){
 
         $ticket_details = SupportTicket::findOrFail($id);
         $all_messages = SupportTicketMessage::where(['support_ticket_id'=>$id])->get();

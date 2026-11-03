@@ -3582,16 +3582,37 @@ $remaning_balance = $remaning_balance + $partial_payment_sum;
         return view('frontend.user.seller.support-ticket.add-new-ticket', compact('order'));
     }
 
+    //a ticket only belongs to the seller it was raised against
+    private function own_ticket($id)
+    {
+        $uid = Auth::guard('web')->id();
+
+        return SupportTicket::where('id',$id)
+            ->where(function($q) use ($uid){
+                $q->where('seller_id',$uid)->orWhere('user_id',$uid);
+            })
+            ->first();
+    }
+
     public function ticketDelete($id=null)
     {
-        SupportTicket::find($id)->delete();
+        $ticket = $this->own_ticket($id);
+        if (empty($ticket)){
+            toastr_error(__('Ticket not found.'));
+            return redirect()->back();
+        }
+        SupportTicketMessage::where('support_ticket_id',$ticket->id)->delete();
+        $ticket->delete();
         toastr_error(__('Ticket Delete Success---'));
         return redirect()->back();
     }
 
-    //view ticket 
+    //view ticket
     public function view_ticket(Request $request,$id){
-        $ticket_details = SupportTicket::findOrFail($id);
+        $ticket_details = $this->own_ticket($id);
+        if (empty($ticket_details)){
+            abort(404);
+        }
         $all_messages = SupportTicketMessage::where(['support_ticket_id'=>$id])->get();
         $q = $request->q ?? '';
 
@@ -3610,21 +3631,26 @@ $remaning_balance = $remaning_balance + $partial_payment_sum;
     //priority status 
     public function priorityChange(Request $request)
     {
-        SupportTicket::where('id',$request->ticket_id)->update(['priority'=>$request->priority]);
+        $ticket = $this->own_ticket($request->ticket_id);
+        if (empty($ticket)){
+            toastr_error(__('Ticket not found.'));
+            return redirect()->back();
+        }
+        SupportTicket::where('id',$ticket->id)->update(['priority'=>$request->priority]);
         toastr_success(__('Priority Change Success---'));
         return redirect()->back();
     }
 
-    //change status 
+    //change status
     public function statusChange($id=null)
     {
-        $status = SupportTicket::find($id);
-        if($status->status=='open'){
-            $status = 'close';
-        }else{
-            $status = 'open';
+        $ticket = $this->own_ticket($id);
+        if (empty($ticket)){
+            toastr_error(__('Ticket not found.'));
+            return redirect()->back();
         }
-        SupportTicket::where('id',$id)->update(['status'=>$status]);
+        $status = $ticket->status=='open' ? 'close' : 'open';
+        SupportTicket::where('id',$ticket->id)->update(['status'=>$status]);
         toastr_success(__('Status Change Success---'));
         return redirect()->back();
     }
@@ -3640,9 +3666,15 @@ $remaning_balance = $remaning_balance + $partial_payment_sum;
             'file' => 'nullable|mimes:zip,jpg,jpeg,png,pdf,webp,xlsx, csv, xls,docx',
         ]);
 
+        $ticket = $this->own_ticket($request->ticket_id);
+        if (empty($ticket)){
+            toastr_error(__('Ticket not found.'));
+            return redirect()->back();
+        }
+
         $ticket_info = SupportTicketMessage::create([
-            'support_ticket_id' => $request->ticket_id,
-            'type' => $request->user_type,
+            'support_ticket_id' => $ticket->id,
+            'type' => 'seller',
             'message' => $request->message,
             'notify' => $request->send_notify_mail ? 'on' : 'off',
         ]);

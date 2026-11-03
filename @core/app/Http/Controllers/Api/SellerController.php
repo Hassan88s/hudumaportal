@@ -307,8 +307,13 @@ class SellerController extends Controller
             return response()->error(['message' => __('no support ticket found')]);
         }
         
-        $all_tickets = SupportTicket::where('id',$request->id)->update(['status' => $request->status]);
-        
+        $ticket = $this->own_ticket($request->id);
+        if (empty($ticket)){
+            return response()->error(['message' => __('no support ticket found')]);
+        }
+
+        SupportTicket::where('id',$ticket->id)->update(['status' => $request->status]);
+
         return response()->success([
             'message' => __('Ticket Status Changed'),
         ]);
@@ -410,8 +415,24 @@ class SellerController extends Controller
         ]);
     }
     
+    //a ticket only belongs to the seller it was raised against
+    private function own_ticket($id)
+    {
+        $uid = auth('sanctum')->id();
+
+        return SupportTicket::where('id',$id)
+            ->where(function($q) use ($uid){
+                $q->where('seller_id',$uid)->orWhere('user_id',$uid);
+            })
+            ->first();
+    }
+
     public function viewTickets(Request $request,$id= null)
     {
+        if (empty($this->own_ticket($id))){
+            return response()->error(['message' => __('no support ticket found')]);
+        }
+
         $all_messages = SupportTicketMessage::where(['support_ticket_id'=>$id])->get()->transform(function($item){
             $item->attachment = !empty($item->attachment) ? asset('assets/uploads/ticket/'.$item->attachment) : null;
             return $item;
@@ -433,14 +454,19 @@ class SellerController extends Controller
             'file' => 'nullable|mimes:jpg,png,jpeg,gif',
         ]);
 
+        $ticket = $this->own_ticket($request->ticket_id);
+        if (empty($ticket)){
+            return response()->error(['message' => __('no support ticket found')]);
+        }
+
         $ticket_info = SupportTicketMessage::create([
-            'support_ticket_id' => $request->ticket_id,
-            'type' => $request->user_type,
+            'support_ticket_id' => $ticket->id,
+            'type' => 'seller',
             'message' => $request->message,
         ]);
-        
+
         if ($request->hasFile('file')){
-            
+
             $uploaded_file = $request->file;
             $file_extension = $uploaded_file->extension();
             $file_name =  pathinfo($uploaded_file->getClientOriginalName(),PATHINFO_FILENAME).time().'.'.$file_extension;
