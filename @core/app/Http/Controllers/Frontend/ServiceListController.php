@@ -378,6 +378,27 @@ class ServiceListController extends Controller
         $coupon_code = ServiceCoupon::where('code',$request->coupon_code)->first();
         $current_date = date('Y-m-d');
 
+        // A Spin & Win code is not a seller coupon, so it is resolved first and
+        // only against the signed-in buyer's own winnings.
+        if(empty($coupon_code)){
+            $spin_service = app(\App\Services\SpinWheelService::class);
+            $spin = $spin_service->findRedeemableCode($request->coupon_code, Auth::guard('web')->id());
+
+            if(!empty($spin)){
+                return response()->json([
+                    'status' => 'success',
+                    'coupon_amount' => $spin_service->discountFor($spin, (float) $request->total_amount),
+                ]);
+            }
+
+            if(\App\SpinWheelSpin::where('code',$request->coupon_code)->exists()){
+                return response()->json([
+                    'status' => 'invalid',
+                    'msg' => __('This reward code has already been used or does not belong to your account.'),
+                ]);
+            }
+        }
+
         if(!empty($coupon_code)){
 
             if($coupon_code->seller_id != $request->seller_id){
@@ -737,7 +758,24 @@ class ServiceListController extends Controller
         if(!empty($request->coupon_code)){
             $coupon_code = ServiceCoupon::where('code',$request->coupon_code)->first();
             $current_date = date('Y-m-d');
-            if(!empty($coupon_code)){
+
+            // Spin & Win reward code. The percentage is read from the stored
+            // spin, never from the request, and the code is claimed atomically
+            // so it cannot be spent twice.
+            if(empty($coupon_code)){
+                $spin_service = app(\App\Services\SpinWheelService::class);
+                $spin = $spin_service->findRedeemableCode($request->coupon_code, Auth::guard('web')->id());
+
+                if(!empty($spin) && $spin_service->redeem($spin, $last_order_id)){
+                    $coupon_amount = $spin_service->discountFor($spin, $total);
+                    $total = $total - $coupon_amount;
+                    $coupon_code = $spin->code;
+                    $coupon_type = 'percentage';
+                }else{
+                    $coupon_code = '';
+                }
+            }
+            elseif(!empty($coupon_code)){
                 if($coupon_code->seller_id == $request->seller_id){
                     if($coupon_code->code == $request->coupon_code && $coupon_code->expire_date > $current_date){
                         if($coupon_code->discount_type == 'percentage'){

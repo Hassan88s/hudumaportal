@@ -475,6 +475,10 @@ class BuyerController extends Controller
 
         Order::where('id',$id)->update(['payment_status'=>'','status'=>4]);
 
+        // The order never went through, so give back any Spin & Win reward it
+        // consumed instead of burning the buyer's code on a cancelled booking.
+        app(\App\Services\SpinWheelService::class)->release($id);
+
         // Tell the seller the order was cancelled. Each channel is independent
         // so a mail failure can never swallow the in-app notification.
         $seller_info = User::find($order->seller_id);
@@ -1052,6 +1056,28 @@ class BuyerController extends Controller
             ->first();
 
         return view('frontend.user.buyer.support-ticket.add-new-ticket', compact('order'));
+    }
+
+    //spin & win reward history
+    public function spinRewards()
+    {
+        $user    = Auth::guard('web')->user();
+        $service = app(\App\Services\SpinWheelService::class);
+
+        $spins = \App\SpinWheelSpin::where('user_id', $user->id)
+            ->orderBy('id', 'desc')
+            ->paginate(15);
+
+        $wins = \App\SpinWheelSpin::where('user_id', $user->id)->where('is_win', 1);
+
+        return view('frontend.user.buyer.spin-rewards.index', [
+            'spins'      => $spins,
+            'settings'   => $service->settings(),
+            'tries_used' => $service->triesUsed($user->id),
+            'tries_left' => $service->triesLeft($user->id),
+            'total_wins' => $wins->count(),
+            'best_win'   => (float) $wins->max('result_value'),
+        ]);
     }
 
     //a ticket only belongs to the buyer who raised it

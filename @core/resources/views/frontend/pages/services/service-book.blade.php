@@ -638,7 +638,7 @@
                             <div class="mobile-coupon-inline d-lg-none mt-4" style="display:block;">
                                 <label class="mobile-coupon-inline__label" style="display:block;">{{__('Have a coupon?')}}</label>
                                 <div class="mobile-coupon-inline__row" style="display:flex;gap:8px;align-items:stretch;width:100%;">
-                                    <input type="text" name="mobile_coupon_code" class="coupon_code mobile-coupon-input" placeholder="{{__('Enter Coupon Code')}}" autocomplete="off" style="display:block !important; flex:1 1 auto !important; min-width:0 !important; width:100% !important; visibility:visible !important; opacity:1 !important; height:44px !important;">
+                                    <input type="text" name="mobile_coupon_code" class="coupon_code mobile-coupon-input" placeholder="{{__('Enter Coupon or Reward Code')}}" autocomplete="off" style="display:block !important; flex:1 1 auto !important; min-width:0 !important; width:100% !important; visibility:visible !important; opacity:1 !important; height:44px !important;">
                                     <button type="button" class="apply-coupon mobile-coupon-btn" style="flex:0 0 auto;">{{ __('Apply') }}</button>
                                 </div>
                                 <span class="coupon_amount_for_apply_code d-block mt-1"></span>
@@ -751,7 +751,7 @@
 
                                                 <ul class="new_serviceBooking__summary__list list_none border_top coupon_input_field">
                                                     <li class="result-list">
-                                                        <input type="text" name="coupon_code" class="form-control coupon_code" placeholder="{{__('Enter Coupon Code')}}">
+                                                        <input type="text" name="coupon_code" class="form-control coupon_code" placeholder="{{__('Enter Coupon or Reward Code')}}">
                                                         <button class="apply-coupon">{{ __('Apply') }}</button>
                                                     </li>
                                                 </ul>

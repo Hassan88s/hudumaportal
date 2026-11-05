@@ -99,6 +99,10 @@
                 <li class="dashboard__bottom__list__item @if(request()->is('seller/order/report/list*')) active @endif">
                     <a href="{{ route('seller.order.report.list')}}"> <i class="las la-file-alt"></i> {{__('Reports List')}} </a>
                 </li>
+
+                <li class="dashboard__bottom__list__item @if(request()->is('seller/spin-rewards*')) active @endif">
+                    <a href="{{ route('seller.spin.rewards') }}"><i class="las la-gift"></i> {{ __('Spin & Win Rewards') }}</a>
+                </li>
                 
                   <li class="dashboard__bottom__list__item @if(request()->is('seller/job-alert-subscribe')) active @endif">
                     <a href="{{ route('seller.job.alert.subscribe')}}"> <i class="las la-bell"></i> {{__('Job Alert Subscription')}} </a>

@@ -3582,6 +3582,28 @@ $remaning_balance = $remaning_balance + $partial_payment_sum;
         return view('frontend.user.seller.support-ticket.add-new-ticket', compact('order'));
     }
 
+    //spin & win reward history
+    public function spinRewards()
+    {
+        $user    = Auth::guard('web')->user();
+        $service = app(\App\Services\SpinWheelService::class);
+
+        $spins = \App\SpinWheelSpin::where('user_id', $user->id)
+            ->orderBy('id', 'desc')
+            ->paginate(15);
+
+        $wins = \App\SpinWheelSpin::where('user_id', $user->id)->where('is_win', 1);
+
+        return view('frontend.user.seller.spin-rewards.index', [
+            'spins'      => $spins,
+            'settings'   => $service->settings(),
+            'tries_used' => $service->triesUsed($user->id),
+            'tries_left' => $service->triesLeft($user->id),
+            'total_wins' => $wins->count(),
+            'best_win'   => (float) $wins->max('result_value'),
+        ]);
+    }
+
     //a ticket only belongs to the seller it was raised against
     private function own_ticket($id)
     {

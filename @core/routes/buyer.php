@@ -104,6 +104,9 @@ Route::post('/enterprise/update/{id}', 'Frontend\EnterpriseController@update')->
     Route::post('/billplz-ipn','Frontend\ExtraServicePaymentController@billplz_ipn' )->name('buyer.order.extra.service.payment.billplz.ipn');
     Route::post('/zitopay-ipn','Frontend\ExtraServicePaymentController@zitopay_ipn' )->name('buyer.order.extra.service.payment.zitopay.ipn');
     Route::post('/kineticpay-ipn','Frontend\ExtraServicePaymentController@kineticpay_ipn' )->name('buyer.order.extra.service.payment.kineticpay.ipn');
+    //spin & win rewards
+    Route::get('spin-rewards','Frontend\BuyerController@spinRewards')->name('buyer.spin.rewards');
+
      //tickets
     Route::get('all-tickets','Frontend\BuyerController@allTickets')->name('buyer.support.ticket');
     Route::match(['get','post'],'add-new-ticket/{id?}','Frontend\BuyerController@addNewTicket')->name('buyer.support.ticket.new');

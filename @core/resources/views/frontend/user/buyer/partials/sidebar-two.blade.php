@@ -71,6 +71,10 @@
                     <a href="{{ route('buyer.order.report.list')}}"> <i class="las la-file-alt"></i> {{__('Reports List')}} </a>
                 </li>
 
+                <li class="dashboard__bottom__list__item @if(request()->is('buyer/spin-rewards*')) active @endif">
+                    <a href="{{ route('buyer.spin.rewards') }}"><i class="las la-gift"></i> {{ __('Spin & Win Rewards') }}</a>
+                </li>
+
 
                 @if(moduleExists('Wallet'))
                     <li class="dashboard__bottom__list__item @if(request()->is('buyer/wallet-history*')) active @endif ">

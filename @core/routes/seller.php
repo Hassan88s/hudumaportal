@@ -201,6 +201,9 @@ Route::group(['prefix'=>'seller','middleware'=>['auth','inactiveuser','BuyerChec
     // seller to buyer review
     Route::post('review/seller-to-buyer', 'Frontend\SellerController@sellerToBuyerReview')->name('seller.to.buyer.review');
 
+    //spin & win rewards
+    Route::get('spin-rewards','Frontend\SellerController@spinRewards')->name('seller.spin.rewards');
+
     //tickets
     Route::get('all-tickets','Frontend\SellerController@allTickets')->name('seller.support.ticket');
     Route::match(['get','post'],'add-new-ticket/{id?}','Frontend\SellerController@addNewTicket')->name('seller.support.ticket.new');

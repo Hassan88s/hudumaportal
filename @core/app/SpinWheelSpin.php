@@ -10,13 +10,23 @@ class SpinWheelSpin extends Model
 
     protected $fillable = [
         'user_id', 'try_number', 'segment_label', 'result_type',
-        'result_value', 'is_win', 'code',
+        'result_value', 'is_win', 'code', 'used_at', 'used_order_id',
     ];
 
     protected $casts = [
         'is_win'       => 'boolean',
         'result_value' => 'float',
+        'used_at'      => 'datetime',
     ];
+
+    public function isRedeemable(): bool
+    {
+        return $this->is_win
+            && $this->result_type === 'discount'
+            && $this->result_value > 0
+            && ! empty($this->code)
+            && empty($this->used_at);
+    }
 
     public function user()
     {

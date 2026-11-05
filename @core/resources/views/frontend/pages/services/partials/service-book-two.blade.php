@@ -785,7 +785,7 @@
 
                                                 <ul class="new_serviceBooking__summary__list list_none border_top coupon_input_field">
                                                     <li class="result-list">
-                                                        <input type="text" name="coupon_code" class="form-control coupon_code" placeholder="{{__('Enter Coupon Code')}}">
+                                                        <input type="text" name="coupon_code" class="form-control coupon_code" placeholder="{{__('Enter Coupon or Reward Code')}}">
                                                         <button class="apply-coupon">{{ __('Apply') }}</button>
                                                     </li>
                                                 </ul>

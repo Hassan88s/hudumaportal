@@ -681,7 +681,9 @@
                                 $('.coupon_amount_for_apply_code').html('<strong>{{__("Coupon Discount")}}</strong>' + site_default_currency_symbol+coupon_amount.toFixed(2))
                             }
                             if (res.status == 'invalid') {
-                                Command: toastr["warning"]("{{__('Coupon is invalid!')}}", "{{ __('Aviso') }}")
+                                // Prefer the reason the server gave (e.g. a reward
+                                // code that is already spent) over the generic text.
+                                Command: toastr["warning"](res.msg || "{{__('Coupon is invalid!')}}", "{{ __('Aviso') }}")
                                 toastr.options = {
                                     "closeButton": true,
                                     "debug": false,

@@ -327,6 +327,9 @@ function update_static_option($key, $value)
             'option_name' => $key,
             'option_value' => $value
         ]);
+        // get_static_option() caches a miss for 10 minutes, so without this a
+        // brand-new setting looks like it did not save until the cache expires.
+        \Illuminate\Support\Facades\Cache::forget($key);
         return true;
     } else {
         StaticOption::where('option_name', $key)->update([

@@ -125,6 +125,51 @@ class SpinWheelService
         ];
     }
 
+    /**
+     * Resolve a code typed at checkout into the winning spin that owns it.
+     * Returns null unless the code is a real, unspent win belonging to THIS
+     * user — a code from somebody else's account is treated as unknown.
+     */
+    public function findRedeemableCode(?string $code, ?int $userId): ?SpinWheelSpin
+    {
+        $code = trim((string) $code);
+        if ($code === '' || empty($userId)) {
+            return null;
+        }
+
+        $spin = SpinWheelSpin::where('code', $code)->where('user_id', $userId)->first();
+
+        return ($spin && $spin->isRedeemable()) ? $spin : null;
+    }
+
+    /**
+     * Claim a code for an order. The UPDATE is conditional on the code still
+     * being unspent, so two orders placed at the same moment cannot both
+     * redeem it: exactly one gets a row back, the other gets false.
+     */
+    public function redeem(SpinWheelSpin $spin, $orderId): bool
+    {
+        return SpinWheelSpin::where('id', $spin->id)
+            ->whereNull('used_at')
+            ->update(['used_at' => now(), 'used_order_id' => $orderId]) === 1;
+    }
+
+    /** Give a code back when the order it paid for never happened. */
+    public function release($orderId): void
+    {
+        SpinWheelSpin::where('used_order_id', $orderId)
+            ->update(['used_at' => null, 'used_order_id' => null]);
+    }
+
+    /** Discount this spin takes off a given total (percentage based). */
+    public function discountFor(SpinWheelSpin $spin, float $total): float
+    {
+        $amount = ($total * (float) $spin->result_value) / 100;
+
+        // Never hand back more than the order is worth.
+        return round(min($amount, $total), 2);
+    }
+
     /** Weighted random index across all segments. */
     protected function pickWeightedIndex(array $segments): int
     {
