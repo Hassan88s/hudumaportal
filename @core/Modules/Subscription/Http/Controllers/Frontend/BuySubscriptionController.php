@@ -264,7 +264,26 @@ public function webhook(Request $request)
                 $get_coupon_code = SubscriptionCoupon::where('code',$request->apply_coupon_code)->first();
                 $current_date = date('Y-m-d');
 
-                if(!empty($get_coupon_code)){
+                // Not a subscription coupon? Try it as a Spin & Win reward the
+                // seller won. The percentage comes from the stored spin and the
+                // claim is atomic, so it cannot be edited or spent twice.
+                if(empty($get_coupon_code)){
+                    $spin_service = app(\App\Services\SpinWheelService::class);
+                    $spin = $spin_service->findRedeemableCode($request->apply_coupon_code, Auth::guard('web')->id());
+
+                    if(empty($spin) || ! $spin_service->redeem($spin, null, \App\Services\SpinWheelService::CONTEXT_SUBSCRIPTION)){
+                        toastr_error(__('Invalid coupon. Please enter a valid coupon'));
+                        return redirect()->back();
+                    }
+
+                    $discount = $spin_service->discountFor($spin, (float) $request->price);
+                    $price    = $request->price - $discount;
+
+                    // Stand in for a coupon model so every branch below records
+                    // the reward on the subscription exactly as it would a coupon.
+                    $get_coupon_code = (object) ['code' => $spin->code, 'discount_type' => 'percentage'];
+                }
+                elseif(!empty($get_coupon_code)){
                     if($get_coupon_code->expire_date > $current_date){
                         if($get_coupon_code->discount_type == 'percentage'){
                             $discount = ($request->price * $get_coupon_code->discount)/100;
@@ -1417,7 +1436,22 @@ public function webhook(Request $request)
             $get_coupon_code = SubscriptionCoupon::where('code',$request->apply_coupon_code)->first();
             $current_date = date('Y-m-d');
 
-            if(!empty($get_coupon_code)){
+            // A Spin & Win reward the seller won. This only previews the
+            // discount; the code is claimed when the purchase is submitted.
+            if(empty($get_coupon_code)){
+                $spin_service = app(\App\Services\SpinWheelService::class);
+                $spin = $spin_service->findRedeemableCode($request->apply_coupon_code, Auth::guard('web')->id());
+
+                if(!empty($spin)){
+                    $discount = $spin_service->discountFor($spin, (float) $request->subscription_price);
+                    $price    = $request->subscription_price - $discount;
+                }elseif(\App\SpinWheelSpin::where('code',$request->apply_coupon_code)->exists()){
+                    $message = __('This reward code has already been used or does not belong to your account.');
+                }else{
+                    $message = __('Invalid coupon. Please enter a valid coupon');
+                }
+            }
+            elseif(!empty($get_coupon_code)){
                 if($get_coupon_code->expire_date > $current_date){
                     if($get_coupon_code->discount_type == 'percentage'){
                         $discount = ($request->subscription_price * $get_coupon_code->discount)/100;

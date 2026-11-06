@@ -10,7 +10,7 @@ class SpinWheelSpin extends Model
 
     protected $fillable = [
         'user_id', 'try_number', 'segment_label', 'result_type',
-        'result_value', 'is_win', 'code', 'used_at', 'used_order_id',
+        'result_value', 'is_win', 'code', 'used_at', 'used_order_id', 'used_context',
     ];
 
     protected $casts = [

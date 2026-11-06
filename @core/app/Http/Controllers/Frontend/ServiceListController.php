@@ -512,7 +512,9 @@ class ServiceListController extends Controller
             return back();
         }
 
-        if (Auth::guard('web')->check() && Auth::guard('web')->user()->type === 0){
+        // The column is user_type; `type` does not exist, so this guard read
+        // NULL and never fired — sellers could place service orders.
+        if (Auth::guard('web')->check() && (int) Auth::guard('web')->user()->user_type === 0){
             \Toastr::error(__('seller are not allowed to place service order'));
             return back();
         }

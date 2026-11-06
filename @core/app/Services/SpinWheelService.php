@@ -13,6 +13,18 @@ use Illuminate\Support\Str;
  */
 class SpinWheelService
 {
+    /**
+     * How long an unpaid gateway order may hold a reward code before the code
+     * is given back. Long enough that a buyer who is slow at the payment page
+     * is never affected, short enough that an abandoned checkout frees the
+     * prize the same session.
+     */
+    const ABANDONED_ORDER_HOURS = 2;
+
+    /** What a code was spent on. Buyers book services; sellers buy subscriptions. */
+    const CONTEXT_ORDER        = 'service_order';
+    const CONTEXT_SUBSCRIPTION = 'subscription';
+
     /** Shipped defaults, used until an admin saves their own config. */
     const DEFAULT_SEGMENTS = [
         ['label' => 'Try Again', 'type' => 'nothing',  'value' => 0,  'weight' => 28, 'color' => '#5a6488', 'emoji' => '🔁'],
@@ -138,8 +150,101 @@ class SpinWheelService
         }
 
         $spin = SpinWheelSpin::where('code', $code)->where('user_id', $userId)->first();
+        if (! $spin) {
+            return null;
+        }
 
-        return ($spin && $spin->isRedeemable()) ? $spin : null;
+        // A code spent on an order that never actually happened is handed back,
+        // so a buyer who closes the tab at the payment gateway does not lose
+        // their prize. Checked here rather than on a schedule: it costs one
+        // query, only for codes that are already marked used.
+        if ($spin->used_at && $this->releaseIfOrderDead($spin)) {
+            $spin->refresh();
+        }
+
+        return $spin->isRedeemable() ? $spin : null;
+    }
+
+    /**
+     * Free a code whose order is dead. "Dead" means cancelled, or a gateway
+     * checkout that was never completed and has sat untouched past the grace
+     * period.
+     *
+     * Deliberately narrow: a cash-on-delivery or manual-payment order carries
+     * payment_status 'pending' and is a real booking awaiting payment, so its
+     * code stays spent. Only the empty status createOrder() writes for a
+     * gateway order — plus the explicit cancel states — can expire.
+     */
+    protected function releaseIfOrderDead(SpinWheelSpin $spin): bool
+    {
+        if ($spin->used_context === self::CONTEXT_SUBSCRIPTION) {
+            return $this->releaseIfSubscriptionDead($spin);
+        }
+
+        if (empty($spin->used_order_id)) {
+            return false;
+        }
+
+        $order = \App\Order::select('id', 'payment_status', 'status', 'created_at')
+            ->find($spin->used_order_id);
+
+        // The order is gone, so nothing is holding the code any more.
+        if (! $order) {
+            $this->release($spin->used_order_id);
+            return true;
+        }
+
+        $status = strtolower(trim((string) $order->payment_status));
+
+        // 'cancalled' is the spelling the payment cancel handler writes.
+        $cancelled = in_array($status, ['cancalled', 'cancelled', 'failed'], true)
+            || (int) $order->status === 4;
+
+        if ($cancelled) {
+            $this->release($order->id);
+            return true;
+        }
+
+        // Anything other than "never paid through a gateway" keeps the code.
+        if ($status !== '') {
+            return false;
+        }
+
+        if (! $order->created_at || $order->created_at->gt(now()->subHours(self::ABANDONED_ORDER_HOURS))) {
+            return false;
+        }
+
+        $this->release($order->id);
+        return true;
+    }
+
+    /**
+     * A subscription is claimed before its purchase row exists, so there is no
+     * id to check against. Look instead for the subscription history the code
+     * was recorded on: if the seller got as far as a real purchase the code
+     * stays spent, and if nothing was ever recorded it is handed back.
+     */
+    protected function releaseIfSubscriptionDead(SpinWheelSpin $spin): bool
+    {
+        // Still inside the grace period: the seller may be at the gateway.
+        if (! $spin->used_at || $spin->used_at->gt(now()->subHours(self::ABANDONED_ORDER_HOURS))) {
+            return false;
+        }
+
+        $alive = \Illuminate\Support\Facades\DB::table('subscription_histories')
+            ->where('coupon_code', $spin->code)
+            ->whereNotIn(
+                \Illuminate\Support\Facades\DB::raw("LOWER(TRIM(COALESCE(payment_status,'')))"),
+                ['', 'cancalled', 'cancelled', 'failed']
+            )
+            ->exists();
+
+        if ($alive) {
+            return false;
+        }
+
+        $this->releaseSpin($spin);
+        return true;
     }
 
     /**
@@ -147,17 +252,29 @@ class SpinWheelService
      * being unspent, so two orders placed at the same moment cannot both
      * redeem it: exactly one gets a row back, the other gets false.
      */
-    public function redeem(SpinWheelSpin $spin, $orderId): bool
+    public function redeem(SpinWheelSpin $spin, $orderId, string $context = self::CONTEXT_ORDER): bool
     {
         return SpinWheelSpin::where('id', $spin->id)
             ->whereNull('used_at')
-            ->update(['used_at' => now(), 'used_order_id' => $orderId]) === 1;
+            ->update([
+                'used_at'       => now(),
+                'used_order_id' => $orderId,
+                'used_context'  => $context,
+            ]) === 1;
     }
 
-    /** Give a code back when the order it paid for never happened. */
-    public function release($orderId): void
+    /** Give a code back when the thing it paid for never happened. */
+    public function release($orderId, string $context = self::CONTEXT_ORDER): void
     {
         SpinWheelSpin::where('used_order_id', $orderId)
+            ->where('used_context', $context)
+            ->update(['used_at' => null, 'used_order_id' => null]);
+    }
+
+    /** Give back a specific spin, used where there is no id to key on. */
+    public function releaseSpin(SpinWheelSpin $spin): void
+    {
+        SpinWheelSpin::where('id', $spin->id)
             ->update(['used_at' => null, 'used_order_id' => null]);
     }
 
