@@ -22,7 +22,12 @@
                 <div class="col-lg-3 col-sm-6">
                     <div class="spin_reward__stat">
                         <span class="spin_reward__stat__label">{{ __('Spins Used') }}</span>
-                        <h3 class="spin_reward__stat__value">{{ $tries_used }} / {{ $settings['max_tries'] }}</h3>
+                        <h3 class="spin_reward__stat__value">{{ $tries_used }} / {{ $total_tries }}</h3>
+                        @if($bonus_spins > 0)
+                            <span class="spin_reward__stat__hint">
+                                +{{ $bonus_spins }} {{ __('earned by inviting friends') }}
+                            </span>
+                        @endif
                     </div>
                 </div>
                 <div class="col-lg-3 col-sm-6">

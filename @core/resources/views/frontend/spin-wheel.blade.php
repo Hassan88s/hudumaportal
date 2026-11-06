@@ -40,6 +40,8 @@
         .pw-btn{display:inline-block;background:var(--brand);color:#fff;border:none;font-weight:700;font-size:16px;padding:14px 40px;border-radius:12px;cursor:pointer;box-shadow:0 10px 24px rgba(255,107,44,.35);transition:transform .15s ease,opacity .2s;}
         .pw-btn:hover{transform:translateY(-2px);}
         .pw-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+        .pw-btn.whatsapp{background:#25d366;box-shadow:0 10px 24px rgba(37,211,102,.32);text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:13px 28px;}
+        .pw-btn.whatsapp:hover{background:#1fb855;}
 
         .pw-modal{position:fixed;inset:0;background:rgba(6,10,26,.78);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
         .pw-modal.show{display:flex;}
@@ -96,6 +98,10 @@
             <div class="pw-prize" id="resPrize"></div>
             <div class="pw-code" id="resCodeWrap" style="display:none;">{{ __('Your code') }}:<br><b id="resCode"></b></div>
             <p id="resNote"></p>
+            <a class="pw-btn whatsapp" id="shareBtn" href="#" target="_blank" rel="noopener" style="display:none;">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.2-.6.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4-.1-.5l-.9-2.1c-.2-.5-.4-.5-.6-.5h-.5c-.2 0-.5.1-.7.3-.3.3-.9.9-.9 2.2s1 2.6 1.1 2.7c.1.2 1.9 3 4.7 4.2.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.5-.3zM12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
+                <span id="shareBtnText">{{ __('Share on WhatsApp') }}</span>
+            </a>
             <button class="pw-btn" id="againBtn">{{ __('Spin Again') }}</button>
             <button class="pw-btn ghost" id="closeBtn">{{ __('Close') }}</button>
         </div>
@@ -109,14 +115,19 @@
         var CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         var segments = @json($segments);
         var triesLeft = {{ (int) $triesLeft }};
+        var SHARE_LINK = @json($shareLink ?? '');
+        var SHARE_EARNS_SPIN = {{ !empty($referralSpins['enabled']) && (int) ($referralSpins['referrer'] ?? 0) > 0 ? 'true' : 'false' }};
 
         var T = {
             win: @json(__('Congratulations!')),
             lose: @json(__('So close!')),
-            winNote: @json(__('Use the code below on your next order. (Checkout support is coming soon — your win is saved to your account.)')),
+            winNote: @json(__('Paste this code in the "Coupon or Reward Code" box when you book a service. It is saved to your account.')),
             loseNote: @json(__('No prize this time.')),
             loseNoteAgain: @json(__('No prize this time — you have another spin!')),
             noTries: @json(__('No spins left')),
+            shareWin: @json(__('I just won :prize on :site! Spin the wheel and see what you get: :link')),
+            shareWinNoPrize: @json(__('I am using :site for services in Tanzania — spin the wheel and see what you win: :link')),
+            shareEarns: @json(__('Invite a friend — when they join, you both get another spin.')),
             spinAgain: @json(__('Spin Again')),
             done: @json(__('Done')),
             error: @json(__('Something went wrong. Please try again.'))
@@ -197,8 +208,29 @@
             if (triesLeft>0){ again.style.display=''; again.textContent=T.spinAgain; }
             else { again.style.display='none'; }
             document.getElementById('closeBtn').textContent = triesLeft>0 ? @json(__('Close')) : T.done;
+            setupShare(res);
             if (res.is_win) burstConfetti();
             modal.classList.add('show');
+        }
+
+        // The share link carries the user's referral code, so telling friends
+        // about a win is also an invite — and an invite that lands earns
+        // another spin. Never share the discount code itself: it is single-use
+        // and tied to this account.
+        function setupShare(res){
+            var btn = document.getElementById('shareBtn');
+            if (!btn || !SHARE_LINK) { if (btn) btn.style.display='none'; return; }
+
+            var text = res.is_win
+                ? T.shareWin.replace(':prize', res.label).replace(':site', @json($siteTitle)).replace(':link', SHARE_LINK)
+                : T.shareWinNoPrize.replace(':site', @json($siteTitle)).replace(':link', SHARE_LINK);
+
+            btn.href = 'https://wa.me/?text=' + encodeURIComponent(text);
+            btn.style.display = '';
+
+            if (SHARE_EARNS_SPIN && res.is_win){
+                document.getElementById('resNote').textContent += ' ' + T.shareEarns;
+            }
         }
         function closeModal(){ modal.classList.remove('show'); }
 

@@ -128,9 +128,19 @@ class FrontendController extends Controller
          if (! $settings['enabled']) {
              return redirect()->route('homepage')->with(['msg' => __('The Spin & Win game is not available right now.'), 'type' => 'info']);
          }
+         $user      = auth()->guard('web')->user();
          $segments  = $svc->segments();
-         $triesLeft = $svc->triesLeft((int) auth()->guard('web')->id());
-         return view('frontend.spin-wheel', compact('settings', 'segments', 'triesLeft'));
+         $triesLeft = $svc->triesLeft((int) $user->id);
+
+         // Sharing a win doubles as sharing an invite: the link carries the
+         // user's referral code, so a friend who joins earns them another spin.
+         $shareLink = ! empty($user->referral_code)
+             ? url('/r/' . $user->referral_code)
+             : route('spin.wheel');
+
+         $referralSpins = $svc->referralSettings();
+
+         return view('frontend.spin-wheel', compact('settings', 'segments', 'triesLeft', 'shareLink', 'referralSpins'));
     }
 
     /** Server-authoritative spin: the outcome is decided here, never trusted from the browser. */

@@ -1071,10 +1071,12 @@ class BuyerController extends Controller
         $wins = \App\SpinWheelSpin::where('user_id', $user->id)->where('is_win', 1);
 
         return view('frontend.user.buyer.spin-rewards.index', [
-            'spins'      => $spins,
-            'settings'   => $service->settings(),
-            'tries_used' => $service->triesUsed($user->id),
-            'tries_left' => $service->triesLeft($user->id),
+            'spins'       => $spins,
+            'settings'    => $service->settings(),
+            'tries_used'  => $service->triesUsed($user->id),
+            'tries_left'  => $service->triesLeft($user->id),
+            'total_tries' => $service->totalTries($user->id),
+            'bonus_spins' => $service->bonusSpins($user->id),
             'total_wins' => $wins->count(),
             'best_win'   => (float) $wins->max('result_value'),
         ]);

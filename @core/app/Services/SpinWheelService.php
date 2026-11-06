@@ -73,14 +73,90 @@ class SpinWheelService
         return $out;
     }
 
+    /** Reasons a user can earn extra spins. */
+    const BONUS_REFERRAL_SIGNUP  = 'referral_signup';   // someone you invited joined
+    const BONUS_REFERRAL_WELCOME = 'referral_welcome';  // you joined via an invite
+
     public function triesUsed(int $userId): int
     {
         return SpinWheelSpin::where('user_id', $userId)->count();
     }
 
+    /** Extra spins this user has earned on top of the standard allowance. */
+    public function bonusSpins(int $userId): int
+    {
+        return (int) \Illuminate\Support\Facades\DB::table('spin_wheel_bonus_spins')
+            ->where('user_id', $userId)
+            ->sum('spins');
+    }
+
+    /** The user's whole allowance: the standard tries plus anything earned. */
+    public function totalTries(int $userId): int
+    {
+        return $this->settings()['max_tries'] + $this->bonusSpins($userId);
+    }
+
     public function triesLeft(int $userId): int
     {
-        return max(0, $this->settings()['max_tries'] - $this->triesUsed($userId));
+        return max(0, $this->totalTries($userId) - $this->triesUsed($userId));
+    }
+
+    /**
+     * Award extra spins. Idempotent: the unique key on
+     * (user_id, reason, source_user_id) means the same referral cannot pay out
+     * twice however many times the signup hook runs. Returns true if this call
+     * is what granted them.
+     */
+    public function grantBonus(int $userId, string $reason, int $sourceUserId = 0, int $spins = 1): bool
+    {
+        if ($userId <= 0 || $spins < 1) {
+            return false;
+        }
+
+        return \Illuminate\Support\Facades\DB::table('spin_wheel_bonus_spins')->insertOrIgnore([
+            'user_id'        => $userId,
+            'reason'         => $reason,
+            'source_user_id' => $sourceUserId,
+            'spins'          => $spins,
+            'created_at'     => now(),
+            'updated_at'     => now(),
+        ]) === 1;
+    }
+
+    /** Referral settings, read once so callers do not repeat the lookups. */
+    public function referralSettings(): array
+    {
+        return [
+            'enabled'  => (int) get_static_option('spin_wheel_referral_enabled') === 1,
+            'referrer' => max(0, (int) get_static_option('spin_wheel_referral_spins_referrer')),
+            'invitee'  => max(0, (int) get_static_option('spin_wheel_referral_spins_invitee')),
+        ];
+    }
+
+    /**
+     * Both sides of a referral get a spin: the person who invited, and the
+     * person who joined. Never throws — a signup must not fail because a
+     * bonus spin could not be written.
+     */
+    public function grantReferralSpins(int $referrerId, int $newUserId): void
+    {
+        try {
+            $cfg = $this->referralSettings();
+            if (! $cfg['enabled'] || $referrerId <= 0 || $newUserId <= 0 || $referrerId === $newUserId) {
+                return;
+            }
+
+            if ($cfg['referrer'] > 0) {
+                $this->grantBonus($referrerId, self::BONUS_REFERRAL_SIGNUP, $newUserId, $cfg['referrer']);
+            }
+            if ($cfg['invitee'] > 0) {
+                $this->grantBonus($newUserId, self::BONUS_REFERRAL_WELCOME, $referrerId, $cfg['invitee']);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('[Spin & Win] referral spins failed: ' . $e->getMessage(), [
+                'referrer_id' => $referrerId, 'new_user_id' => $newUserId,
+            ]);
+        }
     }
 
     /**
@@ -96,8 +172,12 @@ class SpinWheelService
             return ['ok' => false, 'reason' => 'disabled', 'tries_left' => 0];
         }
 
+        // The allowance includes spins earned by inviting people, not just the
+        // configured maximum.
+        $allowance = $settings['max_tries'] + $this->bonusSpins($userId);
+
         $used = $this->triesUsed($userId);
-        if ($used >= $settings['max_tries']) {
+        if ($used >= $allowance) {
             return ['ok' => false, 'reason' => 'no_tries', 'tries_left' => 0];
         }
 
@@ -133,7 +213,7 @@ class SpinWheelService
             'type'       => $segment['type'],
             'value'      => $segment['value'],
             'code'       => $code,
-            'tries_left' => max(0, $settings['max_tries'] - $tryNumber),
+            'tries_left' => max(0, $allowance - $tryNumber),
         ];
     }
 

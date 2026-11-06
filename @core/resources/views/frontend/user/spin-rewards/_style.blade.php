@@ -22,6 +22,13 @@
         line-height: 1.2;
     }
 
+    .spin_reward__stat__hint {
+        display: block;
+        font-size: 12px;
+        color: #1b8f5a;
+        margin-top: 4px;
+    }
+
     .spin_reward__note {
         font-size: 14px;
         opacity: .75;

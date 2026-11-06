@@ -176,6 +176,13 @@ class ReferralService
             );
         }
 
+        // Both sides also earn a Spin & Win spin. Deliberately NOT gated on the
+        // provider-verification toggle above: a spin is a chance at a discount,
+        // not a payout, and the point is to reward the invite itself. Never
+        // throws, so a signup cannot fail over a bonus spin.
+        app(\App\Services\SpinWheelService::class)
+            ->grantReferralSpins((int) $referral->referrer_id, (int) $newUser->id);
+
         // Notify the referrer that someone joined via their link (PDF §17).
         // Uses the existing notifySeller() helper — works for any user type
         // despite the name (it dispatches an in-app notification and falls
