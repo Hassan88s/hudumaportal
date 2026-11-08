@@ -92,6 +92,11 @@
         background: rgba(27, 143, 90, .1);
     }
 
+    .spin_reward__status.is-expired {
+        color: #b3243c;
+        background: rgba(179, 36, 60, .1);
+    }
+
     .spin_reward__status.is-used {
         color: inherit;
         opacity: .65;

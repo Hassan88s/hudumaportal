@@ -122,6 +122,7 @@
             win: @json(__('Congratulations!')),
             lose: @json(__('So close!')),
             winNote: @json(__('Paste this code in the "Coupon or Reward Code" box when you book a service. It is saved to your account.')),
+            winExpiry: @json(__('Use it by :date.')),
             loseNote: @json(__('No prize this time.')),
             loseNoteAgain: @json(__('No prize this time — you have another spin!')),
             noTries: @json(__('No spins left')),
@@ -203,7 +204,14 @@
             var codeWrap = document.getElementById('resCodeWrap');
             if (res.is_win && res.code){ document.getElementById('resCode').textContent = res.code; codeWrap.style.display='block'; }
             else { codeWrap.style.display='none'; }
-            document.getElementById('resNote').textContent = res.is_win ? T.winNote : (triesLeft>0 ? T.loseNoteAgain : T.loseNote);
+            var note = res.is_win ? T.winNote : (triesLeft>0 ? T.loseNoteAgain : T.loseNote);
+            if (res.is_win && res.expires_at) {
+                var d = new Date(res.expires_at + 'T00:00:00');
+                var shown = isNaN(d) ? res.expires_at
+                    : d.toLocaleDateString(undefined, {day:'numeric', month:'short', year:'numeric'});
+                note += ' ' + T.winExpiry.replace(':date', shown);
+            }
+            document.getElementById('resNote').textContent = note;
             var again = document.getElementById('againBtn');
             if (triesLeft>0){ again.style.display=''; again.textContent=T.spinAgain; }
             else { again.style.display='none'; }

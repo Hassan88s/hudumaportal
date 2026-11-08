@@ -42,6 +42,11 @@
                                     <input type="number" name="spin_wheel_max_tries" class="form-control" min="1" max="20" value="{{ $settings['max_tries'] }}">
                                 </div>
                                 <div class="col-md-4 form-group">
+                                    <label><strong>{{ __('Code valid for (days)') }}</strong></label>
+                                    <input type="number" name="spin_wheel_code_expiry_days" class="form-control" min="0" max="365" value="{{ $settings['expiry_days'] }}">
+                                    <small class="text-muted">{{ __('A won code expires this many days after it is won. 0 = never expires. Codes won before this was switched on are not affected.') }}</small>
+                                </div>
+                                <div class="col-md-4 form-group">
                                     <label><strong>{{ __('First try always "Try Again"') }}</strong></label>
                                     <select name="spin_wheel_force_first_lose" class="form-control">
                                         <option value="1" @if($settings['force_first_lose']) selected @endif>{{ __('Yes — first spin never wins') }}</option>

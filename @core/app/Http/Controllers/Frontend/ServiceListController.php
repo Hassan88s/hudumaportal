@@ -399,6 +399,16 @@ class ServiceListController extends Controller
                 ]);
             }
 
+            $known = \App\SpinWheelSpin::where('code',$request->coupon_code)
+                ->where('user_id', Auth::guard('web')->id())->first();
+
+            if(!empty($known) && $known->isExpired()){
+                return response()->json([
+                    'status' => 'invalid',
+                    'msg' => __('This reward code expired on :date.', ['date' => $known->expires_at->format('d M Y')]),
+                ]);
+            }
+
             if(\App\SpinWheelSpin::where('code',$request->coupon_code)->exists()){
                 return response()->json([
                     'status' => 'invalid',

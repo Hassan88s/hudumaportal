@@ -99,6 +99,10 @@ class SystemUpgradeService
                         DB::statement("ALTER TABLE `spin_wheel_spins` ADD COLUMN `used_context` VARCHAR(30) NOT NULL DEFAULT 'service_order' AFTER `used_order_id`");
                         $done[] = 'used_context';
                     }
+                    if (! Schema::hasColumn('spin_wheel_spins', 'expires_at')) {
+                        DB::statement("ALTER TABLE `spin_wheel_spins` ADD COLUMN `expires_at` TIMESTAMP NULL DEFAULT NULL AFTER `used_context`");
+                        $done[] = 'expires_at';
+                    }
                     if (! $this->hasIndex('spin_wheel_spins', 'spin_wheel_spins_code_unique')) {
                         DB::statement("ALTER TABLE `spin_wheel_spins` ADD UNIQUE KEY `spin_wheel_spins_code_unique` (`code`)");
                         $done[] = 'unique code index';
@@ -143,6 +147,7 @@ class SystemUpgradeService
                         'spin_wheel_enabled'                 => '0',
                         'spin_wheel_max_tries'               => '2',
                         'spin_wheel_force_first_lose'        => '1',
+                        'spin_wheel_code_expiry_days'        => '7',
                         'spin_wheel_referral_enabled'        => '1',
                         'spin_wheel_referral_spins_referrer' => '1',
                         'spin_wheel_referral_spins_invitee'  => '1',

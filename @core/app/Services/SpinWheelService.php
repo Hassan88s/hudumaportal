@@ -50,6 +50,7 @@ class SpinWheelService
             'enabled'          => (int) get_static_option('spin_wheel_enabled') === 1,
             'max_tries'        => max(1, (int) (get_static_option('spin_wheel_max_tries') ?: 2)),
             'force_first_lose' => get_static_option('spin_wheel_force_first_lose') === '' ? true : ((int) get_static_option('spin_wheel_force_first_lose') === 1),
+            'expiry_days'      => max(0, (int) (get_static_option('spin_wheel_code_expiry_days') ?? 0)),
             'title'            => get_static_option('spin_wheel_title') ?: 'Spin & Win',
             'subtitle'         => get_static_option('spin_wheel_subtitle') ?: 'Give the wheel a spin for a chance to win a discount on your next order.',
         ];
@@ -196,9 +197,16 @@ class SpinWheelService
         $segment   = $segments[$index];
         $isWin     = (bool) $segment['is_win'];
 
-        $code = null;
+        $code      = null;
+        $expiresAt = null;
         if ($isWin && $segment['type'] === 'discount') {
             $code = 'SPIN-' . strtoupper(Str::random(6));
+
+            // A prize with no deadline is a prize nobody hurries to use, and
+            // it leaves the discount owed indefinitely. 0 days means no expiry.
+            if ($settings['expiry_days'] > 0) {
+                $expiresAt = now()->addDays($settings['expiry_days']);
+            }
         }
 
         SpinWheelSpin::create([
@@ -209,6 +217,7 @@ class SpinWheelService
             'result_value'  => $segment['value'],
             'is_win'        => $isWin,
             'code'          => $code,
+            'expires_at'    => $expiresAt,
         ]);
 
         return [
@@ -220,6 +229,8 @@ class SpinWheelService
             'type'       => $segment['type'],
             'value'      => $segment['value'],
             'code'       => $code,
+            'expires_at' => $expiresAt ? $expiresAt->toDateString() : null,
+            'expiry_days'=> $expiresAt ? $settings['expiry_days'] : 0,
             'tries_left' => max(0, $allowance - $tryNumber),
         ];
     }

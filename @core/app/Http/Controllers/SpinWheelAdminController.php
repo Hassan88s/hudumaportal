@@ -28,6 +28,7 @@ class SpinWheelAdminController extends Controller
     {
         $request->validate([
             'spin_wheel_max_tries' => 'required|integer|min:1|max:20',
+            'spin_wheel_code_expiry_days' => 'nullable|integer|min:0|max:365',
             'label'  => 'required|array|min:2',
             'label.*' => 'required|string|max:60',
             'type'   => 'required|array',
@@ -40,6 +41,7 @@ class SpinWheelAdminController extends Controller
         // Settings
         update_static_option('spin_wheel_enabled', (int) $request->spin_wheel_enabled === 1 ? 1 : 0);
         update_static_option('spin_wheel_max_tries', (int) $request->spin_wheel_max_tries);
+        update_static_option('spin_wheel_code_expiry_days', max(0, (int) $request->spin_wheel_code_expiry_days));
         update_static_option('spin_wheel_force_first_lose', (int) $request->spin_wheel_force_first_lose === 1 ? 1 : 0);
         update_static_option('spin_wheel_title', $request->spin_wheel_title ?: 'Spin & Win');
         update_static_option('spin_wheel_subtitle', $request->spin_wheel_subtitle ?: '');

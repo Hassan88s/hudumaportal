@@ -119,9 +119,9 @@
                                 </td>
                                 <td>
                                     @if($spin->code)
-                                        <div class="spin_reward__code @if($spin->used_at) is-spent @endif">
+                                        <div class="spin_reward__code @if($spin->used_at || $spin->isExpired()) is-spent @endif">
                                             <span class="spin_reward__code__text">{{ $spin->code }}</span>
-                                            @if(! $spin->used_at)
+                                            @if(! $spin->used_at && ! $spin->isExpired())
                                                 <button type="button"
                                                         class="spin_reward__code__copy"
                                                         data-code="{{ $spin->code }}"
@@ -144,8 +144,24 @@
                                                 <small>{{ __('Order #') }}{{ $spin->used_order_id }}</small>
                                             @endif
                                         </span>
+                                    @elseif($spin->isExpired())
+                                        <span class="spin_reward__status is-expired">
+                                            {{ __('Expired') }}
+                                            <small>{{ $spin->expires_at->format('d M Y') }}</small>
+                                        </span>
                                     @else
-                                        <span class="spin_reward__status is-available">{{ __('Available') }}</span>
+                                        <span class="spin_reward__status is-available">
+                                            {{ __('Available') }}
+                                            @if($spin->expires_at)
+                                                <small>
+                                                    @if($spin->expires_at->isToday())
+                                                        {{ __('expires today') }}
+                                                    @else
+                                                        {{ __('expires') }} {{ $spin->expires_at->format('d M Y') }}
+                                                    @endif
+                                                </small>
+                                            @endif
+                                        </span>
                                     @endif
                                 </td>
                             </tr>
