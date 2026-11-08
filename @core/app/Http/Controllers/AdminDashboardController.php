@@ -32,34 +32,42 @@ class AdminDashboardController extends Controller
         // 'dashboard-finance' gets the dashboard with the money left out —
         // and the figures are never calculated, so they cannot leak into the
         // page source or the chart scripts either.
-        $can_see_finance = Auth::guard('admin')->check()
-            && Auth::guard('admin')->user()->can('dashboard-finance');
+        $admin = Auth::guard('admin')->user();
 
-        $total_admin = Admin::count();
-        $total_seller = User::where('user_type',0)->count();
-        $total_buyer = User::where('user_type',1)->count();
+        $can_see_finance = $admin && $admin->can('dashboard-finance');
+
+        // The dashboard's whole statistics area — how many sellers and buyers
+        // there are, what is pending, which services sell best — is a picture
+        // of the business. Roles that are not meant to have it get the page
+        // without the numbers, and nothing is queried for them, so there is
+        // nothing to read in the page source either.
+        $can_see_stats = $admin && $admin->can('dashboard-stats');
+
+        $total_admin = $can_see_stats ? Admin::count() : 0;
+        $total_seller = $can_see_stats ? User::where('user_type',0)->count() : 0;
+        $total_buyer = $can_see_stats ? User::where('user_type',1)->count() : 0;
         $total_earning = $can_see_finance ? Order::where('status',2)->sum('commission_amount') : 0;
-        $pending_order = Order::where('status',0)->whereNot('payment_status', '')->count();
-        $pending_service = Service::where('status',0)->count();
-        $pending_payout_request = PayoutRequest::where('status',0)->count();
-        $new_user_today = User::whereYear('created_at', Carbon::now()->year)
+        $pending_order = $can_see_stats ? Order::where('status',0)->whereNot('payment_status', '')->count() : 0;
+        $pending_service = $can_see_stats ? Service::where('status',0)->count() : 0;
+        $pending_payout_request = $can_see_stats ? PayoutRequest::where('status',0)->count() : 0;
+        $new_user_today = $can_see_stats ? User::whereYear('created_at', Carbon::now()->year)
             ->whereMonth('created_at',Carbon::now()->month)
             ->whereDay('created_at',Carbon::now()->day)
-            ->count();
+            ->count() : 0;
 
 
-        $most_viewed_10_services = Service::select('id','title','price','view')
+        $most_viewed_10_services = $can_see_stats ? Service::select('id','title','price','view')
         ->where(['status'=>1,'is_service_on'=>1])
         ->orderByDesc('view')
         ->take(10)
-        ->get();
+        ->get() : collect();
 
-        $most_sell_10_services = Order::selectRaw('service_id, COUNT(orders.service_id) as total')
+        $most_sell_10_services = $can_see_stats ? Order::selectRaw('service_id, COUNT(orders.service_id) as total')
             ->with('service')
             ->groupBy('service_id')
             ->orderBy('total','desc')
             ->take(10)
-            ->get();
+            ->get() : collect();
 
 
         //get last 12 months data
@@ -79,9 +87,11 @@ class AdminDashboardController extends Controller
                     ->sum('commission_amount')
                 : 0;
 
-            $monthly_order_list[] = Order::whereYear('created_at', Carbon::now()->year)
-            ->whereMonth('created_at', $month)
-            ->count();
+            $monthly_order_list[] = $can_see_stats
+                ? Order::whereYear('created_at', Carbon::now()->year)
+                    ->whereMonth('created_at', $month)
+                    ->count()
+                : 0;
         }
 
 
@@ -98,9 +108,11 @@ class AdminDashboardController extends Controller
                     ->whereDay('created_at',Carbon::now()->subDay($i))
                     ->sum('commission_amount')
                 : 0;
-            $daily_order_list[] = Order::whereYear('created_at', Carbon::now()->year)
-            ->whereDay('created_at',Carbon::now()->subDay($i))
-            ->count();
+            $daily_order_list[] = $can_see_stats
+                ? Order::whereYear('created_at', Carbon::now()->year)
+                    ->whereDay('created_at',Carbon::now()->subDay($i))
+                    ->count()
+                : 0;
         }
 
         return view('backend.admin-home',compact(
@@ -120,7 +132,8 @@ class AdminDashboardController extends Controller
             'monthly_income_list',
             'monthly_order_list',
             'daily_order_list',
-            'can_see_finance'
+            'can_see_finance',
+            'can_see_stats'
         ));
     }
 

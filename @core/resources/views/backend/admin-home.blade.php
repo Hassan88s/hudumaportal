@@ -161,6 +161,20 @@
 @section('content')
     
     <div class="main-content-inner">
+        @cannot('dashboard-stats')
+            <div class="row">
+                <div class="col-12 margin-top-30">
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 class="header-title">{{ __('Welcome back') }}, {{ auth()->guard('admin')->user()->name ?? '' }}</h4>
+                            <p class="text-muted mb-0">{{ __('Use the menu on the left to get to your work. Site statistics are not part of your role.') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endcannot
+
+        @can('dashboard-stats')
         <div class="row">
             <div class="col-xl-3 col-md-6 margin-top-30 orders-child">
                 <div class="single-orders">
@@ -415,6 +429,7 @@
                 </div>
             </div>
         </div>
+        @endcan
 
     </div>
 @endsection
@@ -426,6 +441,7 @@
     <script src="{{asset('assets/backend/js/chart.js')}}"></script>
     <script>
     /* Line Charts */
+    @can('dashboard-stats')
     @can('dashboard-finance')
     new Chart(document.getElementById("line-chart"), {
         type: 'line',
@@ -503,6 +519,7 @@
             }]
         },
     });
+    @endcan
 
     </script>
 @endsection

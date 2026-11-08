@@ -195,6 +195,7 @@ class SystemUpgradeService
                         'champions-manage',
                         'referral-manage',
                         'dashboard-finance',
+                        'dashboard-stats',
                     ]);
                 },
             ],

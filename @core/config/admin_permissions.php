@@ -26,6 +26,13 @@ return [
 
     'groups' => [
 
+        // The admin home page. 'dashboard-stats' covers the whole statistics
+        // area (counts, pending work, top services, order charts);
+        // 'dashboard-finance' additionally covers the money on it.
+        'Dashboard' => [
+            'dashboard-stats',
+        ],
+
         'User Management' => [
             'user-list', 'user-create', 'user-edit', 'user-delete',
         ],
