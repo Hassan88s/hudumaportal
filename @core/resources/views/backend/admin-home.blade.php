@@ -210,6 +210,7 @@
                     </div>
                 </div>
             </div>
+            @can('dashboard-finance')
             <div class="col-xl-3 col-md-6 margin-top-30 orders-child">
                 <div class="single-orders">
                     <div class="orders-shapes">
@@ -226,6 +227,7 @@
                     </div>
                 </div>
             </div>
+            @endcan
 
             <div class="col-xl-3 col-md-6 margin-top-30 orders-child">
                 <div class="single-orders">
@@ -358,6 +360,7 @@
             </div>
         </div>
 
+        @can('dashboard-finance')
         <div class="row mt-5">
             <div class="col-md-6">
                 <div class="card-wrapper">
@@ -384,6 +387,7 @@
                 </div>
             </div>
         </div>
+        @endcan
 
         <div class="row mt-5">
             <div class="col-md-6">
@@ -422,6 +426,7 @@
     <script src="{{asset('assets/backend/js/chart.js')}}"></script>
     <script>
     /* Line Charts */
+    @can('dashboard-finance')
     new Chart(document.getElementById("line-chart"), {
         type: 'line',
         data: {
@@ -459,6 +464,7 @@
             }]
         },
     });
+    @endcan
 
     new Chart(document.getElementById("line-chart3"), {
         type: 'line',

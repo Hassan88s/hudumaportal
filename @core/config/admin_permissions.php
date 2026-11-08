@@ -45,7 +45,7 @@ return [
         ],
 
         'Finance' => [
-            'admin-commission', 'amount-settings',
+            'admin-commission', 'amount-settings', 'dashboard-finance',
         ],
 
         'Subscriptions' => [

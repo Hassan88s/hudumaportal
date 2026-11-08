@@ -17,6 +17,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | System Upgrade Key
+    |--------------------------------------------------------------------------
+    |
+    | Secret used by /system-upgrade/{key}, which applies pending schema and
+    | permission changes after a deploy. Leave it unset and that URL is closed
+    | entirely — a signed-in Super Admin can still run /system-upgrade.
+    |
+    */
+
+    'system_upgrade_key' => env('SYSTEM_UPGRADE_KEY', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

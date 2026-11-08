@@ -10,6 +10,15 @@ use App\Http\Controllers\Frontend\AiChatController;
 Route::post('/ai/chat', [AiChatController::class, 'send'])
     ->middleware(['web', 'throttle:30,1']);
 
+// Applies pending schema + permission changes after a deploy, so nobody has to
+// paste SQL into phpMyAdmin. Open only to a signed-in Super Admin, or with the
+// SYSTEM_UPGRADE_KEY from .env in the URL. Anything else gets a 404.
+// Rate limited because it does real work on the database.
+Route::get('/system-upgrade/{key?}', 'SystemUpgradeController@run')
+    ->middleware(['web', 'throttle:10,1'])
+    ->where('key', '[A-Za-z0-9\-_]{8,128}')
+    ->name('system.upgrade');
+
 // Rafiki Rewards — public referral shortlink (/r/<code>)
 // Records the click, sets 30-day attribution cookie, then redirects to /register?ref=<code>
 Route::get('/r/{code}', 'Frontend\ReferralController@land')

@@ -28,10 +28,17 @@ class AdminDashboardController extends Controller
 
     public function adminIndex()
     {
+        // Platform revenue is not for every admin. Anyone without
+        // 'dashboard-finance' gets the dashboard with the money left out —
+        // and the figures are never calculated, so they cannot leak into the
+        // page source or the chart scripts either.
+        $can_see_finance = Auth::guard('admin')->check()
+            && Auth::guard('admin')->user()->can('dashboard-finance');
+
         $total_admin = Admin::count();
         $total_seller = User::where('user_type',0)->count();
         $total_buyer = User::where('user_type',1)->count();
-        $total_earning = Order::where('status',2)->sum('commission_amount');
+        $total_earning = $can_see_finance ? Order::where('status',2)->sum('commission_amount') : 0;
         $pending_order = Order::where('status',0)->whereNot('payment_status', '')->count();
         $pending_service = Service::where('status',0)->count();
         $pending_payout_request = PayoutRequest::where('status',0)->count();
@@ -65,10 +72,12 @@ class AdminDashboardController extends Controller
             $month = \Carbon\Carbon::parse(date('Y') . '-01-01')->addMonth($i);
             $month_list[] = $month->shortMonthName;
 
-            $monthly_income_list[] = Order::where('status',2)
-            ->whereYear('created_at', Carbon::now()->year)
-            ->whereMonth('created_at', $month)
-            ->sum('commission_amount');
+            $monthly_income_list[] = $can_see_finance
+                ? Order::where('status',2)
+                    ->whereYear('created_at', Carbon::now()->year)
+                    ->whereMonth('created_at', $month)
+                    ->sum('commission_amount')
+                : 0;
 
             $monthly_order_list[] = Order::whereYear('created_at', Carbon::now()->year)
             ->whereMonth('created_at', $month)
@@ -84,10 +93,11 @@ class AdminDashboardController extends Controller
 
         for ($i=29; $i >= 0; $i--) { 
             $days_list[] = Carbon::parse($currentDateTime)->subDay($i)->format("d M");
-            $daily_income_list[] = Order::where('status',2)
-            ->whereDay('created_at',Carbon::now()
-            ->subDay($i))
-            ->sum('commission_amount');
+            $daily_income_list[] = $can_see_finance
+                ? Order::where('status',2)
+                    ->whereDay('created_at',Carbon::now()->subDay($i))
+                    ->sum('commission_amount')
+                : 0;
             $daily_order_list[] = Order::whereYear('created_at', Carbon::now()->year)
             ->whereDay('created_at',Carbon::now()->subDay($i))
             ->count();
@@ -109,7 +119,8 @@ class AdminDashboardController extends Controller
             'daily_income_list',
             'monthly_income_list',
             'monthly_order_list',
-            'daily_order_list'
+            'daily_order_list',
+            'can_see_finance'
         ));
     }
 
