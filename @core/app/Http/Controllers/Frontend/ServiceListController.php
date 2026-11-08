@@ -776,6 +776,14 @@ class ServiceListController extends Controller
             }
         }
 
+        // Claiming the reward code and writing the totals it affects must
+        // happen together. Without this a failure on the UPDATE below left the
+        // code marked as spent on an order that never got its figures — the
+        // buyer lost the prize for an order that effectively did not exist.
+        DB::beginTransaction();
+
+        try {
+
         //calculate coupon amount
         $coupon_code = '';
         $coupon_type = '';
@@ -837,17 +845,25 @@ class ServiceListController extends Controller
         // it here or the platform would stop funding the discount and the cost
         // would fall back on the seller.
 
-        Order::where('id', $last_order_id)->update([
-            'package_fee' => $package_fee,
-            'extra_service' => $extra_service,
-            'sub_total' => $sub_total,
-            'tax' => $tax_amount,
-            'total' => $total,
-            'coupon_code' => $coupon_code,
-            'coupon_type' => $coupon_type,
-            'coupon_amount' => $coupon_amount,
-            'commission_amount' => $commission_amount,
-        ]);
+            Order::where('id', $last_order_id)->update([
+                'package_fee' => $package_fee ?? 0,
+                'extra_service' => $extra_service ?? 0,
+                'sub_total' => $sub_total ?? 0,
+                'tax' => $tax_amount ?? 0,
+                'total' => $total ?? 0,
+                'coupon_code' => $coupon_code,
+                'coupon_type' => $coupon_type,
+                'coupon_amount' => $coupon_amount,
+                'commission_amount' => $commission_amount,
+            ]);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            // Undo the reward claim too, so the buyer keeps their code.
+            DB::rollBack();
+            \Log::error('[Order] totals update failed for order #' . $last_order_id . ': ' . $e->getMessage());
+            throw $e;
+        }
 
 
         //Send order notification to seller

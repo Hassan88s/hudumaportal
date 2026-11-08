@@ -150,6 +150,38 @@ class SystemUpgradeService
                 },
             ],
 
+            'order_money_defaults' => [
+                'title' => 'Orders: default money columns to 0',
+                'run'   => function () {
+                    // These are NOT NULL with no default, so any one of them
+                    // arriving null makes the whole order write fail with a
+                    // 500 at checkout. package_fee is the usual culprit: for
+                    // an online service it comes straight from a form field.
+                    $columns = [
+                        'package_fee'       => 'DOUBLE NOT NULL DEFAULT 0',
+                        'extra_service'     => 'DOUBLE NOT NULL DEFAULT 0',
+                        'sub_total'         => 'DOUBLE NOT NULL DEFAULT 0',
+                        'tax'               => 'DOUBLE NOT NULL DEFAULT 0',
+                        'total'             => 'DOUBLE NOT NULL DEFAULT 0',
+                        'commission_amount' => 'DOUBLE NULL DEFAULT 0',
+                    ];
+
+                    $current = collect(DB::select('SHOW COLUMNS FROM `orders`'))->keyBy('Field');
+                    $done = [];
+
+                    foreach ($columns as $name => $definition) {
+                        $col = $current->get($name);
+                        if (! $col || $col->Default !== null) {
+                            continue;   // missing, or already has a default
+                        }
+                        DB::statement("ALTER TABLE `orders` MODIFY `{$name}` {$definition}");
+                        $done[] = $name;
+                    }
+
+                    return $done ? 'defaulted ' . implode(', ', $done) . ' to 0' : null;
+                },
+            ],
+
             'admin_permissions' => [
                 'title' => 'Admin permissions for the newer modules',
                 'run'   => function () {
