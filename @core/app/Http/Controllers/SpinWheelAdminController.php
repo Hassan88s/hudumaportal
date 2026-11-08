@@ -19,7 +19,9 @@ class SpinWheelAdminController extends Controller
             'wins'  => SpinWheelSpin::where('is_win', 1)->count(),
             'players' => SpinWheelSpin::distinct('user_id')->count('user_id'),
         ];
-        return view('backend.general-settings.spin-wheel', compact('settings', 'segments', 'recentWins', 'stats'));
+        $maxDiscountPercent = $svc->maxDiscountPercent();
+
+        return view('backend.general-settings.spin-wheel', compact('settings', 'segments', 'recentWins', 'stats', 'maxDiscountPercent'));
     }
 
     public function update(Request $request)
@@ -41,6 +43,31 @@ class SpinWheelAdminController extends Controller
         update_static_option('spin_wheel_force_first_lose', (int) $request->spin_wheel_force_first_lose === 1 ? 1 : 0);
         update_static_option('spin_wheel_title', $request->spin_wheel_title ?: 'Spin & Win');
         update_static_option('spin_wheel_subtitle', $request->spin_wheel_subtitle ?: '');
+
+        // Spin rewards are funded out of the admin commission, so a segment
+        // worth more than the commission cannot be honoured. Refuse to save it
+        // rather than let the wheel advertise a prize the checkout will trim.
+        $maxPct = app(SpinWheelService::class)->maxDiscountPercent();
+        if ($maxPct !== null) {
+            $tooBig = [];
+            foreach (($request->label ?? []) as $i => $label) {
+                $type  = ($request->type[$i] ?? 'nothing');
+                $value = (float) ($request->value[$i] ?? 0);
+                if ($type === 'discount' && $value > $maxPct) {
+                    $tooBig[] = trim($label) . ' (' . rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.') . '%)';
+                }
+            }
+
+            if (! empty($tooBig)) {
+                return back()->withInput()->with([
+                    'msg'  => __('These rewards are above the :max% admin commission, which is what funds them: :list. Lower them, or raise the commission first.', [
+                        'max'  => rtrim(rtrim(number_format($maxPct, 2, '.', ''), '0'), '.'),
+                        'list' => implode(', ', $tooBig),
+                    ]),
+                    'type' => 'danger',
+                ]);
+            }
+        }
 
         // Segments (parallel arrays from the repeatable rows)
         $segments = [];

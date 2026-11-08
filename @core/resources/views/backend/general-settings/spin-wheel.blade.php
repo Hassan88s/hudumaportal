@@ -67,6 +67,20 @@
                                 <button type="button" class="btn btn-sm btn-info" id="addSeg">+ {{ __('Add segment') }}</button>
                             </div>
                             <p class="text-muted">{{ __('Type "Discount" with a % value is a win. Type "Try Again" is a loss. Weight = relative chance on the second spin (bigger = more likely).') }}</p>
+
+                            @if(!is_null($maxDiscountPercent))
+                                <div class="alert alert-info">
+                                    <strong>{{ __('Maximum discount:') }}
+                                        {{ rtrim(rtrim(number_format($maxDiscountPercent, 2, '.', ''), '0'), '.') }}%</strong><br>
+                                    {{ __('Rewards are paid for out of your admin commission, not by the seller — the seller is paid exactly what they would have earned without the discount. A reward can therefore never be larger than the commission, which is currently') }}
+                                    {{ rtrim(rtrim(number_format($maxDiscountPercent, 2, '.', ''), '0'), '.') }}%.
+                                    {{ __('Segments above that will not save.') }}
+                                </div>
+                            @else
+                                <div class="alert alert-warning">
+                                    {{ __('Your commission is a flat fee rather than a percentage, so there is no percentage ceiling here. Each reward is still trimmed at checkout so it never exceeds the commission on that order.') }}
+                                </div>
+                            @endif
                             <div class="table-responsive">
                                 <table class="sw-seg-table" id="segTable">
                                     <thead>

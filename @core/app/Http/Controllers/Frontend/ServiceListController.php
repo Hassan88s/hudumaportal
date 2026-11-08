@@ -385,9 +385,17 @@ class ServiceListController extends Controller
             $spin = $spin_service->findRedeemableCode($request->coupon_code, Auth::guard('web')->id());
 
             if(!empty($spin)){
+                // Mirror the ceiling applied at checkout so the preview cannot
+                // promise more than the order will actually give.
+                $preview = $spin_service->discountFor($spin, (float) $request->total_amount);
+                $maxPct  = $spin_service->maxDiscountPercent();
+                if($maxPct !== null){
+                    $preview = min($preview, ((float) $request->total_amount * $maxPct) / 100);
+                }
+
                 return response()->json([
                     'status' => 'success',
-                    'coupon_amount' => $spin_service->discountFor($spin, (float) $request->total_amount),
+                    'coupon_amount' => round($preview, 2),
                 ]);
             }
 
@@ -752,6 +760,22 @@ class ServiceListController extends Controller
         }
         $total = $sub_total + $tax_amount;
 
+        // Commission is worked out BEFORE any discount, because a Spin & Win
+        // reward is funded by the platform: it comes out of this fee rather
+        // than out of the seller's payout.
+        $commission_amount = 0;
+        if($commission->system_type == 'subscription'){
+            if(subscriptionModuleExistsAndEnable('Subscription')){
+                $commission_amount = ($sub_total*$commission->commission_charge)/100;
+            }
+        }else{
+            if($commission->commission_charge_type=='percentage'){
+                $commission_amount = ($sub_total*$commission->commission_charge)/100;
+            }else{
+                $commission_amount = $commission->commission_charge;
+            }
+        }
+
         //calculate coupon amount
         $coupon_code = '';
         $coupon_type = '';
@@ -768,11 +792,20 @@ class ServiceListController extends Controller
                 $spin_service = app(\App\Services\SpinWheelService::class);
                 $spin = $spin_service->findRedeemableCode($request->coupon_code, Auth::guard('web')->id());
 
-                if(!empty($spin) && $spin_service->redeem($spin, $last_order_id)){
-                    $coupon_amount = $spin_service->discountFor($spin, $total);
-                    $total = $total - $coupon_amount;
-                    $coupon_code = $spin->code;
-                    $coupon_type = 'percentage';
+                // The reward is paid for out of the admin commission, so it is
+                // trimmed to that fee. The seller keeps exactly what they would
+                // have earned without the discount, and the platform's worst
+                // case is earning nothing on this order rather than paying in.
+                $spin_discount = !empty($spin)
+                    ? $spin_service->capDiscountToCommission($spin_service->discountFor($spin, $total), $commission_amount)
+                    : 0;
+
+                if(!empty($spin) && $spin_discount > 0 && $spin_service->redeem($spin, $last_order_id)){
+                    $coupon_amount     = $spin_discount;
+                    $total             = $total - $coupon_amount;
+                    $commission_amount = $commission_amount - $coupon_amount;
+                    $coupon_code       = $spin->code;
+                    $coupon_type       = 'percentage';
                 }else{
                     $coupon_code = '';
                 }
@@ -799,27 +832,10 @@ class ServiceListController extends Controller
                 }
             }
         }
-        $commission_amount = 0;
-
-        //commission amount
-        if($commission->system_type == 'subscription'){
-            if(subscriptionModuleExistsAndEnable('Subscription')){
-                // $commission_amount = $commission->commission_charge;
-                $commission_amount = ($sub_total*$commission->commission_charge)/100;
-               // dd($commission_amount);
-                // \Modules\Subscription\Entities\SellerSubscription::where('id', $request->seller_id)->update([
-                //     'connect' => DB::raw(sprintf("connect - %s",(int)strip_tags(get_static_option('set_number_of_connect')))),
-                // ]);
-            }
-        }else{
-           // die;
-            
-            if($commission->commission_charge_type=='percentage'){
-                $commission_amount = ($sub_total*$commission->commission_charge)/100;
-            }else{
-                $commission_amount = $commission->commission_charge;
-            }
-        }
+        // NOTE: the commission was worked out above, before the discount, and a
+        // Spin & Win reward has already been deducted from it. Do not recompute
+        // it here or the platform would stop funding the discount and the cost
+        // would fall back on the seller.
 
         Order::where('id', $last_order_id)->update([
             'package_fee' => $package_fee,

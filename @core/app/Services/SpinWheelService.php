@@ -25,16 +25,23 @@ class SpinWheelService
     const CONTEXT_ORDER        = 'service_order';
     const CONTEXT_SUBSCRIPTION = 'subscription';
 
-    /** Shipped defaults, used until an admin saves their own config. */
+    /**
+     * Shipped defaults, used until an admin saves their own config.
+     *
+     * Nothing here exceeds 10%, because the discount is funded out of the
+     * admin commission and 10% is the default commission rate. A segment
+     * worth more than the commission would be trimmed at checkout, so the
+     * wheel would advertise a prize it cannot pay.
+     */
     const DEFAULT_SEGMENTS = [
         ['label' => 'Try Again', 'type' => 'nothing',  'value' => 0,  'weight' => 28, 'color' => '#5a6488', 'emoji' => '🔁'],
-        ['label' => '5% OFF',    'type' => 'discount', 'value' => 5,  'weight' => 24, 'color' => '#39d0c9', 'emoji' => '🏷️'],
-        ['label' => '10% OFF',   'type' => 'discount', 'value' => 10, 'weight' => 18, 'color' => '#4c8dff', 'emoji' => '🔖'],
-        ['label' => '15% OFF',   'type' => 'discount', 'value' => 15, 'weight' => 12, 'color' => '#a66bff', 'emoji' => '💎'],
+        ['label' => '2% OFF',    'type' => 'discount', 'value' => 2,  'weight' => 24, 'color' => '#39d0c9', 'emoji' => '🏷️'],
+        ['label' => '4% OFF',    'type' => 'discount', 'value' => 4,  'weight' => 18, 'color' => '#4c8dff', 'emoji' => '🔖'],
+        ['label' => '5% OFF',    'type' => 'discount', 'value' => 5,  'weight' => 12, 'color' => '#a66bff', 'emoji' => '💎'],
         ['label' => 'Try Again', 'type' => 'nothing',  'value' => 0,  'weight' => 20, 'color' => '#6b7390', 'emoji' => '😅'],
-        ['label' => '20% OFF',   'type' => 'discount', 'value' => 20, 'weight' => 8,  'color' => '#ff5d7a', 'emoji' => '🔥'],
-        ['label' => '25% OFF',   'type' => 'discount', 'value' => 25, 'weight' => 4,  'color' => '#ffcf4d', 'emoji' => '🏆'],
-        ['label' => '50% OFF',   'type' => 'discount', 'value' => 50, 'weight' => 2,  'color' => '#ff8a54', 'emoji' => '🎉'],
+        ['label' => '6% OFF',    'type' => 'discount', 'value' => 6,  'weight' => 8,  'color' => '#ff5d7a', 'emoji' => '🔥'],
+        ['label' => '8% OFF',    'type' => 'discount', 'value' => 8,  'weight' => 4,  'color' => '#ffcf4d', 'emoji' => '🏆'],
+        ['label' => '10% OFF',   'type' => 'discount', 'value' => 10, 'weight' => 2,  'color' => '#ff8a54', 'emoji' => '🎉'],
     ];
 
     public function settings(): array
@@ -365,6 +372,41 @@ class SpinWheelService
 
         // Never hand back more than the order is worth.
         return round(min($amount, $total), 2);
+    }
+
+    /**
+     * The highest discount a segment may offer, as a percentage.
+     *
+     * Spin rewards are funded by the platform, not the seller: the discount is
+     * taken out of the admin commission so the seller is paid exactly what
+     * they would have been without it. That only works while the discount is
+     * no larger than the commission, so the commission rate IS the ceiling.
+     *
+     * Returns null when the commission is a flat fee rather than a percentage,
+     * because there is then no meaningful percentage ceiling — the per-order
+     * cap in capDiscountToCommission() still applies.
+     */
+    public function maxDiscountPercent(): ?float
+    {
+        $commission = \App\AdminCommission::first();
+        if (! $commission) {
+            return null;
+        }
+
+        $isPercentage = $commission->system_type === 'subscription'
+            || $commission->commission_charge_type === 'percentage';
+
+        return $isPercentage ? max(0, (float) $commission->commission_charge) : null;
+    }
+
+    /**
+     * Trim a discount so it never exceeds what the platform earns on the order.
+     * The worst case is the platform making nothing on that sale; it can never
+     * end up paying the seller out of pocket.
+     */
+    public function capDiscountToCommission(float $discount, float $commissionAmount): float
+    {
+        return round(max(0, min($discount, $commissionAmount)), 2);
     }
 
     /** Weighted random index across all segments. */
