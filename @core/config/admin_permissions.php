@@ -52,7 +52,11 @@ return [
         ],
 
         'Finance' => [
-            'admin-commission', 'amount-settings', 'dashboard-finance',
+            'admin-commission', 'amount-settings', 'dashboard-finance', 'tax-manage',
+        ],
+
+        'Site Administration' => [
+            'registration-settings', 'database-maintenance', 'notice-manage',
         ],
 
         'Subscriptions' => [
@@ -210,6 +214,57 @@ return [
         'admin.general.global.variant.footer'        => 'general-settings-global-footer-settings',
         'admin.general.global.variant.navbar'        => 'general-settings-global-navbar-settings',
 
+        /*
+        | Phase 1: actions that move money, change what buyers are charged,
+        | write to the database in bulk, or decide what sellers are told about
+        | their payouts. Previously reachable by any admin role that knew the
+        | URL, because hiding a menu item does not block a request.
+        */
+
+        // Commission and platform amounts.
+        'admin.commission.update'                    => 'admin-commission',
+        'admin.amount.settings'                      => 'amount-settings',
+        'admin.amount.settings.update'               => 'amount-settings',
+
+        // Who may register, and what they are told when closing an account.
+        'admin.user.register.settings'               => 'registration-settings',
+        'admin.seller.register.settings.update'      => 'registration-settings',
+        'admin.buyer.register.settings.update'       => 'registration-settings',
+        'admin.user.account.delete.request.update'   => 'registration-settings',
+
+        // Tax — what buyers actually pay.
+        'admin.country.tax'                          => 'tax-manage',
+        'admin.country.tax.edit'                     => 'tax-manage',
+        'admin.service.tax.update'                   => 'tax-manage',
+
+        // Schema changes. Super Admin territory.
+        'admin.database.update'                      => 'database-maintenance',
+        'admin.database.update.run'                  => 'database-maintenance',
+        'admin.general.database.upgrade'             => 'database-maintenance',
+
+        // Bulk CSV writes straight into the location tables.
+        'admin.import.csv.settings'                  => 'country-create',
+        'admin.country.import'                       => 'country-create',
+        'admin.country.import.database'              => 'country-create',
+        'admin.import.city.csv.settings'             => 'city-create',
+        'admin.city.import'                          => 'city-create',
+        'admin.city.import.database'                 => 'city-create',
+        'admin.import.area.csv.settings'             => 'area-create',
+        'admin.area.import'                          => 'area-create',
+        'admin.area.import.database'                 => 'area-create',
+        'admin.area.import.country.city'             => 'area-create',
+
+        // Deletions that were open to everyone.
+        'admin.notification.delete'                  => 'notice-manage',
+        'admin.delete.notice'                        => 'notice-manage',
+        'admin.custom.delete.font.file'              => 'general-settings-typography-settings',
+        'admin.general.sitemap.settings.delete'      => 'general-settings-seo-settings',
+
+        // What sellers are told about their money.
+        'admin.seller.payout.request.template'       => 'general-settings-email-template',
+        'admin.seller.payout.request'                => 'general-settings-email-template',
+        'admin.payment.withdraw.amount.email'        => 'general-settings-email-template',
+
     ],
 
     /*
@@ -226,6 +281,13 @@ return [
         'admin-home/general-settings/referral-clicks'      => 'referral-manage',
         'admin-home/general-settings/referrer-leaderboard' => 'referral-manage',
         'admin-home/general-settings/spin-wheel'           => 'spin-wheel-manage',
+
+        // Catches the unnamed POST on these screens as well as the named GETs.
+        'admin-home/general-settings/database-update'      => 'database-maintenance',
+        'admin-home/general-settings/database-upgrade'     => 'database-maintenance',
+        'admin-home/seller-settings/admin-commission'      => 'admin-commission',
+        'admin-home/seller-settings/amount-settings'       => 'amount-settings',
+        'admin-home/country/tax'                           => 'tax-manage',
     ],
 
 ];

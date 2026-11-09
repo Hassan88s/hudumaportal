@@ -196,6 +196,10 @@ class SystemUpgradeService
                         'referral-manage',
                         'dashboard-finance',
                         'dashboard-stats',
+                        'registration-settings',
+                        'tax-manage',
+                        'database-maintenance',
+                        'notice-manage',
                     ]);
                 },
             ],

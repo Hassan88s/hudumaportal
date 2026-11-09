@@ -53,6 +53,7 @@
         <link rel="stylesheet" href="{{asset('assets/backend/css/rtl.css')}}">
     @endif
 
+    @include('backend.partials.notifications-style')
 </head>
 
 <body>
@@ -78,72 +79,7 @@
                 </div>
                 <div class="col-md-9 col-sm-9 clearfix">
                     <ul class="notification-area pull-right">
-                    @php
-                        $unread_count = 0;
-
-                             $admin_unread_notifications = [];
-                             try{
-                                $unread_count = \App\AdminNotification::where('status', 0)->count();
-                                $admin_unread_notifications = \App\AdminNotification::where('status', 0)->take(5)->get();
-                             }catch(\Exception $e){  }
-                            
-                        @endphp
-                        <li class="dropdown">
-                            <i class="ti-bell dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-                                <span>{{ $unread_count }}</span>
-                            </i>
-                            <div class="dropdown-menu bell-notify-box notify-box" x-placement="top-start">
-                                <span class="notify-title">{{ __('Notifications') }}
-                                    <a href="{{ route('admin.notifications.all') }}">{{ __('view all') }}</a>
-                                </span>
-
-                                <div class="slimScrollDiv">
-                                    <div class="nofity-list">
-                                        <!-- Order section start -->
-                                        @foreach($admin_unread_notifications as $data)
-                                            @if(!empty($data->order_id))
-                                            <a href="{{ route('admin.orders.details', $data->order_id) }}" class="notify-item">
-                                                <div class="notify-thumb"><i class="ti-check-box btn-dark"></i></div>
-                                                <div class="notify-text">
-                                                    <p>{{ __('New order') }} #{{ $data->order_id ?? '' }}</p>
-                                                    <span> {{ \Carbon\Carbon::parse($data->created_at)->diffForHumans() }} </span>
-                                                </div>
-                                            </a>
-                                              @endif
-                                         @endforeach
-                                        <!-- Order section end -->
-                                        <!-- Tickets section start -->
-                                        @foreach($admin_unread_notifications as $data)
-                                            @if(!empty($data->ticket_id))
-                                            <a href="{{ route('admin.ticket.details', $data->ticket_id) }}" class="notify-item">
-                                                <div class="notify-thumb"><i class="ti-check-box btn-dark"></i></div>
-                                                <div class="notify-text">
-                                                    <p>{{ __('New order ticket') }} #{{ $data->ticket_id ?? '' }}</p>
-                                                    <span> {{ \Carbon\Carbon::parse($data->created_at)->diffForHumans() }} </span>
-                                                </div>
-                                            </a>
-                                              @endif
-                                         @endforeach
-                                        <!-- Tickets section end -->
-                                        <!-- Job post section start -->
-                                        @foreach($admin_unread_notifications as $data)
-                                            @if(!empty($data->job_post_id))
-                                            <a href="{{ route('job.post.details', optional($data->buyerJob)->slug ?? '') }}" class="notify-item">
-                                                <div class="notify-thumb"><i class="ti-check-box btn-dark"></i></div>
-                                                <div class="notify-text">
-                                                    <p>{{ __('New Job Created') }} #{{ $data->job_post_id ?? '' }}</p>
-                                                    <span> {{ \Carbon\Carbon::parse($data->created_at)->diffForHumans() }} </span>
-                                                </div>
-                                            </a>
-                                              @endif
-                                         @endforeach
-                                        <!-- Job Post section end -->
-                                    </div>
-                                    <div class="slimScrollBar"></div><div class="slimScrollRail">
-                                    </div>
-                                </div>
-                            </div>
-                        </li>
+                        @include('backend.partials.notifications')
                         <li ><label class="switch yes">
                             <input id="darkmode" type="checkbox" data-mode={{ get_static_option('site_admin_dark_mode') }} @if(get_static_option('site_admin_dark_mode') == 'on') checked @else @endif>
                             <span class="slider-color-mode onff"></span>
