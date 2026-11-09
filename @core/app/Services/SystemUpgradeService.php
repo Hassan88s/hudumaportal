@@ -204,6 +204,98 @@ class SystemUpgradeService
                 },
             ],
 
+            'admin_permissions_phase2' => [
+                'title' => 'Admin permissions for the rest of the panel',
+                'run'   => function () {
+                    /*
+                     * Most of these are names the panel already used — in a
+                     * sidebar @can or a controller's permission: middleware —
+                     * that had never been created as permissions. The effect
+                     * was the worst of both: the menu item was invisible to
+                     * every role but Super Admin, nobody could grant it on
+                     * the role screen, and the URL itself stayed wide open.
+                     */
+                    $created = $this->ensurePermissions([
+                        // Orders
+                        'order-status', 'cancel-order-list', 'order-request-complete',
+                        'extra-orders', 'order-success-setting', 'order-create-setting',
+                        'seller-buyer-report',
+                        // Services
+                        'admin-service-list', 'admin-service-add', 'coupon-list',
+                        'service-create-setting', 'service-review-manage', 'service-promote-manage',
+                        // Blog
+                        'blog-single-settings', 'blog-trashed-edit',
+                        'blog-category-list', 'blog-category-create',
+                        'blog-category-edit', 'blog-category-delete',
+                        // Pages
+                        'page-settings-404-page-manage', 'page-settings-maintain-page-manage',
+                        'page-settings-contact-page-manage', 'page-settings-blog-page-manage',
+                        // Subscriptions
+                        'subscription-edit', 'subscription-delete', 'subscription-settings',
+                        // Everything else
+                        'brand-status', 'appearance-home-variant',
+                        'advertisement-list', 'advertisement-create',
+                        'advertisement-edit', 'advertisement-delete',
+                        'enterprise-manage', 'public-chat', 'all-seller',
+                        'general-settings-payment-gateway-settings', 'general-settings-pusher',
+                        'general-settings-otp-settings', 'general-settings-adspace-settings',
+                        'general-settings-page-settings', 'gdpr-settings', 'company-settings',
+                    ]);
+
+                    /*
+                     * These permissions split up areas that used to need no
+                     * permission at all, so a role that already works in an
+                     * area keeps working in it. Done once only, recorded in
+                     * static_options: if an admin later unticks one of these
+                     * boxes deliberately, re-running the upgrade must not put
+                     * it back.
+                     */
+                    $inherited = null;
+                    if (! DB::table('static_options')->where('option_name', 'hp_perm_phase2_inherited')->exists()) {
+                        $inherited = $this->inheritPermissions([
+                            'order-list' => [
+                                'order-status', 'cancel-order-list', 'order-request-complete',
+                                'extra-orders', 'order-success-setting', 'seller-buyer-report',
+                            ],
+                            'service-list' => [
+                                'admin-service-list', 'admin-service-add', 'coupon-list',
+                                'service-create-setting', 'order-create-setting',
+                                'service-review-manage', 'service-promote-manage',
+                            ],
+                            'blog-list'         => [
+                                'blog-single-settings', 'page-settings-blog-page-manage',
+                                'blog-category-list', 'blog-category-create',
+                                'blog-category-edit', 'blog-category-delete',
+                            ],
+                            'blog-trashed-list' => ['blog-trashed-edit'],
+                            'brand-list'        => ['brand-status'],
+                            'pages-list'        => [
+                                'page-settings-404-page-manage',
+                                'page-settings-maintain-page-manage',
+                                'page-settings-contact-page-manage',
+                            ],
+                            'subscription-list'      => ['subscription-edit', 'subscription-delete', 'subscription-settings'],
+                            'appearance-menu-list'   => ['appearance-home-variant'],
+                            'user-list' => ['enterprise-manage', 'public-chat', 'all-seller'],
+                            'general-settings-basic-settings' => [
+                                'general-settings-payment-gateway-settings', 'general-settings-pusher',
+                                'general-settings-otp-settings', 'general-settings-adspace-settings',
+                                'general-settings-page-settings', 'gdpr-settings', 'company-settings',
+                            ],
+                        ]);
+
+                        DB::table('static_options')->insert([
+                            'option_name'  => 'hp_perm_phase2_inherited',
+                            'option_value' => '1',
+                            'created_at'   => now(),
+                            'updated_at'   => now(),
+                        ]);
+                    }
+
+                    return trim(implode('; ', array_filter([$created, $inherited]))) ?: null;
+                },
+            ],
+
         ];
     }
 
@@ -264,6 +356,49 @@ class SystemUpgradeService
         }
 
         return $added ? 'added ' . implode(', ', $added) : null;
+    }
+
+    /**
+     * Give each role that already holds $existing the permissions listed
+     * against it. Used once, when an area that needed no permission is split
+     * into named ones, so nobody loses access they were already using.
+     * Roles that never had $existing are left alone — that is the point.
+     */
+    protected function inheritPermissions(array $map): ?string
+    {
+        $granted = 0;
+        $roles   = [];
+
+        foreach ($map as $existing => $newOnes) {
+            $existingId = DB::table('permissions')
+                ->where('name', $existing)->where('guard_name', 'admin')->value('id');
+            if (! $existingId) {
+                continue;
+            }
+
+            $roleIds = DB::table('role_has_permissions')
+                ->where('permission_id', $existingId)->pluck('role_id')->all();
+            if (! $roleIds) {
+                continue;
+            }
+
+            $newIds = DB::table('permissions')
+                ->whereIn('name', $newOnes)->where('guard_name', 'admin')->pluck('id')->all();
+
+            foreach ($roleIds as $roleId) {
+                foreach ($newIds as $newId) {
+                    $granted += DB::table('role_has_permissions')->insertOrIgnore([
+                        'permission_id' => $newId,
+                        'role_id'       => $roleId,
+                    ]);
+                }
+                $roles[$roleId] = true;
+            }
+        }
+
+        return $granted
+            ? 'carried ' . $granted . ' permission(s) over to ' . count($roles) . ' existing role(s)'
+            : null;
     }
 
     protected function hasIndex(string $table, string $index): bool

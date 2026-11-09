@@ -29,6 +29,14 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\ActivityByUser::class,
             \App\Http\Middleware\RecordChampionSignal::class,
             \App\Http\Middleware\ComingSoon::class,
+            /*
+             * Admin permission enforcement sits in the web group, not only on
+             * the admin route group, because JobPost, LiveChat, Subscription
+             * and Wallet declare their own 'admin-home/...' groups and never
+             * inherited it. The middleware ignores anything that is not an
+             * admin-home request, so frontend traffic is unaffected.
+             */
+            \App\Http\Middleware\AdminRoutePermission::class,
         ],
         'api' => [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,

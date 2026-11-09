@@ -15,7 +15,13 @@ class PublicChatController extends Controller
     public function __construct()
     {
         $this->middleware('auth:admin');
-        $this->middleware('permission:public-chat',['only' => ['chatUsers']]);
+        /*
+         * This was scoped to 'chatUsers', a method no route points at, so
+         * every real screen here — the seller list, a buyer's conversation,
+         * the message history, the login-text toggle — was open to any admin
+         * role. The permission belongs on all of them.
+         */
+        $this->middleware('permission:public-chat');
     }
 
     public function seller()

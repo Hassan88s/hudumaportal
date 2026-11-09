@@ -8,15 +8,39 @@ use Illuminate\Support\Facades\Auth;
 /**
  * Enforces admin permissions at the route level.
  *
- * Applied to the whole admin-home route group. It only blocks route names
- * listed in config('admin_permissions.route_map'); every other route passes
- * through untouched, so enforcement can be expanded one entry at a time
- * without risking surprise 403s elsewhere. Super Admin always bypasses.
+ * Registered in the 'web' middleware group so it covers every admin-home
+ * route, including the ones modules declare in their own groups. It only
+ * blocks route names in config('admin_permissions.route_map') and path
+ * prefixes in 'path_map'; every other route passes through untouched, so
+ * enforcement can be expanded one entry at a time without risking surprise
+ * 403s elsewhere. Super Admin always bypasses.
  */
 class AdminRoutePermission
 {
     public function handle($request, Closure $next)
     {
+        /*
+         * This sits in the 'web' group, not only on the admin route group,
+         * because four modules (JobPost, LiveChat, Subscription, Wallet)
+         * register their own admin-home groups and so never inherited the
+         * group's middleware — 36 admin screens, wallet and subscriptions
+         * among them, were outside enforcement entirely. Leave every other
+         * request alone before touching the session, so frontend traffic
+         * pays nothing for this.
+         */
+        $route = $request->route();
+        $uri   = $route ? ltrim($route->uri(), '/') : null;
+
+        // Judge by the matched route where there is one — the request path can
+        // differ (and does in tests that resolve a route by hand).
+        $isAdminArea = $uri !== null
+            ? strpos($uri, 'admin-home') === 0
+            : $request->is('admin-home', 'admin-home/*');
+
+        if (! $isAdminArea) {
+            return $next($request);
+        }
+
         $admin = Auth::guard('admin')->user();
 
         // No admin session, or Super Admin -> let the request through.
@@ -24,8 +48,7 @@ class AdminRoutePermission
             return $next($request);
         }
 
-        $route = $request->route();
-        $name  = $route ? $route->getName() : null;
+        $name = $route ? $route->getName() : null;
 
         // 1) Exact route-name rules (route names contain dots, e.g.
         //    "admin.service.delete", so look them up as a flat array key — NOT
@@ -35,7 +58,8 @@ class AdminRoutePermission
         // 2) Whole-section rules by URL path prefix (covers many routes at once,
         //    e.g. every Champions / Referral page under one prefix).
         if (! $required) {
-            $path = $request->path();
+            // Prefer the matched route's URI; fall back to the request path.
+            $path = $uri ?? $request->path();
             foreach (config('admin_permissions.path_map', []) as $prefix => $perm) {
                 if ($path === $prefix || strpos($path, rtrim($prefix, '/') . '/') === 0) {
                     $required = $perm;
