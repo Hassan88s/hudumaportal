@@ -439,6 +439,14 @@
 
 @section('script')
     <script src="{{asset('assets/backend/js/chart.js')}}"></script>
+    @if(get_static_option('site_admin_dark_mode') == 'on')
+        <script>
+            /* The cards these charts sit on are dark, so Chart.js's default
+               near-black labels and grid lines would be unreadable on them. */
+            Chart.defaults.color = '#c7ccd8';
+            Chart.defaults.borderColor = 'rgba(255, 255, 255, .12)';
+        </script>
+    @endif
     <script>
     /* Line Charts */
     @can('dashboard-stats')

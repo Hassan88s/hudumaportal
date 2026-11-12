@@ -116,6 +116,24 @@
         opacity: .62;
     }
 
+    /* The full notification list reuses the bell's icons and badges. An
+       unread row is marked with a rail down its leading edge rather than a
+       tinted background, which the table's own row colours would fight. */
+    .hp-notify__row--unread > td:first-child {
+        box-shadow: inset 3px 0 0 0 #ff5d7a;
+    }
+
+    .hp-notify__row--unread > td {
+        font-weight: 500;
+    }
+
+    .hp-notify__icon.d-inline-flex {
+        width: 28px;
+        height: 28px;
+        flex: 0 0 28px;
+        font-size: 15px;
+    }
+
     .hp-notify__empty {
         padding: 34px 16px;
         text-align: center;

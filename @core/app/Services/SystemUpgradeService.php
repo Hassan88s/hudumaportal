@@ -240,6 +240,23 @@ class SystemUpgradeService
                         'general-settings-payment-gateway-settings', 'general-settings-pusher',
                         'general-settings-otp-settings', 'general-settings-adspace-settings',
                         'general-settings-page-settings', 'gdpr-settings', 'company-settings',
+
+                        /*
+                         * The same problem one level down: these are checked
+                         * by @can on buttons inside pages rather than in the
+                         * sidebar, so the Edit, Delete, Status and Send Email
+                         * controls on those screens were invisible to every
+                         * role but Super Admin.
+                         */
+                        'admin-service-edit', 'admin-service-status', 'admin-service-delete',
+                        'admin-service-attributes-add', 'admin-service-attributes-edit',
+                        'admin-service-attributes-show', 'admin-coupon-edit',
+                        'child-category-list', 'child-category-create',
+                        'child-category-status', 'child-category-delete',
+                        'complete-status', 'report-delete', 'coupon-delete',
+                        'custom-font-status', 'custom-font-delete',
+                        'email-verify-code', 'newsletter-send-mail',
+                        'subscription-status', 'send-email', 'notification-delete',
                     ]);
 
                     /*
@@ -250,9 +267,7 @@ class SystemUpgradeService
                      * boxes deliberately, re-running the upgrade must not put
                      * it back.
                      */
-                    $inherited = null;
-                    if (! DB::table('static_options')->where('option_name', 'hp_perm_phase2_inherited')->exists()) {
-                        $inherited = $this->inheritPermissions([
+                    $inherited = $this->inheritOnce('hp_perm_phase2_inherited', [
                             'order-list' => [
                                 'order-status', 'cancel-order-list', 'order-request-complete',
                                 'extra-orders', 'order-success-setting', 'seller-buyer-report',
@@ -276,27 +291,68 @@ class SystemUpgradeService
                             ],
                             'subscription-list'      => ['subscription-edit', 'subscription-delete', 'subscription-settings'],
                             'appearance-menu-list'   => ['appearance-home-variant'],
-                            'user-list' => ['enterprise-manage', 'public-chat', 'all-seller'],
+                            'user-list' => [
+                                'enterprise-manage', 'public-chat', 'all-seller',
+                            ],
                             'general-settings-basic-settings' => [
                                 'general-settings-payment-gateway-settings', 'general-settings-pusher',
                                 'general-settings-otp-settings', 'general-settings-adspace-settings',
                                 'general-settings-page-settings', 'gdpr-settings', 'company-settings',
                             ],
-                        ]);
+                    ]);
 
-                        DB::table('static_options')->insert([
-                            'option_name'  => 'hp_perm_phase2_inherited',
-                            'option_value' => '1',
-                            'created_at'   => now(),
-                            'updated_at'   => now(),
-                        ]);
-                    }
+                    /*
+                     * A second wave, under its own flag. The first flag is
+                     * already set everywhere this has run, so adding names to
+                     * that map would have been a no-op on every live site.
+                     */
+                    $buttons = $this->inheritOnce('hp_perm_buttons_inherited', [
+                        'order-list' => ['complete-status', 'report-delete'],
+                        'service-list' => [
+                            'admin-service-edit', 'admin-service-status', 'admin-service-delete',
+                            'admin-service-attributes-add', 'admin-service-attributes-edit',
+                            'admin-service-attributes-show', 'admin-coupon-edit',
+                        ],
+                        'category-list' => [
+                            'child-category-list', 'child-category-create',
+                            'child-category-status', 'child-category-delete',
+                        ],
+                        'user-list'                => ['email-verify-code', 'newsletter-send-mail'],
+                        'subscription-coupon-list' => ['coupon-delete'],
+                        'seller-subscription-list' => ['subscription-status', 'send-email'],
+                        'general-settings-typography-settings' => ['custom-font-status', 'custom-font-delete'],
+                    ]);
 
-                    return trim(implode('; ', array_filter([$created, $inherited]))) ?: null;
+                    return trim(implode('; ', array_filter([$created, $inherited, $buttons]))) ?: null;
                 },
             ],
 
         ];
+    }
+
+    /**
+     * Apply an inheritance map once, remembered under $flag.
+     *
+     * Each wave needs its own flag: once a flag is set, its map never runs
+     * again, which is the point — an admin who later unticks one of these
+     * boxes must not have it put back by the next upgrade.
+     */
+    protected function inheritOnce(string $flag, array $map): ?string
+    {
+        if (DB::table('static_options')->where('option_name', $flag)->exists()) {
+            return null;
+        }
+
+        $result = $this->inheritPermissions($map);
+
+        DB::table('static_options')->insert([
+            'option_name'  => $flag,
+            'option_value' => '1',
+            'created_at'   => now(),
+            'updated_at'   => now(),
+        ]);
+
+        return $result;
     }
 
     /** Create any missing static_options without touching existing values. */

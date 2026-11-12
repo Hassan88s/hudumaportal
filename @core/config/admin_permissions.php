@@ -35,19 +35,25 @@ return [
 
         'User Management' => [
             'user-list', 'user-create', 'user-edit', 'user-delete',
+            'email-verify-code', 'newsletter-send-mail',
         ],
 
         'Services' => [
             'service-list', 'service-view', 'service-status', 'service-delete',
-            'admin-service-list', 'admin-service-add',
+            'admin-service-list', 'admin-service-add', 'admin-service-edit',
+            'admin-service-status', 'admin-service-delete',
+            'admin-service-attributes-add', 'admin-service-attributes-edit',
+            'admin-service-attributes-show',
             'service-book-setting', 'service-detail-setting', 'service-create-setting',
-            'coupon-list', 'service-review-manage', 'service-promote-manage',
+            'coupon-list', 'admin-coupon-edit',
+            'service-review-manage', 'service-promote-manage',
         ],
 
         'Orders' => [
             'order-list', 'order-view', 'order-status', 'order-delete',
             'cancel-order-list', 'order-request-complete', 'extra-orders',
-            'order-success-setting', 'order-create-setting', 'seller-buyer-report',
+            'complete-status', 'order-success-setting', 'order-create-setting',
+            'seller-buyer-report', 'report-delete',
         ],
 
         'Payouts & Wallet' => [
@@ -61,12 +67,14 @@ return [
 
         'Site Administration' => [
             'registration-settings', 'database-maintenance', 'notice-manage',
+            'notification-delete',
         ],
 
         'Subscriptions' => [
             'subscription-list', 'subscription-edit', 'subscription-delete',
-            'subscription-settings', 'subscription-coupon-list',
+            'subscription-settings', 'subscription-coupon-list', 'coupon-delete',
             'subscription-reminder', 'seller-subscription-list',
+            'subscription-status', 'send-email',
         ],
 
         'Jobs' => [
@@ -96,6 +104,7 @@ return [
         'Categories & Brands' => [
             'category-list', 'category-create', 'category-edit', 'category-delete', 'category-status',
             'subcategory-list', 'subcategory-create', 'subcategory-edit', 'subcategory-delete', 'subcategory-status',
+            'child-category-list', 'child-category-create', 'child-category-status', 'child-category-delete',
             'brand-list', 'brand-create', 'brand-edit', 'brand-delete', 'brand-status',
         ],
 
@@ -129,6 +138,7 @@ return [
             'general-settings-color-settings', 'general-settings-typography-settings',
             'general-settings-email-settings', 'general-settings-smtp-settings',
             'general-settings-email-template', 'general-settings-reading-settings',
+            'custom-font-status', 'custom-font-delete',
             'general-settings-seo-settings', 'general-settings-cache-settings',
             'general-settings-custom-css', 'general-settings-custom-js',
             'general-settings-third-party-scripts', 'general-settings-licence-settings',
@@ -287,7 +297,7 @@ return [
         'admin.area.import.country.city'             => 'area-create',
 
         // Deletions that were open to everyone.
-        'admin.notification.delete'                  => 'notice-manage',
+        'admin.notification.delete'                  => 'notification-delete',
         'admin.delete.notice'                        => 'notice-manage',
         'admin.custom.delete.font.file'              => 'general-settings-typography-settings',
         'admin.general.sitemap.settings.delete'      => 'general-settings-seo-settings',
@@ -335,14 +345,16 @@ return [
         'admin.blog.details.settings.update'         => 'blog-detail-setting',
         'admin.blog.others.settings'                 => 'blog-detail-setting',
 
-        // Child categories — the third taxonomy level.
-        'admin.child.category'                       => 'category-list',
-        'admin.child.category.new'                   => 'category-create',
-        'admin.child.category.edit'                  => 'category-edit',
-        'admin.child.category.status'                => 'category-status',
-        'admin.child.category.bulk.action'           => 'category-delete',
-        'admin.select.subcategory'                   => 'category-list',
-        'admin.get.subcategory.by.category'          => 'category-list',
+        // Child categories — the third taxonomy level. Its page checks
+        // 'child-category-*' on its own buttons, so the routes use the same
+        // names rather than a second, nearly-identical set.
+        'admin.child.category'                       => 'child-category-list',
+        'admin.child.category.new'                   => 'child-category-create',
+        'admin.child.category.edit'                  => 'child-category-create',
+        'admin.child.category.status'                => 'child-category-status',
+        'admin.child.category.bulk.action'           => 'child-category-delete',
+        'admin.select.subcategory'                   => 'child-category-list',
+        'admin.get.subcategory.by.category'          => 'child-category-list',
 
         // Fonts uploaded into the theme.
         'admin.custom.font.add'                      => 'general-settings-typography-settings',
@@ -438,12 +450,12 @@ return [
         'admin.all.services'                              => 'admin-service-list',
         'edit.service.history.list'                       => 'service-view',
         'admin.add.service'                               => 'admin-service-add',
-        'admin.edit.service'                              => 'admin-service-add',
-        'admin.add.service.attributes'                    => 'admin-service-add',
-        'admin.add.service.attributes.by.id'              => 'admin-service-add',
-        'admin.edit.service.attributes.by.id'             => 'admin-service-add',
-        'admin.edit.service.attribute.offline.and.online' => 'admin-service-add',
-        'admin.show.service.attributes.by.id'             => 'admin-service-add',
+        'admin.edit.service'                              => 'admin-service-edit',
+        'admin.add.service.attributes'                    => 'admin-service-attributes-add',
+        'admin.add.service.attributes.by.id'              => 'admin-service-attributes-add',
+        'admin.edit.service.attributes.by.id'             => 'admin-service-attributes-edit',
+        'admin.edit.service.attribute.offline.and.online' => 'admin-service-attributes-edit',
+        'admin.show.service.attributes.by.id'             => 'admin-service-attributes-show',
         'admin.get.subcategory'                           => 'admin-service-add',
         'admin.get.subcategory.with.child.category'       => 'admin-service-add',
 

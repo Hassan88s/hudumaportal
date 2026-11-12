@@ -353,3 +353,40 @@ p{
     background-color: #0b0b0b;
     padding: 40px;
 }
+/* ---------------------------------------------------------------------------
+   Dashboard panels.
+
+   Dark mode sets `.table { color: #fff }` for every table, but the dashboard's
+   cards were never given a dark background — `.card-wrapper` stayed on the
+   light theme's white. So "Most Viewed Services" and "Most Ordered Services"
+   rendered white text on a white card: the rows were there, just invisible
+   unless you selected them. The stat boxes above them were already handled
+   (`.dash-box`), so these panels were simply missed.
+--------------------------------------------------------------------------- */
+.card-wrapper {
+    background-color: #303640;
+    color: #dfe3ec;
+}
+
+.card-wrapper .table,
+.card-wrapper .table thead th,
+.card-wrapper .table tbody td {
+    color: #dfe3ec;
+}
+
+.card-wrapper .table.table-bordered,
+.card-wrapper .table-bordered th,
+.card-wrapper .table-bordered td {
+    border-color: rgba(255, 255, 255, .12);
+}
+
+.card-wrapper .table tbody tr:hover > td {
+    background-color: #383d48;
+}
+
+/* An order row whose service was deleted has nothing to show; keep the empty
+   cells from reading as a rendering fault. */
+.card-wrapper .table td:empty::after {
+    content: "—";
+    opacity: .35;
+}
