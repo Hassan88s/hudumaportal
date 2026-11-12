@@ -2983,3 +2983,34 @@ curl_close($curl);
 
 
 
+
+if (! function_exists('asset_v')) {
+    /**
+     * asset() with a cache-busting stamp taken from the file's own timestamp.
+     *
+     * None of the admin stylesheets carried a version, so a browser that had
+     * seen the panel once kept serving the old CSS: a fix to dark mode only
+     * reached an admin who happened to hard-refresh. The stamp changes when
+     * the file does, and only then, so caching still works the rest of the
+     * time.
+     *
+     * The app lives in @core while these files sit in the project's own
+     * assets/ folder next to it, so both locations are tried before giving
+     * up and returning the plain URL.
+     */
+    function asset_v($path)
+    {
+        $relative = ltrim($path, '/');
+
+        foreach ([dirname(base_path()), public_path(), base_path()] as $root) {
+            $file = rtrim($root, '/' . DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+
+            if (is_file($file)) {
+                $stamp = @filemtime($file);
+                return $stamp ? asset($path) . '?v=' . $stamp : asset($path);
+            }
+        }
+
+        return asset($path);
+    }
+}

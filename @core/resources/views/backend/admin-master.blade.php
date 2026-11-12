@@ -28,12 +28,12 @@
     <link rel="stylesheet" href="{{asset('assets/backend/css/metisMenu.css')}}">
     <link rel="stylesheet" href="{{asset('assets/backend/css/slicknav.min.css')}}">
     <link rel="stylesheet" href="{{ asset('assets/frontend/css/flaticon.css') }}">
-    <link rel="stylesheet" href="{{asset('assets/frontend/css/line-awesome.min.css')}}">
+    <link rel="stylesheet" href="{{asset_v('assets/frontend/css/line-awesome.min.css')}}">
     <!-- others css -->
-    <link rel="stylesheet" href="{{asset('assets/backend/css/typography.css')}}">
-    <link rel="stylesheet" href="{{asset('assets/backend/css/default-css.css')}}">
-    <link rel="stylesheet" href="{{asset('assets/backend/css/styles.css')}}">
-    <link rel="stylesheet" href="{{asset('assets/backend/css/responsive.css')}}">
+    <link rel="stylesheet" href="{{asset_v('assets/backend/css/typography.css')}}">
+    <link rel="stylesheet" href="{{asset_v('assets/backend/css/default-css.css')}}">
+    <link rel="stylesheet" href="{{asset_v('assets/backend/css/styles.css')}}">
+    <link rel="stylesheet" href="{{asset_v('assets/backend/css/responsive.css')}}">
     <link rel="stylesheet" href="{{asset('assets/backend/css/fontawesome-iconpicker.min.css')}}">
     <link rel="stylesheet" href="{{asset('assets/backend/css/fontawesome.min.css')}}">
     <link rel="stylesheet" href="{{asset('assets/frontend/css/flaticon.css')}}">
@@ -47,10 +47,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     @yield('style')
     @if(get_static_option('site_admin_dark_mode') == 'on')
-    <link rel="stylesheet" href="{{asset('assets/backend/css/dark-mode.css')}}">
+    <link rel="stylesheet" href="{{asset_v('assets/backend/css/dark-mode.css')}}">
     @endif
     @if( get_default_language_direction() === 'rtl')
-        <link rel="stylesheet" href="{{asset('assets/backend/css/rtl.css')}}">
+        <link rel="stylesheet" href="{{asset_v('assets/backend/css/rtl.css')}}">
     @endif
 
     @include('backend.partials.notifications-style')
