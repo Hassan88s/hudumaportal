@@ -86,6 +86,28 @@ class AdminNofificationController extends Controller
         ]);
     }
 
+    /**
+     * Clear the whole list in one go.
+     *
+     * Scoped like everything else here, so an admin only empties the areas
+     * their role covers and another role's notifications are left where they
+     * are. Lands back on the first page, since whichever page the button was
+     * pressed on no longer exists.
+     */
+    public function deleteAll()
+    {
+        $deleted = $this->visible_query()->reorder()->delete();
+
+        return redirect()->route('admin.notifications.all')->with([
+            'msg'  => trans_choice(
+                '{0}There was nothing to delete.|{1}One notification deleted.|[2,*]:count notifications deleted.',
+                $deleted,
+                ['count' => $deleted]
+            ),
+            'type' => 'danger',
+        ]);
+    }
+
     public function notificationDelete($id)
     {
         // Scoped to what this admin may see, so a role cannot delete the

@@ -298,6 +298,7 @@ return [
 
         // Deletions that were open to everyone.
         'admin.notification.delete'                  => 'notification-delete',
+        'admin.notification.delete.all'              => 'notification-delete',
         'admin.delete.notice'                        => 'notice-manage',
         'admin.custom.delete.font.file'              => 'general-settings-typography-settings',
         'admin.general.sitemap.settings.delete'      => 'general-settings-seo-settings',

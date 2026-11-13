@@ -32,14 +32,35 @@
                                     @endif
                                 </h4>
                             </div>
-                            @if($unread_count > 0)
-                                <form action="{{ route('admin.notification.read.all') }}" method="post" class="mb-0">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm btn-primary">
-                                        <i class="las la-check-double mr-1"></i>{{ __('Mark all as read') }}
-                                    </button>
-                                </form>
-                            @endif
+                            <div class="d-flex align-items-center" style="gap:8px">
+                                @if($unread_count > 0)
+                                    <form action="{{ route('admin.notification.read.all') }}" method="post" class="mb-0">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-primary">
+                                            <i class="las la-check-double mr-1"></i>{{ __('Mark all as read') }}
+                                        </button>
+                                    </form>
+                                @endif
+
+                                {{--
+                                    Emptying the list is irreversible and takes
+                                    the unread ones with it, so the confirmation
+                                    says how many and how many had not been read
+                                    rather than asking a generic "are you sure".
+                                --}}
+                                @can('notification-delete')
+                                    @if($notifications->total() > 0)
+                                        <a href="javascript:void(0)" class="btn btn-sm btn-danger hp-notify__delete-all mb-0"
+                                           data-total="{{ $notifications->total() }}" data-unread="{{ $unread_count }}">
+                                            <i class="las la-trash mr-1"></i>{{ __('Delete all') }}
+                                        </a>
+                                        <form action="{{ route('admin.notification.delete.all') }}" method="post" class="d-none">
+                                            @csrf
+                                            <button type="submit" class="swal_form_submit_btn d-none"></button>
+                                        </form>
+                                    @endif
+                                @endcan
+                            </div>
                         </div>
 
                         <div class="table-wrap table-responsive mt-3">
@@ -162,4 +183,40 @@
             </div>
         </div>
     </div>
+@endsection
+
+@section('script')
+    <script>
+        (function ($) {
+            "use strict";
+            $(document).on('click', '.hp-notify__delete-all', function (e) {
+                e.preventDefault();
+
+                var total  = parseInt($(this).data('total'), 10) || 0,
+                    unread = parseInt($(this).data('unread'), 10) || 0,
+                    form   = $(this).next('form'),
+                    detail = '{{ __('This removes :count notifications and cannot be undone.') }}'
+                                .replace(':count', total);
+
+                if (unread > 0) {
+                    detail += ' ' + '{{ __(':count of them have not been read yet.') }}'.replace(':count', unread);
+                }
+
+                Swal.fire({
+                    title: '{{ __('Delete every notification?') }}',
+                    text: detail,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: "{{ __('Yes, delete them all') }}",
+                    cancelButtonText: "{{ __('Cancel') }}"
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        form.find('.swal_form_submit_btn').trigger('click');
+                    }
+                });
+            });
+        })(jQuery);
+    </script>
 @endsection

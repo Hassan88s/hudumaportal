@@ -366,6 +366,7 @@ Route::group(['prefix'=>'orders'],function(){
         Route::post('/delete/{id}','AdminNofificationController@notificationDelete')->name('admin.notification.delete');
         Route::post('/read/{id}','AdminNofificationController@markRead')->name('admin.notification.read');
         Route::post('/read-all','AdminNofificationController@markAllRead')->name('admin.notification.read.all');
+        Route::post('/delete-all','AdminNofificationController@deleteAll')->name('admin.notification.delete.all');
     });
 
 
