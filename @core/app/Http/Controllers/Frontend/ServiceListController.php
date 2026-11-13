@@ -317,29 +317,28 @@ class ServiceListController extends Controller
                 }
 
                 if($same_schedule_allow_or_not->allow_multiple_schedule == 'no'){
-                    // get schedules
+                    /*
+                     * Which of this seller's slots are already spoken for.
+                     *
+                     * This used to take every order row on the date — any
+                     * seller's, and whatever state it was in. Two things went
+                     * wrong with that. One seller's bookings removed another
+                     * seller's slots on the same date, because the query had
+                     * no seller_id. And an order is written before the buyer
+                     * reaches the payment gateway, so a buyer who picked a
+                     * slot and then closed the tab left a row that held that
+                     * slot for good: pick it, abandon, and it was gone the
+                     * next time you looked. holdingSlot() keeps a brief hold
+                     * while payment is in progress and lets it go after that.
+                     */
                     $date_string_year_month_day = Carbon::parse($request->date_string)->format('D F d Y');
-                    $order_date = Order::select('id','date','seller_id')
-                        ->where('seller_id',$request->seller_id)
-                        ->where('date',$date_string_year_month_day)
-                        ->first();
+                    $taken = Order::takenSlots($request->seller_id, $date_string_year_month_day);
 
-                    if($order_date){
-                        $schedules = Order::select('schedule')
-                            ->where('date',$order_date->date)
-                            ->get()->pluck("schedule")->toArray();
-
-                        $schedules = Schedule::select('schedule')
-                            ->where('seller_id', $request->seller_id)
-                            ->whereNotIn("schedule", $schedules)
-                            ->where('day_id', $day->id)
-                            ->get();
-                    }else{
-                        $schedules = Schedule::select('schedule')
-                            ->where('seller_id', $request->seller_id)
-                            ->where('day_id', $day->id)
-                            ->get();
-                    }
+                    $schedules = Schedule::select('schedule')
+                        ->where('seller_id', $request->seller_id)
+                        ->where('day_id', $day->id)
+                        ->when($taken, fn ($query) => $query->whereNotIn('schedule', $taken))
+                        ->get();
                 }else{
                     $schedules = Schedule::select('schedule')
                         ->where('seller_id', $request->seller_id)
@@ -510,6 +509,25 @@ class ServiceListController extends Controller
         }
 
 
+
+        /*
+         * The slot list the buyer chose from was built when the page loaded.
+         * Somebody else may have taken that slot since, so check again before
+         * writing the order — a seller who does not allow two bookings in the
+         * same slot should not end up with two anyway.
+         */
+        if ($request->is_service_online_ != 1 && ! empty($request->schedule) && ! empty($request->date)) {
+            $multiple_allowed = Schedule::where('seller_id', $request->seller_id)->value('allow_multiple_schedule');
+
+            if ($multiple_allowed === 'no') {
+                $taken = Order::takenSlots($request->seller_id, $request->date);
+
+                if (in_array($request->schedule, $taken, true)) {
+                    \Toastr::error(__('Sorry, that time has just been booked. Please choose another slot.'));
+                    return redirect()->back()->withInput();
+                }
+            }
+        }
 
         $commission = AdminCommission::first();
 
