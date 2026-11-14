@@ -520,7 +520,13 @@ class ServiceListController extends Controller
             $multiple_allowed = Schedule::where('seller_id', $request->seller_id)->value('allow_multiple_schedule');
 
             if ($multiple_allowed === 'no') {
-                $taken = Order::takenSlots($request->seller_id, $request->date);
+                // Normalised the same way the order row below stores it,
+                // otherwise this compares a raw posted date against stored
+                // "Mon August 17 2026" values and never matches anything.
+                $taken = Order::takenSlots(
+                    $request->seller_id,
+                    \Carbon\Carbon::parse($request->date)->format('D F d Y')
+                );
 
                 if (in_array($request->schedule, $taken, true)) {
                     \Toastr::error(__('Sorry, that time has just been booked. Please choose another slot.'));
