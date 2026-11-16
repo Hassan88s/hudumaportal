@@ -327,6 +327,40 @@ class SystemUpgradeService
                 },
             ],
 
+            'migration_filename_with_spaces' => [
+                'title' => 'Migrations: rename the entry whose filename had spaces',
+                'run'   => function () {
+                    /*
+                     * 2022_08_10_083550_add_ system_type_to_ admin_commissions_table.php
+                     * was committed with literal spaces in its name. The file is
+                     * renamed now, so the ledger has to follow it: Laravel matches
+                     * a migration by the stored name, and left alone it would read
+                     * the renamed file as one that has never run.
+                     *
+                     * Re-running it would do no harm — the migration guards itself
+                     * with Schema::hasColumn — but migrate:status would be lying,
+                     * and the table would collect a duplicate row.
+                     */
+                    $old = '2022_08_10_083550_add_ system_type_to_ admin_commissions_table';
+                    $new = '2022_08_10_083550_add_system_type_to_admin_commissions_table';
+
+                    if (! DB::table('migrations')->where('migration', $old)->exists()) {
+                        return null;
+                    }
+
+                    // If a row under the new name somehow exists too, drop the old
+                    // one rather than create a duplicate key problem.
+                    if (DB::table('migrations')->where('migration', $new)->exists()) {
+                        DB::table('migrations')->where('migration', $old)->delete();
+                        return 'removed the duplicate old ledger row';
+                    }
+
+                    DB::table('migrations')->where('migration', $old)->update(['migration' => $new]);
+
+                    return 'renamed the migrations row to ' . $new;
+                },
+            ],
+
         ];
     }
 
