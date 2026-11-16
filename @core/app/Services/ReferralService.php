@@ -221,8 +221,20 @@ class ReferralService
      * @param  string $sms   full SMS body (used if user is offline)
      * @param  string $type  event slug (referral_signup / reward_unlocked / etc)
      */
+    /**
+     * When true, reward notifications are not sent.
+     *
+     * Settling up rewards that were missed months ago should not put a
+     * burst of 'congratulations, you have earned...' messages, SMS among
+     * them, in front of people for activity they have long forgotten.
+     * The money still lands; only the announcement is held back.
+     */
+    public bool $muteNotifications = false;
+
     public function notifyReferrer(int $referrerId, string $push, string $sms, string $type = 'referral'): void
     {
+        if ($this->muteNotifications) return;
+
         try {
             if (function_exists('notifySeller')) {
                 // The `type => gernalnotifications` key is REQUIRED so the buyer
@@ -528,8 +540,25 @@ class ReferralService
         $count = DB::table('orders')->where('buyer_id', $buyer->id)->count();
         if ($count < 2) return;
 
-        // Was the referral within 60 days ago?
-        if (Carbon::parse($referral->created_at)->diffInDays(now()) > 60) return;
+        /*
+         * The window runs from the referral to the second booking, not
+         * to whenever this happens to be called. Measuring against now()
+         * meant a buyer who booked twice in their first week still lost
+         * the reward if the hook ran late — a retried payment callback,
+         * or any catch-up over older accounts.
+         */
+        $secondOrder = DB::table('orders')
+            ->where('buyer_id', $buyer->id)
+            ->orderBy('created_at')->orderBy('id')
+            ->skip(1)->take(1)->first();
+
+        if (!$secondOrder) return;
+
+        $window = (int) $this->opt('referral_client_second_booking_days', 60);
+        if (Carbon::parse($referral->created_at)
+                ->diffInDays(Carbon::parse($secondOrder->created_at)) > $window) {
+            return;
+        }
 
         $referral->update(['stage3_at' => now(), 'status' => 'approved']);
 

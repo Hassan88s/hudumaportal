@@ -323,6 +323,75 @@ class SystemUpgradeService
                 },
             ],
 
+            'referral_backfill_missed_stages' => [
+                'title' => 'Referrals: settle up stages that were missed',
+                'run'   => function () {
+                    /*
+                     * Several referral stages could never pay. Provider stage 1
+                     * was unreachable, provider stage 3 had nothing calling it,
+                     * bookings made as job hires were invisible to the client
+                     * track, and the stage hooks insisted on an exact order
+                     * count, so a reward was lost for good once anything else
+                     * had landed first. People earned those rewards under the
+                     * published terms and were never given them.
+                     *
+                     * This replays the real hooks over every referral rather
+                     * than working the amounts out again here. They check the
+                     * track, the counts and the dates themselves, and they are
+                     * keyed so nothing already paid can be paid twice — which
+                     * is the whole reason for going through them.
+                     *
+                     * Notifications are muted: this is months-old activity, and
+                     * nobody should get a burst of congratulation texts for it.
+                     *
+                     * Runs once and is remembered.
+                     */
+                    if (DB::table('static_options')->where('option_name', 'hp_referral_backfill_done')->exists()) {
+                        return null;
+                    }
+
+                    $rs = app(\App\Services\ReferralService::class);
+                    $rs->muteNotifications = true;
+
+                    $before = DB::table('referral_rewards')->count();
+                    $seen   = 0;
+                    $failed = 0;
+
+                    foreach (DB::table('referrals')->orderBy('id')->cursor() as $row) {
+                        $user = \App\User::find($row->referred_user_id);
+                        if (! $user) { continue; }
+                        $seen++;
+
+                        try {
+                            // Client track.
+                            $rs->onBuyerFirstOrder($user);
+                            $rs->onBuyerSecondOrderWithin60Days($user);
+
+                            // Provider track. Each one self-checks user_type,
+                            // so calling them for a buyer costs nothing.
+                            $rs->onSellerFirstService($user);
+                            $rs->onProviderFirstPaidOrder($user);
+                            $rs->onProviderStage3($user, 'second_order');
+                        } catch (\Throwable $e) {
+                            $failed++;
+                            \Log::warning('[Rafiki Rewards] backfill skipped referral ' . $row->id . ': ' . $e->getMessage());
+                        }
+                    }
+
+                    $rs->muteNotifications = false;
+
+                    $created = DB::table('referral_rewards')->count() - $before;
+
+                    DB::table('static_options')->insert([
+                        'option_name'  => 'hp_referral_backfill_done',
+                        'option_value' => '1',
+                    ]);
+
+                    return 'checked ' . $seen . ' referral(s), created ' . $created . ' reward(s)'
+                        . ($failed ? ', ' . $failed . ' skipped on error' : '');
+                },
+            ],
+
             'referral_signup_reward_off' => [
                 'title' => 'Referrals: stop paying for a sign-up on its own',
                 'run'   => function () {
