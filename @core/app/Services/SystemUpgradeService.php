@@ -225,8 +225,6 @@ class SystemUpgradeService
                         'service-create-setting', 'service-review-manage', 'service-promote-manage',
                         // Blog
                         'blog-single-settings', 'blog-trashed-edit',
-                        'blog-category-list', 'blog-category-create',
-                        'blog-category-edit', 'blog-category-delete',
                         // Pages
                         'page-settings-404-page-manage', 'page-settings-maintain-page-manage',
                         'page-settings-contact-page-manage', 'page-settings-blog-page-manage',
@@ -279,8 +277,6 @@ class SystemUpgradeService
                             ],
                             'blog-list'         => [
                                 'blog-single-settings', 'page-settings-blog-page-manage',
-                                'blog-category-list', 'blog-category-create',
-                                'blog-category-edit', 'blog-category-delete',
                             ],
                             'blog-trashed-list' => ['blog-trashed-edit'],
                             'brand-list'        => ['brand-status'],
@@ -324,6 +320,45 @@ class SystemUpgradeService
                     ]);
 
                     return trim(implode('; ', array_filter([$created, $inherited, $buttons]))) ?: null;
+                },
+            ],
+
+            'drop_blog_category_permissions' => [
+                'title' => 'Admin permissions: drop the blog category ones',
+                'run'   => function () {
+                    /*
+                     * Blog categories were removed: there is no model class,
+                     * no view and no blog_categories table behind them, and no
+                     * menu ever linked to the screen. The four permissions are
+                     * gone from the catalogue, so they no longer appear on the
+                     * role screen, but the rows and their role assignments are
+                     * still here and would sit in the database for ever.
+                     *
+                     * Deleting the permission takes its role_has_permissions
+                     * rows with it, which is what we want — nothing reads these
+                     * names any more.
+                     */
+                    $names = [
+                        'blog-category-list', 'blog-category-create',
+                        'blog-category-edit', 'blog-category-delete',
+                    ];
+
+                    $found = DB::table('permissions')
+                        ->whereIn('name', $names)
+                        ->where('guard_name', 'admin')
+                        ->pluck('id');
+
+                    if ($found->isEmpty()) {
+                        return null;
+                    }
+
+                    DB::table('role_has_permissions')->whereIn('permission_id', $found)->delete();
+                    DB::table('model_has_permissions')->whereIn('permission_id', $found)->delete();
+                    DB::table('permissions')->whereIn('id', $found)->delete();
+
+                    app()->forgetInstance(\Spatie\Permission\PermissionRegistrar::class);
+
+                    return 'removed ' . $found->count() . ' blog category permission(s)';
                 },
             ],
 

@@ -96,7 +96,6 @@ return [
         'Blog' => [
             'blog-list', 'blog-create', 'blog-edit', 'blog-delete', 'blog-detail-setting',
             'blog-single-settings',
-            'blog-category-list', 'blog-category-create', 'blog-category-edit', 'blog-category-delete',
             'blog-tag-list', 'blog-tag-create', 'blog-tag-edit', 'blog-tag-delete',
             'blog-trashed-list', 'blog-trashed-edit', 'blog-trashed-restore', 'blog-trashed-delete',
         ],

@@ -45,6 +45,13 @@ class BlogMegaMenu extends MegaMenuBase
 
     function category($id)
     {
+        // BlogCategory is a leftover from the product this was built
+        // from and has no class here, so building a blog mega menu used
+        // to take down every page that drew the menu.
+        if (! class_exists(BlogCategory::class)) {
+            return __('Uncategorized');
+        }
+
         $category = BlogCategory::where(['id' => $id])->first();
         return $category->name ?? __('Uncategorized');
     }

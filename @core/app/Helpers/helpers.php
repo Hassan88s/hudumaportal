@@ -1954,32 +1954,37 @@ function render_mega_menu_item_select_markup($type = '',$menu_id = null)
     }
     return $output;
 }
+/**
+ * The display name of a mega menu category.
+ *
+ * Each branch used to name a model class directly, and not one of those four
+ * classes exists in this project — ServiceCategory, ProductCategory,
+ * AppointmentCategory and BlogCategory are all leftovers from the product
+ * this was built from. Building any mega menu therefore took the public site
+ * down with a fatal error on every page that drew the menu. Nothing has used
+ * these menu types so far, which is the only reason it never happened.
+ *
+ * Resolving the class by name and checking it exists means an unsupported
+ * menu type now renders as nothing rather than stopping the page.
+ */
 function get_mega_menu_cat_name_by_id($type, $cat_id)
 {
-    $return_val = '';
+    $models = [
+        'service_mega_menu'     => \App\ServiceCategory::class,
+        'product_mega_menu'     => \App\ProductCategory::class,
+        'appointment_mega_menu' => \App\AppointmentCategory::class,
+        'blog_mega_menu'        => \App\BlogCategory::class,
+    ];
 
-    switch ($type) {
-        case('service_mega_menu'):
-            $cat_details = \App\ServiceCategory::with('lang_front')->find($cat_id);
-            $return_val = !empty($cat_details) ? purify_html($cat_details->lang_front->name) : '';
-            break;
-        case('product_mega_menu'):
-            $cat_details = \App\ProductCategory::with('lang_front')->find($cat_id);
-            $return_val = !empty($cat_details) ? purify_html($cat_details->lang_front->name) : '';
-            break;
-        case('appointment_mega_menu'):
-            $cat_details = \App\AppointmentCategory::with('lang_front')->find($cat_id);
-            $return_val = !empty($cat_details) ? purify_html($cat_details->lang_front->name) : '';
-            break;
-        case('blog_mega_menu'):
-            $cat_details = \App\BlogCategory::with('lang_front')->find($cat_id);
-            $return_val = !empty($cat_details) ? purify_html($cat_details->lang_front->name) : '';
-            break;
-        default:
-            break;
+    $model = $models[$type] ?? null;
+
+    if ($model === null || ! class_exists($model)) {
+        return '';
     }
 
-    return $return_val;
+    $cat_details = $model::with('lang_front')->find($cat_id);
+
+    return !empty($cat_details) ? purify_html(optional($cat_details->lang_front)->name) : '';
 }
 function get_mege_menu_item_url($type, $slug,$id)
 {
@@ -2069,6 +2074,14 @@ function get_blog_category_by_id($id,$lang = null, $type = '')
 {
     $default_lang = $lang ?? LanguageHelper::default_slug();
     $return_val = __('uncategorized');
+
+    // App\BlogCategory does not exist in this project; blog posts are
+    // categorised through the main categories table instead. Without this
+    // check the call is a fatal error rather than 'uncategorized'.
+    if (! class_exists(\App\BlogCategory::class)) {
+        return $return_val;
+    }
+
     $blog_cat = \App\BlogCategory::find($id);
 
     if (!empty($blog_cat)) {

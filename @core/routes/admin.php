@@ -81,15 +81,10 @@ Route::middleware(['setlang'])->group(function(){
         Route::post('/blog-approve', 'BlogController@blog_approve')->name('admin.blog.approve');
     });
 
-    //BACKEND BLOG CATEGORY AREA
-    // Removed: this feature has no model, no view and no blog_categories table.
-    // Route::group(['prefix'=>'blog-category'],function(){
-        // Route::get('/','BlogCategoryController@index')->name('admin.blog.category');
-        // Route::post('/store','BlogCategoryController@new_category')->name('admin.blog.category.store');
-        // Route::post('/update','BlogCategoryController@update_category')->name('admin.blog.category.update');
-        // Route::post('/delete/all/lang/{id}','BlogCategoryController@delete_category_all_lang')->name('admin.blog.category.delete.all.lang');
-        // Route::post('/bulk-action', 'BlogCategoryController@bulk_action')->name('admin.blog.category.bulk.action');
-    // });
+    // Blog categories were removed entirely: there is no App\BlogCategory
+    // class, no backend.pages.blog.category view and no blog_categories
+    // table, and no menu ever linked to it. Blog posts are categorised
+    // through the main categories table (Blog::category -> App\Category).
 
     //BACKEND BLOG TAGS
     Route::group(['prefix'=>'blog-tags'],function(){

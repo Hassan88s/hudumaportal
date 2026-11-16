@@ -264,11 +264,10 @@
                     @endcanany
 
                     @canany(['blog-list', 'blog-tag-list', 'blog-create', 'blog-trashed-list',
-                        'blog-detail-setting', 'blog-single-settings',
-                        'blog-category-list', 'blog-category-create'])
+                        'blog-detail-setting', 'blog-single-settings'])
                         <li
                             class=" {{ active_menu('admin-home/blog') }}
-                            @if (request()->is(['admin-home/blog/*', 'admin-home/blog-category', 'admin-home/blog-tags'])) active @endif">
+                            @if (request()->is(['admin-home/blog/*', 'admin-home/blog-tags'])) active @endif">
                             <a href="javascript:void(0)" aria-expanded="true"><i class="ti-comment-alt"></i>
                                 <span>{{ __('Blogs') }}</span></a>
                             <ul class="collapse">
