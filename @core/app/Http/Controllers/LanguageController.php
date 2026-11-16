@@ -26,6 +26,28 @@ use Illuminate\Support\Facades\Artisan;
 
 class LanguageController extends Controller
 {
+    /**
+     * The language a URL slug refers to, or stop.
+     *
+     * These screens take the slug straight from the URL and then build a
+     * filename out of it, creating the file if it is not already there. Any
+     * value at all therefore wrote a fresh 61KB copy of default.json into
+     * resources/lang — the stray null.json in that folder is one that got
+     * made this way. Resolving the slug against the languages table first
+     * means only a language that actually exists can touch the filesystem,
+     * and an unknown one gets a 404 instead of a 500 from the view.
+     */
+    protected function languageBySlugOrFail($slug): Language
+    {
+        $language = is_string($slug) && $slug !== ''
+            ? Language::where('slug', $slug)->first()
+            : null;
+
+        abort_if($language === null, 404);
+
+        return $language;
+    }
+
     public function __construct()
     {
         $this->middleware('auth:admin');
@@ -73,6 +95,9 @@ class LanguageController extends Controller
 
     public function all_edit_words($slug)
     {
+        $language = $this->languageBySlugOrFail($slug);
+        $slug     = $language->slug;
+
         $backend_lang_file_path = resource_path('lang/') . $slug . '.json';
         if (!file_exists($backend_lang_file_path) && !is_dir($backend_lang_file_path)) {
             file_put_contents(resource_path('lang/') . $slug . '.json', file_get_contents(resource_path('lang/') . 'default.json'));
@@ -84,12 +109,14 @@ class LanguageController extends Controller
             'all_word' => json_decode($all_word),
             'lang_slug' => $slug,
             'type' => 'backend',
-            'language' => Language::where('slug',$slug)->first()
+            'language' => $language
         ]);
     }
 
     public function update_words(Request $request, $slug)
     {
+        $slug = $this->languageBySlugOrFail($slug)->slug;
+
         $this->validate($request,[
            'string_key' => 'required',
            'translate_word' => 'required',

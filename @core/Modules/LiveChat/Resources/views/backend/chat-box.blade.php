@@ -14,7 +14,7 @@
                                 </h5>
                                 <div class="chat-author-message-image">
                                     @if($message->message)
-                                        <p class="chat-author-text-message heading-color" >{!! $message->message !!}</p>
+                                        <p class="chat-author-text-message heading-color" >{!! linkify_message($message->message) !!}</p>
                                     @elseif($message->image)
                                         <div class="chat-author-message-image-send">
                                             <img class="img-responsive" src="{{asset(('assets/uploads/chat_image/'.$message->image))}}" />
@@ -31,7 +31,7 @@
                             </h5>
                             <div class="chat-author-message-image">
                                 @if($message->message)
-                                    <p class="chat-author-text-message heading-color" >{!! $message->message !!}</p>
+                                    <p class="chat-author-text-message heading-color" >{!! linkify_message($message->message) !!}</p>
                                 @elseif($message->image)
                                     <div class="chat-author-message-image-send">
                                         <img class="img-responsive" src="{{asset(('assets/uploads/chat_image/'.$message->image))}}" />

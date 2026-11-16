@@ -2405,7 +2405,12 @@ class BuyerController extends Controller
         public function locationshow($id)
     {
        
-        $user = Order::findOrFail($id);
+        // Scoped to the signed-in buyer's own order: this view shows the
+        // address on it, and the id came straight from the URL.
+        $user = Order::where('id', $id)
+            ->where('buyer_id', Auth::guard('web')->id())
+            ->firstOrFail();
+
         return view('frontend.user.seller.order.show-location', compact('user'));
     }
 

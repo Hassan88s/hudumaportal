@@ -326,7 +326,9 @@ class EditService extends Component
             'child_category_id' => $this->child_category,
             'title' => $this->service_edit_title ?? '',
             'slug' => $service_slug ?? $old_slug,
-            'description' => $this->services['description'] ?? '',
+            // Printed unescaped on the public service page — see the note in
+            // SellerController::editServices.
+            'description' => purify_html_raw($this->services['description'] ?? ''),
             'image' => $this->services['image'] ?? '',
             'image_gallery' => $this->services['image_gallery'] ?? '',
             'delivery_days'=>   $days,

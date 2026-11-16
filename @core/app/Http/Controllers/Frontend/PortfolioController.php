@@ -64,7 +64,8 @@ public function store(Request $request)
     $portfolio = new Portfolio();
     $portfolio->freelancer_id = auth()->id();
     $portfolio->name = $request->name;
-    $portfolio->description = $request->description;
+    // Printed unescaped where it is shown, so it is purified on the way in.
+    $portfolio->description = purify_html_raw($request->description);
      $portfolio->project_cost = $request->cost;
       // Store the duration together with its unit, e.g. "3 Months", so it is
       // unambiguous on display.
@@ -109,7 +110,8 @@ public function store(Request $request)
 
         $portfolio->update([
             'name' => $request->name,
-            'description' => $request->description,
+            // Printed unescaped where it is shown, so it is purified on the way in.
+            'description' => purify_html_raw($request->description),
             'project_cost' => $request->cost,
             'timeline' => $request->filled('Duration')
                 ? trim($request->Duration . ' ' . ($request->duration_unit ?: 'Days'))
@@ -189,7 +191,11 @@ public function store(Request $request)
         public function deleteImage($id)
 {
   
-    $image = PortfolioImage::find($id);
+    // Only an image on one of this seller's own portfolios: the id is
+    // posted by the page, so it cannot be trusted on its own.
+    $image = PortfolioImage::whereHas('portfolio', function ($q) {
+        $q->where('freelancer_id', \Illuminate\Support\Facades\Auth::guard('web')->id());
+    })->find($id);
 
     if (!$image) {
         return response()->json([

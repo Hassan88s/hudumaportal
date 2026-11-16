@@ -202,7 +202,8 @@ class JobPostController extends Controller
                 'area_id' => $area_id,
                 'title'=>$request->title,
                 'slug' => create_slug($request->slug, 'BuyerJob', true, 'JobPost', 'slug'),
-                'description'=>$request->description,
+                // Printed unescaped where it is shown, so it is purified on the way in.
+                'description'=>purify_html_raw($request->description),
                 'image'=>$request->image,
                 'is_job_online'=>$request->is_job_online,
                 'price'=>$request->price,
@@ -256,7 +257,8 @@ class JobPostController extends Controller
                                      'area_id' => $area_id,
                                     'title'=>$request->title,
                                     'slug' => create_slug($request->slug, 'BuyerJob', true, 'JobPost', 'slug'),
-                                    'description'=>$request->description,
+                                    // Printed unescaped where it is shown, so it is purified on the way in.
+                                    'description'=>purify_html_raw($request->description),
                                     'image'=>$request->image,
                                     'is_job_online'=>$request->is_job_online,
                                     'price'=>$request->price,
@@ -367,7 +369,8 @@ class JobPostController extends Controller
                                     'city_id'=>$city_id,
                                      'area_id' => $area_id,
                                      'slug' => create_slug($request->slug, 'BuyerJob', true, 'JobPost', 'slug'),
-                                    'description'=>$request->description,
+                                    // Printed unescaped where it is shown, so it is purified on the way in.
+                                    'description'=>purify_html_raw($request->description),
                                     'image'=>$request->image,
                                     'is_job_online'=>$request->is_job_online,
                                     'price'=>$request->price,
@@ -623,7 +626,8 @@ class JobPostController extends Controller
                   'area_id' => $area_id,
                 'title'=>$request->title,
                 'slug' => create_slug($request->slug, 'BuyerJob', true, 'JobPost', 'slug'),
-                'description'=>$request->description,
+                // Printed unescaped where it is shown, so it is purified on the way in.
+                'description'=>purify_html_raw($request->description),
                 'image'=>$request->image,
                 'is_job_online'=>$request->is_job_online,
                 'price'=>$request->price,

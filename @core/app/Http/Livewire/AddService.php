@@ -224,7 +224,9 @@ class AddService extends Component
             $service->child_category_id = $this->child_category;
             $service->title = $this->services['title'] ?? '';
             $service->slug = $service_title_slug ?? '';
-            $service->description = $this->services['description'] ?? '';
+            // Printed unescaped on the public service page — see the note in
+            // SellerController::editServices.
+            $service->description = purify_html_raw($this->services['description'] ?? '');
             $service->image = $this->services['image'] ?? '';
             $service->image_gallery = $this->services['image_gallery'] ?? '';
             $service->video = $this->services['video'] ?? '';

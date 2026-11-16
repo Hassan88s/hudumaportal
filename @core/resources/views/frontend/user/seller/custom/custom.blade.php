@@ -96,7 +96,8 @@ $value = \App\User::where(['id' => $job_req->buyer_id])->first();
                                         
                                         <td data-label="{{ __('Description') }}"> 
                                                
-  <button type="button" class="btn btn-primary " data-bs-toggle="modal" data-bs-target="#readMoreModal" onclick="setModalContent(`{!! addslashes($job_req->description) !!}`)">{{ __('Read Description') }}</button>
+  <button type="button" class="btn btn-primary " data-bs-toggle="modal" data-bs-target="#readMoreModal" data-description="{{ $job_req->description }}"
+                                         onclick="setModalContent(this.dataset.description)">{{ __('Read Description') }}</button>
 
                                            
                                          

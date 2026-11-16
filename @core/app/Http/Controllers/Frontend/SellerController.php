@@ -72,6 +72,34 @@ class SellerController extends Controller
     {
         $this->middleware('inactiveuser');
     }
+
+    /**
+     * One of the signed-in seller's own rows, or stop here.
+     *
+     * The seller routes only check that somebody is logged in and is not a
+     * buyer, and these endpoints take their id straight from the form that
+     * was posted. Looking the row up by id alone therefore let any seller
+     * act on another seller's services, availability, reviews, coupons and
+     * unpaid orders just by changing a number. Every lookup that leads to a
+     * change now goes through here.
+     *
+     * 404 rather than 403, so a miss does not confirm that a row with that
+     * id exists under somebody else's account.
+     *
+     * @template T of \Illuminate\Database\Eloquent\Model
+     * @param  class-string<T>  $model
+     * @return T
+     */
+    protected function ownedOrFail(string $model, $id, string $column = 'seller_id')
+    {
+        $record = $id === null ? null : $model::where('id', $id)
+            ->where($column, Auth::guard('web')->id())
+            ->first();
+
+        abort_if($record === null, 404);
+
+        return $record;
+    }
     
     
     public function pushnotification(){
@@ -571,7 +599,7 @@ class SellerController extends Controller
 
     public function couponDelete($id = null)
     {
-        ServiceCoupon::find($id)->delete();
+        $this->ownedOrFail(ServiceCoupon::class, $id)->delete();
         toastr_error(__('Coupon Delete Success---'));
         return redirect()->back();
     }
@@ -640,6 +668,9 @@ class SellerController extends Controller
 // prmoted
 
     public function sellerpromotedServices($id){
+        // Promotion spends the seller's own subscription allowance, so the
+        // service being promoted has to be theirs.
+        $this->ownedOrFail(Service::class, $id);
         
         
             $commission = AdminCommission::first();
@@ -1130,7 +1161,13 @@ class SellerController extends Controller
             $service->child_category_id = $request->child_category;
             $service->title = $request->title;
             $service->slug = $request->slug;
-            $service->description = $request->description;
+            // Rich text from the seller's editor, printed unescaped on the
+            // public service page. The meta fields below were already run
+            // through the purifier; the description never was, so a <script>
+            // typed here reached every visitor. purify_html_raw keeps the
+            // formatting and drops scripts and event handlers — purify_html
+            // would strip every tag and lose the seller's layout.
+            $service->description = purify_html_raw($request->description);
             $service->image = $request->image;
             $service->image_gallery = $request->image_gallery;
             $service->video = $request->video;
@@ -1687,9 +1724,11 @@ class SellerController extends Controller
 
     public function editServices(Request $request, $id = null)
     {
-      
+        // Neither the form nor the save checked whose service this is, so a
+        // seller could open and rewrite anybody's listing — title, price,
+        // status and all — by putting their id in the URL.
+        $this->ownedOrFail(Service::class, $id);
 
-    
         if ($request->isMethod('post')) {
           
             $request->validate([
@@ -1784,8 +1823,9 @@ class SellerController extends Controller
 
     public function editServiceAttribute(Request $request, $id = null)
     {
-        
- 
+        // Same as editServices: the id came from the URL and was trusted.
+        $this->ownedOrFail(Service::class, $id);
+
         // update
         if ($request->isMethod('post')) {
             $data = $request->all();
@@ -1924,7 +1964,10 @@ class SellerController extends Controller
     // service online to offline and offline to online
     public function editServiceAttributeOfflineToOnline(Request $request,$id=null)
     {
-        $get_service = Service::where('id',$id)->where('seller_id',Auth::guard('web')->user()->id)->first();
+        // This lookup was already scoped to the seller, but nothing acted
+        // on a miss and the saves further down used the raw id, so another
+        // seller's service was still updated.
+        $get_service = $this->ownedOrFail(Service::class, $id);
         if($request->isMethod('post')) {
             $data = $request->all();
 
@@ -2093,11 +2136,17 @@ class SellerController extends Controller
 
     public function ServiceDelete($id = null)
     {
-        Serviceinclude::where('service_id',$id)->delete();
-        Serviceadditional::where('service_id',$id)->delete();
-        Servicebenifit::where('service_id',$id)->delete();
-        OnlineServiceFaq::where('service_id',$id)->delete();
-        Service::find($id)->delete();
+        // The child rows went first and unconditionally, so passing another
+        // seller's service id destroyed their includes, extras, benefits and
+        // FAQs even before the service row itself was touched.
+        $service   = $this->ownedOrFail(Service::class, $id);
+        $seller_id = Auth::guard('web')->id();
+
+        foreach ([Serviceinclude::class, Serviceadditional::class, Servicebenifit::class, OnlineServiceFaq::class] as $child) {
+            $child::where('service_id', $service->id)->where('seller_id', $seller_id)->delete();
+        }
+
+        $service->delete();
         toastr_error(__('Service Delete Success---'));
         return redirect()->back();
     }
@@ -2122,10 +2171,10 @@ class SellerController extends Controller
 
     public function deleteIncludeService($id = null)
     {
-        $include_details = Serviceinclude::find($id);
+        $include_details = $this->ownedOrFail(Serviceinclude::class, $id);
 
         //todo udpate service price
-        $service_details = Service::where('id',$include_details->service_id)->first();
+        $service_details = $this->ownedOrFail(Service::class, $include_details->service_id);
         $service_details->price -= $include_details->include_service_price * $include_details->include_service_quantity;
         $service_details->save();
 
@@ -2138,21 +2187,21 @@ class SellerController extends Controller
 
     public function deleteAdditionalService($id = null)
     {
-        Serviceadditional::find($id)->delete();
+        $this->ownedOrFail(Serviceadditional::class, $id)->delete();
         toastr_error(__('Additional Service Delete Success---'));
         return redirect()->back();
     }
 
     public function deleteBenifit($id = null)
     {
-        Servicebenifit::find($id)->delete();
+        $this->ownedOrFail(Servicebenifit::class, $id)->delete();
         toastr_error(__('Service Benifit Delete Success---'));
         return redirect()->back();
     }
 
     public function deleteFaq($id = null)
     {
-        OnlineServiceFaq::find($id)->delete();
+        $this->ownedOrFail(OnlineServiceFaq::class, $id)->delete();
         toastr_error(__('Service Faq Delete Success---'));
         return redirect()->back();
     }
@@ -2266,8 +2315,9 @@ class SellerController extends Controller
 
     public function dayDelete($id = null)
     {
-        Schedule::where('day_id',$id)->delete();
-        Day::find($id)->delete();
+        $day = $this->ownedOrFail(Day::class, $id);
+        Schedule::where('day_id', $day->id)->where('seller_id', Auth::guard('web')->id())->delete();
+        $day->delete();
         toastr_error(__('Day Delete Success---'));
         return redirect()->back();
     }
@@ -2355,7 +2405,7 @@ class SellerController extends Controller
 
     public function scheduleDelete($id = null)
     {
-        Schedule::find($id)->delete();
+        $this->ownedOrFail(Schedule::class, $id)->delete();
         toastr_error(__('Schedule Delete Success---'));
         return redirect()->back();
     }
@@ -2400,9 +2450,9 @@ class SellerController extends Controller
 
     public function orderDelete($id=null)
     {
-        $order = Order::find($id);
+        $order = $this->ownedOrFail(Order::class, $id);
         if($order->payment_status == 'pending' || $order->payment_status == ''){
-            Order::find($id)->delete();
+            $order->delete();
             toastr_error(__('Order Delete Success---'));
         }else{
             toastr_error(__('Order Can Not be Deleted Due to Payment Status Complete---'));
@@ -2668,7 +2718,7 @@ class SellerController extends Controller
 
      public function requestLocation($id)
         {
-            $order = order::findOrFail($id);
+            $order = $this->ownedOrFail(Order::class, $id);
             $order->location_request = 1;
             $order->save();
         
@@ -2678,7 +2728,8 @@ class SellerController extends Controller
      public function locationshow($id)
     {
         
-        $user = Order::findOrFail($id);
+        // A buyer's address: scoped, or one seller could read another's.
+        $user = $this->ownedOrFail(Order::class, $id);
         return view('frontend.user.seller.order.show-location', compact('user'));
     }
     
@@ -3473,7 +3524,7 @@ $remaning_balance = $remaning_balance + $partial_payment_sum;
 
     public function reviewDelete($id=null)
     {
-        Review::find($id)->delete();
+        $this->ownedOrFail(Review::class, $id)->delete();
         toastr_error(__('Review Delete Success---'));
         return redirect()->back();
     }
@@ -3783,20 +3834,16 @@ $remaning_balance = $remaning_balance + $partial_payment_sum;
 
     public function deleteTodolist($id = null)
     {
-        ToDoList::find($id)->delete();
+        $this->ownedOrFail(ToDoList::class, $id, 'user_id')->delete();
         toastr_error(__('To Do List Delete Success---'));
         return redirect()->back();
     }
 
     public function changeTodoStatus($id=null)
     {
-        $status = ToDoList::select('status')->where('id', $id)->first();
-        if ($status->status == 1) {
-            $status = 0;
-        } else {
-            $status = 1;
-        }
-        ToDoList::where('id',$id)->update([
+        $todo = $this->ownedOrFail(ToDoList::class, $id, 'user_id');
+        $status = $todo->status == 1 ? 0 : 1;
+        $todo->update([
             'status' => $status,
         ]);
         toastr_success(__('ToDo List status Update Success---'));

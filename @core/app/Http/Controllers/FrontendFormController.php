@@ -17,6 +17,21 @@ use Illuminate\Support\Str;
 
 class FrontendFormController extends Controller
 {
+    /**
+     * What a form attachment may be when the form itself does not say.
+     *
+     * These uploads land in assets/uploads/attachment/applicant, which is
+     * served by the web server, so the list is deliberately short.
+     */
+    private const DEFAULT_UPLOAD_MIMES = 'jpg,jpeg,png,webp,gif,pdf,doc,docx,xls,xlsx,txt,csv,zip';
+
+    /** Extensions never written to disk, whatever a form is configured with. */
+    private const NEVER_STORE_EXTENSIONS = [
+        'php', 'php2', 'php3', 'php4', 'php5', 'php6', 'php7', 'php8', 'phps',
+        'phtml', 'phtm', 'pht', 'phar', 'inc',
+        'htaccess', 'htpasswd', 'cgi', 'pl', 'py', 'rb', 'sh', 'bash',
+        'exe', 'dll', 'so', 'jsp', 'asp', 'aspx', 'shtml', 'svg', 'html', 'htm',
+    ];
 
     public function send_contact_message(Request $request)
     {
@@ -63,13 +78,32 @@ class FrontendFormController extends Controller
                 }
                 $validation_rules = !empty($is_required) ? 'required|' : '';
                 $validation_rules .= !empty($mime_type) ? $mime_type : '';
+
+                /*
+                 * A file field whose "mimes_type" the admin left blank used to
+                 * produce an empty rule, so anything at all was accepted and
+                 * then written into a web-served folder under the uploader's
+                 * own extension — a .php among them. Fall back to a safe set
+                 * when the form does not name one.
+                 */
+                if ($field_type == 'file' && empty($mime_type)) {
+                    $validation_rules .= 'file|mimes:' . self::DEFAULT_UPLOAD_MIMES . '|max:10240';
+                }
+
                 //validate field
                 $this->validate($request, [
                     $field => $validation_rules
                 ]);
                 if ($field_type == 'file' && $request->hasFile($field)) {
                     $filed_instance = $request->file($field);
-                    $file_extenstion = $filed_instance->getClientOriginalExtension();
+                    $file_extenstion = strtolower($filed_instance->getClientOriginalExtension());
+
+                    // Belt and braces: whatever the form was configured with,
+                    // never write an extension the web server would execute.
+                    if (in_array($file_extenstion, self::NEVER_STORE_EXTENSIONS, true)) {
+                        abort(422);
+                    }
+
                     $attachment_name = 'attachment-' . Str::random(32) . '-' . $field . '.' . $file_extenstion;
                     $filed_instance->move('assets/uploads/attachment/applicant', $attachment_name);
                     $all_attachment[$field] = 'assets/uploads/attachment/applicant/' . $attachment_name;

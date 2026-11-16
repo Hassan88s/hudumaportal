@@ -111,7 +111,8 @@ $Seller_id=Auth::guard('web')->user()->id;
                 'price'=>$request->Price,
                 'end_date'=>$request->Days,
                 'seller_id'=>$Seller_id,
-                'description'=>$request->Description,
+                // Shown in a modal via innerHTML, so it is purified on the way in.
+                'description'=>purify_html_raw($request->Description),
 
             ]);
 

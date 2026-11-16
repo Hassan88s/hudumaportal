@@ -1,0 +1,46 @@
+# Uploads are data, never code.
+#
+# Everything under this folder is written by visitors and sellers through the
+# site's own forms. Nothing in here should ever be executed by the server, so
+# interpreters are switched off and only inert files are allowed to be served.
+# Without this, a single upload with the wrong extension becomes a web shell.
+
+# Apache 2.4
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(?i:php|php[0-9]?|phps|phtm|phtml|pht|phar|inc|cgi|pl|py|rb|sh|bash|exe|dll|so|jsp|asp|aspx|shtml|htaccess|htpasswd)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+# Apache 2.2
+<IfModule !mod_authz_core.c>
+    <FilesMatch "\.(?i:php|php[0-9]?|phps|phtm|phtml|pht|phar|inc|cgi|pl|py|rb|sh|bash|exe|dll|so|jsp|asp|aspx|shtml|htaccess|htpasswd)$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+# Stop any handler from claiming these, including cPanel's MultiPHP handlers.
+<IfModule mod_mime.c>
+    RemoveHandler .php .php2 .php3 .php4 .php5 .php6 .php7 .php8 .phps .phtml .pht .phar .inc .cgi .pl .py .rb .sh
+    RemoveType    .php .php2 .php3 .php4 .php5 .php6 .php7 .php8 .phps .phtml .pht .phar .inc .cgi .pl .py .rb .sh
+    AddType text/plain .php .php2 .php3 .php4 .php5 .php6 .php7 .php8 .phps .phtml .pht .phar .inc
+</IfModule>
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+# An SVG can carry script, so it is served as a download rather than rendered.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(?i:svg|svgz|xml|html|htm)$">
+        Header set Content-Disposition "attachment"
+        Header set X-Content-Type-Options "nosniff"
+    </FilesMatch>
+</IfModule>

@@ -62,7 +62,8 @@ public function store(Request $request)
      $portfolio->cate_id =  $request->cate_id;
     $portfolio->slug = generateUniqueSlug($request->name);
     $portfolio->name = $request->name;
-    $portfolio->description = $request->description;
+    // Printed unescaped where it is shown, so it is purified on the way in.
+    $portfolio->description = purify_html_raw($request->description);
 
     if ($request->hasFile('video')) {
         $filename = time() . '_' . $request->file('video')->getClientOriginalName();
@@ -104,7 +105,8 @@ public function store(Request $request)
 
         $portfolio->update([
             'name' => $request->name,
-            'description' => $request->description,
+            // Printed unescaped where it is shown, so it is purified on the way in.
+            'description' => purify_html_raw($request->description),
             'cate_id'=> $request->cate_id,
         ]);
 
@@ -180,7 +182,11 @@ public function store(Request $request)
         public function deleteImage($id)
 {
   
-    $image = ProjectImage::find($id);
+    // Only an image on one of this seller's own projects: the id is posted
+    // by the page, so it cannot be trusted on its own.
+    $image = ProjectImage::whereHas('project', function ($q) {
+        $q->where('freelancer_id', \Illuminate\Support\Facades\Auth::guard('web')->id());
+    })->find($id);
 
     if (!$image) {
         return response()->json([

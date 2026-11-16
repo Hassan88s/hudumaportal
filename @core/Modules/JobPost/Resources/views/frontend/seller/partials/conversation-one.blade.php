@@ -340,7 +340,7 @@
                                                         </div>
                                                         <div class="content">
                                                             <div class="message-content">
-                                                                {!! $msg->message !!}
+                                                                {!! linkify_message($msg->message) !!}
                                                             </div>
                                                             @if(file_exists('assets/uploads/job-request/'.$msg->attachment))
                                                                 <a href="{{asset('assets/uploads/job-request/'.$msg->attachment)}}" download class="anchor-btn">{{$msg->attachment}}</a>
