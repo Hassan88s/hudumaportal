@@ -220,6 +220,14 @@ class ServicePaymentController extends Controller
             $rs = app(\App\Services\ReferralService::class);
             $rs->onBuyerFirstOrder($user);
             $rs->onBuyerSecondOrderWithin60Days($user);
+
+            // The provider side of the same order: stage 2 is their
+            // first paid order, stage 3 their second. Both self-check
+            // and are idempotent.
+            if (!empty($seller)) {
+                $rs->onProviderFirstPaidOrder($seller);
+                $rs->onProviderStage3($seller, 'second_order');
+            }
         }
           
             $random_order_id_1 = Str::random(30);

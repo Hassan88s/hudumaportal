@@ -323,6 +323,42 @@ class SystemUpgradeService
                 },
             ],
 
+            'referral_signup_reward_off' => [
+                'title' => 'Referrals: stop paying for a sign-up on its own',
+                'run'   => function () {
+                    /*
+                     * The published programme copy says plainly that "signing
+                     * up alone is not enough" and lists no reward for it, but
+                     * sign_up_points was paying the referrer 100 the moment
+                     * someone registered. Setting it to 0 brings the behaviour
+                     * back in line with what was advertised.
+                     *
+                     * Done once and remembered, so an admin who decides later
+                     * that they do want a sign-up reward can set one in the
+                     * referral settings without the next upgrade undoing them.
+                     */
+                    if (DB::table('static_options')->where('option_name', 'hp_referral_signup_reward_off')->exists()) {
+                        return null;
+                    }
+
+                    $current = DB::table('static_options')
+                        ->where('option_name', 'sign_up_points')
+                        ->value('option_value');
+
+                    DB::table('static_options')->updateOrInsert(
+                        ['option_name' => 'sign_up_points'],
+                        ['option_value' => '0']
+                    );
+
+                    DB::table('static_options')->insert([
+                        'option_name'  => 'hp_referral_signup_reward_off',
+                        'option_value' => '1',
+                    ]);
+
+                    return 'sign_up_points ' . var_export($current, true) . ' -> 0';
+                },
+            ],
+
             'drop_blog_category_permissions' => [
                 'title' => 'Admin permissions: drop the blog category ones',
                 'run'   => function () {

@@ -150,6 +150,18 @@ public function webhook(Request $request)
                 ->with(['msg' => __('We could not find your subscription. If you were charged, please contact support.'), 'type' => 'danger']);
         }
 
+        /*
+         * Stage 3 of the provider referral track is 'receives a second
+         * order OR buys a paid subscription'. This is the subscription
+         * half. Idempotent, and scoped to the seller's own referral, so
+         * reloading this page cannot pay twice.
+         */
+        $subscribed_seller = \App\User::find($subscription_details->seller_id);
+        if ($subscribed_seller && !empty($subscribed_seller->referred_by)) {
+            app(\App\Services\ReferralService::class)
+                ->onProviderStage3($subscribed_seller, 'subscription');
+        }
+
         return view('subscription::frontend.subscription.payment.success')->with(['subscription_details' => $subscription_details]);
     }
 

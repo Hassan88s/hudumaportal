@@ -276,59 +276,54 @@ class ReferralService
      */
     public function onProviderProfileComplete(User $seller): void
     {
+        // Kept so the existing call sites (profile save, service approval)
+        // keep working; the milestone itself is "published a first service".
+        $this->creditProviderStage1($seller);
+    }
+
+    /**
+     * Provider Stage 1 — the referred freelancer publishes their first service.
+     *
+     * The published programme copy is the contract here: "Stage 1: Freelancer
+     * publishes their first service -> TZS 500". It used to also demand a
+     * fully filled-in profile, which is a higher bar than was advertised, so
+     * that requirement is gone.
+     *
+     * Safe to call from anywhere and as often as you like: the reward row is
+     * what records whether this has been paid.
+     */
+    protected function creditProviderStage1(User $seller): void
+    {
         if (!$this->enabled() || empty($seller->referred_by)) return;
 
-        /*
-         * Sellers are user_type 0 here, which is what detectTrackForUser
-         * above goes by. This asked for 2, a value no account on the site
-         * has ever had, so it returned immediately every single time.
-         */
-        if ((int) $seller->user_type !== 0) return; // provider track only
+        // Sellers are user_type 0 here, as detectTrackForUser() goes by.
+        if ((int) $seller->user_type !== 0) return;
 
         $referral = Referral::where('referred_user_id', $seller->id)->first();
         if (!$referral) return;
 
-        /*
-         * Not stage1_at: attachReferralOnSignup stamps that on every
-         * referral the moment it is created, so reading it as 'this
-         * milestone already happened' meant the reward was always treated
-         * as already paid. The reward row itself is the honest record, and
-         * creditReferrerPending is keyed on it anyway.
-         */
         if (ReferralReward::where('referral_id', $referral->id)
                 ->where('event', 'stage1_provider_verified')->exists()) {
             return;
         }
 
-        // Verification checks (PDF §05).
-        //   - profile: name + phone + city + area + profile image populated
-        //   - service: at least one row in services with status=1 (approved)
-        $profileComplete = !empty($seller->name)
-            && !empty($seller->phone)
-            && !empty($seller->service_city)
-            && !empty($seller->service_area)
-            && !empty($seller->image);
-
-        if (!$profileComplete) return;
-
-        $approvedServiceExists = DB::table('services')
+        // Published means approved and visible, not merely saved as a draft.
+        $published = DB::table('services')
             ->where('seller_id', $seller->id)
             ->where('status', 1)
             ->exists();
 
-        if (!$approvedServiceExists) return;
+        if (!$published) return;
 
-        // All checks passed — mark the milestone and credit the referrer.
-        $referral->update(['stage1_at' => now(), 'track' => 'provider']);
+        $referral->update(['track' => 'provider']);
 
-        $amount = (float) $this->opt('referral_stage1_provider_amount',
-            $this->opt('sign_up_points', 500));
+        $amount = (float) $this->opt('referral_stage1_provider_amount', 500);
 
         $this->creditReferrerPending(
             $referral,
             'stage1_provider_verified',
             $amount,
-            'Referral Bonus (Provider Verified — Profile + Approved Service)'
+            'Referral Bonus (Referred Provider Published Their First Service)'
         );
     }
 
@@ -423,25 +418,59 @@ class ReferralService
      */
     public function onSellerFirstService(User $seller): void
     {
+        /*
+         * Listing a first service is Stage 1 in the published copy (TZS 500),
+         * not Stage 2. This used to pay the Stage 2 money — the 1,000 meant
+         * for receiving a first paid order — the moment a service appeared,
+         * which is a far easier bar than was advertised. Stage 2 now lives in
+         * onProviderFirstPaidOrder().
+         */
+        $this->creditProviderStage1($seller);
+    }
+
+    /**
+     * Provider Stage 2 — the referred freelancer receives their first paid order.
+     *
+     * "Stage 2: Freelancer receives their first paid order -> TZS 1,000
+     * (plus TZS 1,000 credit for the new freelancer)".
+     *
+     * The event slugs are deliberately the old ones. A provider who was
+     * already paid this under the previous rule, when it fired on listing,
+     * carries that idempotency key and so is not paid a second time.
+     */
+    public function onProviderFirstPaidOrder(User $seller): void
+    {
         if (!$this->enabled() || empty($seller->referred_by)) return;
+        if ((int) $seller->user_type !== 0) return;
 
         $referral = Referral::where('referred_user_id', $seller->id)->first();
-        if (!$referral || !empty($referral->stage2_at)) return;
+        if (!$referral) return;
 
-        // Only fire if this really is the first service
-        $count = DB::table('services')->where('seller_id', $seller->id)->count();
-        if ($count !== 1) return;
+        if (ReferralReward::where('referral_id', $referral->id)
+                ->whereIn('event', ['stage2_seller_first_service_cash', 'stage2_seller_promo_credit'])
+                ->exists()) {
+            return;
+        }
+
+        // At least one, never exactly one: an exact count silently loses the
+        // reward for good the moment anything else has already landed.
+        $paidOrders = DB::table('orders')
+            ->where('seller_id', $seller->id)
+            ->where('payment_status', 'complete')
+            ->count();
+
+        if ($paidOrders < 1) return;
 
         $referral->update(['stage2_at' => now(), 'track' => 'provider']);
 
-        $cash   = (float) $this->opt('referral_stage2_provider_cash', $this->opt('first_order_points', 1000));
+        $cash   = (float) $this->opt('referral_stage2_provider_cash', 1000);
         $credit = (float) $this->opt('referral_stage2_provider_credit', 0);
 
         if ($cash > 0) {
-            $this->creditReferrerPending($referral, 'stage2_seller_first_service_cash', $cash, 'Referral Bonus (Referred Provider Listed a Service)');
+            $this->creditReferrerPending($referral, 'stage2_seller_first_service_cash', $cash, 'Referral Bonus (Referred Provider Received Their First Paid Order)');
         }
         if ($credit > 0) {
-            $this->creditNewUserPromo($referral, $seller->id, 'stage2_seller_promo_credit', $credit, 'Welcome credit — thanks for listing your first service');
+            $this->creditNewUserPromo($referral, $seller->id, 'stage2_seller_promo_credit', $credit, 'Welcome credit — thanks for your first paid order');
         }
     }
 
@@ -514,9 +543,25 @@ class ReferralService
     public function onProviderStage3(User $seller, string $trigger = 'second_order'): void
     {
         if (!$this->enabled() || empty($seller->referred_by)) return;
+        if ((int) $seller->user_type !== 0) return;
 
         $referral = Referral::where('referred_user_id', $seller->id)->first();
         if (!$referral || !empty($referral->stage3_at)) return;
+
+        /*
+         * "Stage 3: Freelancer receives a second order OR buys a paid
+         * subscription". The second-order half is checked here rather than
+         * trusted from the caller, so an order hook that fires on every
+         * payment cannot pay this out on the first one.
+         */
+        if ($trigger === 'second_order') {
+            $paidOrders = DB::table('orders')
+                ->where('seller_id', $seller->id)
+                ->where('payment_status', 'complete')
+                ->count();
+
+            if ($paidOrders < 2) return;
+        }
 
         $referral->update(['stage3_at' => now(), 'status' => 'approved']);
 
