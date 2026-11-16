@@ -277,10 +277,28 @@ class ReferralService
     public function onProviderProfileComplete(User $seller): void
     {
         if (!$this->enabled() || empty($seller->referred_by)) return;
-        if ((int) $seller->user_type !== 2) return; // provider track only
+
+        /*
+         * Sellers are user_type 0 here, which is what detectTrackForUser
+         * above goes by. This asked for 2, a value no account on the site
+         * has ever had, so it returned immediately every single time.
+         */
+        if ((int) $seller->user_type !== 0) return; // provider track only
 
         $referral = Referral::where('referred_user_id', $seller->id)->first();
-        if (!$referral || !empty($referral->stage1_at)) return;
+        if (!$referral) return;
+
+        /*
+         * Not stage1_at: attachReferralOnSignup stamps that on every
+         * referral the moment it is created, so reading it as 'this
+         * milestone already happened' meant the reward was always treated
+         * as already paid. The reward row itself is the honest record, and
+         * creditReferrerPending is keyed on it anyway.
+         */
+        if (ReferralReward::where('referral_id', $referral->id)
+                ->where('event', 'stage1_provider_verified')->exists()) {
+            return;
+        }
 
         // Verification checks (PDF §05).
         //   - profile: name + phone + city + area + profile image populated
