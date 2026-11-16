@@ -1999,6 +1999,10 @@ class ServiceListController extends Controller
     //search by sub sorting
     public function searchBySorting(Request $request)
     {
+        // Same as allSearchBySorting: nothing set $services when the
+        // sorting was missing or unrecognised.
+        $services = collect();
+
 
         if ($request['sorting'] == 'latest_service') {
             $services = Service::orderBy('id', 'Desc')
@@ -2103,6 +2107,15 @@ class ServiceListController extends Controller
     //search by sorting from all services
     public function allSearchBySorting(Request $request)
     {
+        /*
+         * Each branch below sets $services only when its own sorting
+         * value matches, so a request with no sorting — or one this
+         * does not know — fell through to the response with $services
+         * never defined, and the page answered 500 instead of simply
+         * finding nothing.
+         */
+        $services = collect();
+
 
         if ($request['sorting'] == 'latest_service') {
             $services = Service::orderBy('id', 'Desc')->where('status', 1)->where('is_service_on', 1)

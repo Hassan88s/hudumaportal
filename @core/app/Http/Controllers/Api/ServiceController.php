@@ -269,6 +269,11 @@ class ServiceController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        // Declared up front: with no services the loop never runs and
+        // these were still read in the response below.
+        $service_image   = [];
+        $service_country = [];
+
         if($all_services){
             foreach($all_services as $service){
                 $service_image[] = get_attachment_image_by_id($service->image);

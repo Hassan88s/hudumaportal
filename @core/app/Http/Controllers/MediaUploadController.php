@@ -12,6 +12,14 @@ use Illuminate\Support\Str;
 
 class MediaUploadController extends Controller
 {
+    /**
+     * How many images one regeneration request handles.
+     *
+     * Four resizes each, kept small enough to finish inside the 30 second
+     * max_execution_time the production host sets in .htaccess.
+     */
+    private const REGENERATE_BATCH = 25;
+
     public function __construct()
     {
         $this->middleware('auth:admin');
@@ -38,14 +46,48 @@ class MediaUploadController extends Controller
         return redirect()->back()->with(FlashMsg::error('Image Deleted'));
     }
 
-    public function regenerate_media_images()
+    /**
+     * Rebuild the four stored sizes for each uploaded image.
+     *
+     * This used to load every media row and resize all four variants of all
+     * of them in one request, which on any real library runs past PHP's
+     * max_execution_time — 30 seconds on the production host — and dies part
+     * way through, with no record of how far it got. It now walks the library
+     * in small batches, carrying the last id it finished in the URL, and
+     * skips images whose sizes are already on disk unless asked not to.
+     */
+    public function regenerate_media_images(Request $request)
     {
-        $all_media_file = MediaUpload::all();
+        @set_time_limit(0);
+
+        $after = (int) $request->query('after', 0);
+        $force = $request->query('force') == 1;
+
+        $all_media_file = MediaUpload::where('id', '>', $after)
+            ->orderBy('id')
+            ->limit(self::REGENERATE_BATCH)
+            ->get();
+
+        $last_id = $after;
+        $done    = 0;
+
         foreach ($all_media_file as $img) {
+            $last_id = $img->id;
+
 
             if (!file_exists('assets/uploads/media-uploader/' . $img->path)) {
                 continue;
             }
+
+            $folder = 'assets/uploads/media-uploader/';
+            if (! $force
+                && file_exists($folder . 'grid-' . $img->path)
+                && file_exists($folder . 'large-' . $img->path)
+                && file_exists($folder . 'thumb-' . $img->path)
+                && file_exists($folder . 'semi-large-' . $img->path)) {
+                continue;
+            }
+
             $image = 'assets/uploads/media-uploader/' . $img->path;
             $image_dimension = getimagesize($image);;
             $image_width = $image_dimension[0];
@@ -75,8 +117,16 @@ class MediaUploadController extends Controller
                 $resize_grid_image->save($folder_path . $image_grid);
                 $resize_large_image->save($folder_path . $image_large);
                 $resize_semi_large_image->save($folder_path . $image_semi_large);
+                $done++;
             }
         }
+
+        // More to go: come back for the next batch rather than hold the
+        // request open until the server kills it.
+        if ($all_media_file->count() === self::REGENERATE_BATCH) {
+            return redirect()->to(url()->current() . '?after=' . $last_id . ($force ? '&force=1' : ''));
+        }
+
         return __('regenerate done');
     }
 

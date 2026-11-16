@@ -69,24 +69,27 @@ Route::middleware(['setlang'])->group(function(){
         Route::post('/trashed/bulk-action', 'BlogController@trashed_bulk_action_blog')->name('admin.blog.trashed.bulk.action');
 
         //Single Page Settings
-        Route::get('/single-settings', 'BlogController@blog_single_page_settings')->name('admin.blog.single.settings');
-        Route::post('/single-settings', 'BlogController@update_blog_single_page_settings');
+        // Removed: backend.pages.blog.blog-single does not exist.
+        // Route::get('/single-settings', 'BlogController@blog_single_page_settings')->name('admin.blog.single.settings');
+        // Route::post('/single-settings', 'BlogController@update_blog_single_page_settings');
 
         //Others Page Settings
-        Route::get('/others-settings', 'BlogController@blog_others_page_settings')->name('admin.blog.others.settings');
-        Route::post('/others-settings', 'BlogController@update_blog_others_page_settings');
+        // Removed: backend.pages.blog.blog-others-settings does not exist.
+        // Route::get('/others-settings', 'BlogController@blog_others_page_settings')->name('admin.blog.others.settings');
+        // Route::post('/others-settings', 'BlogController@update_blog_others_page_settings');
 
         Route::post('/blog-approve', 'BlogController@blog_approve')->name('admin.blog.approve');
     });
 
     //BACKEND BLOG CATEGORY AREA
-    Route::group(['prefix'=>'blog-category'],function(){
-        Route::get('/','BlogCategoryController@index')->name('admin.blog.category');
-        Route::post('/store','BlogCategoryController@new_category')->name('admin.blog.category.store');
-        Route::post('/update','BlogCategoryController@update_category')->name('admin.blog.category.update');
-        Route::post('/delete/all/lang/{id}','BlogCategoryController@delete_category_all_lang')->name('admin.blog.category.delete.all.lang');
-        Route::post('/bulk-action', 'BlogCategoryController@bulk_action')->name('admin.blog.category.bulk.action');
-    });
+    // Removed: this feature has no model, no view and no blog_categories table.
+    // Route::group(['prefix'=>'blog-category'],function(){
+        // Route::get('/','BlogCategoryController@index')->name('admin.blog.category');
+        // Route::post('/store','BlogCategoryController@new_category')->name('admin.blog.category.store');
+        // Route::post('/update','BlogCategoryController@update_category')->name('admin.blog.category.update');
+        // Route::post('/delete/all/lang/{id}','BlogCategoryController@delete_category_all_lang')->name('admin.blog.category.delete.all.lang');
+        // Route::post('/bulk-action', 'BlogCategoryController@bulk_action')->name('admin.blog.category.bulk.action');
+    // });
 
     //BACKEND BLOG TAGS
     Route::group(['prefix'=>'blog-tags'],function(){
@@ -694,7 +697,9 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
     Route::post('/frontend/user/password/change','FrontendUserManageController@changeUserPassword')->name('admin.frontend.user.password');
 
     //admin settings
-    Route::get('/settings','AdminDashboardController@admin_settings')->name('admin.profile.settings');
+    // Removed: the auth.admin.settings view does not exist. Admins use
+    // /admin-home/edit-profile and /admin-home/change-password instead.
+    // Route::get('/settings','AdminDashboardController@admin_settings')->name('admin.profile.settings');
     Route::get('/profile-update','AdminDashboardController@admin_profile')->name('admin.profile.update');
     Route::post('/profile-update','AdminDashboardController@admin_profile_update');
     Route::get('/password-change','AdminDashboardController@admin_password')->name('admin.password.change');
