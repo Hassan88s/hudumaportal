@@ -41,7 +41,7 @@ class AdminNoticeController extends Controller
 
 
         public function notice_edit($id=null){
-             $notice =   AdminNotice::find($id);
+             $notice =   AdminNotice::findOrFail($id);
           return view('backend.pages.notice.edit-notice', compact('notice'));
         }
 

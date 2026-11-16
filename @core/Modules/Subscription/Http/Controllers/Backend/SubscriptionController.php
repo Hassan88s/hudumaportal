@@ -96,7 +96,7 @@ class SubscriptionController extends Controller
             ]);
             return redirect()->back()->with(FlashMsg::item_new('Subscription Update Success'));
         }
-        $subscription = Subscription::find($id);
+        $subscription = Subscription::findOrFail($id);
         return view('subscription::backend.edit-subscription',compact('subscription'));
     }
 
@@ -216,7 +216,7 @@ class SubscriptionController extends Controller
 
     public function send_email($id=null)
     {
-       $seller = SellerSubscription::find($id);
+       $seller = SellerSubscription::findOrFail($id);
        $seller_email = optional($seller->seller)->email;
        $expire_date = date('d-m-Y', strtotime($seller->expire_date));
 

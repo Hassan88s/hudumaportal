@@ -27,7 +27,8 @@ Route::group(['prefix'=>'seller','middleware'=>['auth','inactiveuser','BuyerChec
     Route::get('/Custom','Frontend\CustomController@index')->name('seller.Custom');
     Route::post('/Add-Custom','Frontend\CustomController@add_custom_offer')->name('seller.add.customoffer');
     Route::get('/offer-withdrwa/{id}','Frontend\CustomController@Withdrwal_custom_offer')->name('seller.job.withdrwa');
-    Route::get('/offer-withdrwa-message/{id}','Frontend\CustomController@Withdrwal_custom_offer_message')->name('seller.job.withdrwa_message');
+    // Removed: the controller method does not exist, so this route only ever threw a 500.
+    // Route::get('/offer-withdrwa-message/{id}','Frontend\CustomController@Withdrwal_custom_offer_message')->name('seller.job.withdrwa_message');
 
     ///manage portfolio
   

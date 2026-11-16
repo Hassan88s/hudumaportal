@@ -175,7 +175,7 @@ class GeneralSettingsController extends Controller
          $adesne_code = StaticOption::where(['option_name'=> 'google_adsense_code'])->first();
           $adsapce_places = Adspace::all();
           if($id != null){
-            $single_ad=  Adspace::where(['id'=>$id])->first();
+            $single_ad=  Adspace::where(['id'=>$id])->firstOrFail();
             
           }else{
               

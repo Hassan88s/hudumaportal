@@ -202,7 +202,8 @@ Route::group(['middleware' => ['globalVariable', 'maintains_mode','setlang']], f
     //all sellers
     Route::get('seller/all', 'Frontend\ServiceListController@allSellers')->name('all.sellers');
     //testersms
-         Route::get('sendtestsms/', 'Frontend\ServiceListController@testersms')->name('seller.sendtestsms');
+         // Removed: the controller method does not exist, so this route only ever threw a 500.
+         // Route::get('sendtestsms/', 'Frontend\ServiceListController@testersms')->name('seller.sendtestsms');
     
     //payment status route
     Route::get('/order-success/{id}','Frontend\ServiceListController@order_payment_success')->name('frontend.order.payment.success');

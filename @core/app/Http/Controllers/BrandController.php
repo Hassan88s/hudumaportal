@@ -48,7 +48,7 @@ class BrandController extends Controller
             $request->validate([
                 'title'=> 'required|max:191',
             ]);
-            $old_img = Brand::select('image')->find($id);
+            $old_img = Brand::select('image')->findOrFail($id);
             Brand::where('id',$id)->update([
                 'title'=>$request->title,
                 'url'=>$request->url,
@@ -58,7 +58,7 @@ class BrandController extends Controller
             return redirect()->back()->with(FlashMsg::item_new('Brand Update Success'));
         }
 
-        $brand = Brand::find($id);
+        $brand = Brand::findOrFail($id);
         return view('backend.pages.brand.edit_brand',compact('brand'));
     }
 

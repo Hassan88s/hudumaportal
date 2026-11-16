@@ -129,7 +129,7 @@ class CategoryController extends Controller
 
             return redirect()->back()->with(FlashMsg::item_new('Category Update Success'));
         }
-        $category = Category::find($id);
+        $category = Category::findOrFail($id);
         return view('backend.pages.category.edit_category',compact('category'));
     }
 

@@ -149,7 +149,7 @@ class ChildCategoryController extends Controller
             return redirect()->back()->with(FlashMsg::item_new('Child Category Update Success'));
         }
 
-        $child_category = ChildCategory::find($id);
+        $child_category = ChildCategory::findOrFail($id);
         $sub_categories = Subcategory::where('status', 1)->get();
         $categories = Category::where('status', 1)->get();
         return view('backend.pages.child-category.edit_child_category',compact('child_category', 'categories', 'sub_categories'));

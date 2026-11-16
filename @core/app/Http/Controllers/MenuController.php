@@ -49,7 +49,7 @@ class MenuController extends Controller
     }
     public function edit_menu($id)
     {
-        $page_post = Menu::find($id);
+        $page_post = Menu::findOrFail($id);
 
         return view('backend.pages.menu.menu-edit')->with([
             'page_post' => $page_post

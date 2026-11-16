@@ -75,7 +75,7 @@ class PayoutRequestController extends Controller
 
     public function view_request($id=null){
       
-        $request_details = PayoutRequest::where('id',$id)->first();
+        $request_details = PayoutRequest::where('id',$id)->firstOrFail();
         //   dd($request_details->seller_id);
         $complete_order_balance = Order::where(['status'=>2,'seller_id'=>$request_details->seller_id])->sum('total');
         $commission_amount = Order::where(['status'=>2,'seller_id'=>$request_details->seller_id])->sum('commission_amount');

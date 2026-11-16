@@ -110,7 +110,7 @@ class JobsController extends Controller
     {
         $request_details = JobRequest::with('job')
             ->where('id',$id)
-            ->first();
+            ->firstOrFail();
         $all_messages = JobRequestConversation::where(['job_request_id'=>$id])->get();
         $q = $request->q ?? '';
         return view('jobpost::backend.view-conversation', compact('request_details','all_messages','q'));

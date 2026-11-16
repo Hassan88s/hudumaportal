@@ -127,7 +127,7 @@ class ServiceController extends Controller
     }
     public function viewServiceDetails($id)
     {
-            $service = Service::with('serviceInclude', 'serviceAdditional', 'serviceBenifit')->where('id', $id)->first();
+            $service = Service::with('serviceInclude', 'serviceAdditional', 'serviceBenifit')->where('id', $id)->firstOrFail();
             $service_includes = Serviceinclude::where('service_id', $id)->get();
             $service_additionals = Serviceadditional::where('service_id', $id)->get();
             $service_benifits = Servicebenifit::where('service_id', $id)->get();

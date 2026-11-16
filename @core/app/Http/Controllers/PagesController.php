@@ -89,7 +89,7 @@ class PagesController extends Controller
     }
 
     public function edit_page(Request $request,$id){
-        $page_post = Page::find($id);
+        $page_post = Page::findOrFail($id);
         return view('backend.pages.page.edit')->with([
             'page_post' => $page_post,
             'default_lang' => $request->lang ?? LanguageHelper::default_slug(),

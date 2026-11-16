@@ -30,7 +30,7 @@
         <div class="row">
             <div class="col-lg-12">
                 <div class="margin-top-40"></div>
-                <x-error-msg/>
+                <x-msg.error/>
                 <x-flash-msg/>
             </div>
 

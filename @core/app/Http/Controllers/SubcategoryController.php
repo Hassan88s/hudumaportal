@@ -150,7 +150,7 @@ class SubcategoryController extends Controller
          return redirect()->back()->with(FlashMsg::item_new('Sub Category Update Success'));
         }
 
-         $subcategory = Subcategory::find($id);
+         $subcategory = Subcategory::findOrFail($id);
          $categories = Category::where('status', 1)->get();
          return view('backend.pages.subcategory.edit_subcategory',compact('subcategory', 'categories'));
      }

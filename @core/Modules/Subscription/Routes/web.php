@@ -55,7 +55,8 @@ Route::group(['prefix' => 'subscription'],function (){
     Route::get('/midtrans-ipn','Frontend\SellerPaymentController@midtrans_ipn_for_subs')->name('seller.midtrans.ipn.subs');
     Route::post('/payfast-ipn','Frontend\SellerPaymentController@payfast_ipn_for_subs')->name('seller.payfast.ipn.subs');
     Route::post('/cashfree-ipn','Frontend\SellerPaymentController@cashfree_ipn_for_subs')->name('seller.cashfree.ipn.subs');
-    Route::get('/instamojo-ipn','Frontend\SellerPaymentController@instamojo_ipn_for_subs')->name('seller.instamojo.ipn.subs');
+    // Removed: the controller method does not exist, so this route only ever threw a 500.
+    // Route::get('/instamojo-ipn','Frontend\SellerPaymentController@instamojo_ipn_for_subs')->name('seller.instamojo.ipn.subs');
     Route::get('/marcadopago-ipn','Frontend\SellerPaymentController@marcadopago_ipn_for_subs')->name('seller.marcadopago.ipn.subs');
     Route::get('/squareup-ipn','Frontend\SellerPaymentController@squareup_ipn_for_subs' )->name('seller.squareup.ipn.subs');
     Route::post('/cinetpay-ipn', 'Frontend\SellerPaymentController@cinetpay_ipn_for_subs' )->name('seller.cinetpay.ipn.subs');

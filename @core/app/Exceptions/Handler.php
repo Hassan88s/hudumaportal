@@ -55,13 +55,16 @@ class Handler extends ExceptionHandler
                 if ($request->is('api/v1/*')){
                     return response()->error(['message' => __('nothing found')]);
                 }
-                return response()->view('frontend.pages.404');
+                // The status code has to be passed through: without it this
+                // answered 404s with HTTP 200, so crawlers indexed every
+                // missing page as a real one.
+                return response()->view('frontend.pages.404', [], 404);
             }
             if ($exception->getStatusCode() == 500 ) {
                 if ($request->is('api/v1/*')){
                     return response()->error(['message' => __('server error')]);
                 }
-                return response()->view('frontend.pages.500');
+                return response()->view('frontend.pages.500', [], 500);
             }
         }
 

@@ -106,7 +106,8 @@ Route::middleware(['setlang'])->group(function(){
         Route::post('/new','PagesController@store_new_page');
         Route::get('/edit/{id}','PagesController@edit_page')->name('admin.page.edit');
         Route::post('/update/{id}','PagesController@update_page')->name('admin.page.update');
-        Route::post('/delete/{id}','PagesController@delete_page')->name('admin.page.delete');
+        // Removed: the controller method does not exist, so this route only ever threw a 500.
+        // Route::post('/delete/{id}','PagesController@delete_page')->name('admin.page.delete');
         Route::post('/delete/lang/all/{id}','PagesController@delete_page_lang_all')->name('admin.page.delete.lang.all');
         Route::post('/bulk-action','PagesController@bulk_action')->name('admin.page.bulk.action');
     });
@@ -417,7 +418,8 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
        DYNAMIC PAGE BUILDER
     -------------------------*/
     Route::get('/dynamic-page/{type}/{id}', 'PageBuilderController@dynamicpage_builder')->name('admin.dynamic.page.builder');
-    Route::post('/dynamic-page', 'PageBuilderController@update_dynamicpage_builder')->name('admin.dynamic.page.builder.store');
+    // Removed: the controller method does not exist, so this route only ever threw a 500.
+    // Route::post('/dynamic-page', 'PageBuilderController@update_dynamicpage_builder')->name('admin.dynamic.page.builder.store');
 
 });
 
@@ -540,7 +542,8 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
 
         // Custom Font add
         Route::post('typography/custom/font/file','CustomFontImportController@add_custom_font')->name('admin.custom.font.add');
-        Route::post('typography/custom-font/single','GeneralSettingsController@get_custom_single_font')->name('admin.custom.typography.single');
+        // Removed: the controller method does not exist, so this route only ever threw a 500.
+        // Route::post('typography/custom-font/single','GeneralSettingsController@get_custom_single_font')->name('admin.custom.typography.single');
         Route::post('typography/custom/font/css/update','CustomFontImportController@update_css_custom_font')->name('admin.custom.font.css.update');
 
         Route::post('typography/custom-font/delete/{id}','CustomFontImportController@deleteFontFile')->name('admin.custom.delete.font.file');
@@ -833,11 +836,16 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
 });
 
   //Chart Data
-    Route::post('/visited-url', 'AdminDashboardController@get_visited_url_data')->name('admin.home.visited.url.data');
-    Route::post('/visited/device', 'AdminDashboardController@get_chart_data_device')->name('admin.home.chart.data.by.device');
-    Route::post('/visited/os', 'AdminDashboardController@get_chart_data_os')->name('admin.home.chart.data.by.os');
-    Route::post('/visited/country', 'AdminDashboardController@get_chart_data_country')->name('admin.home.chart.data.by.country');
-    Route::post('/visited/browser', 'AdminDashboardController@get_chart_data_browser')->name('admin.home.chart.data.by.browser');
+    // Removed: the controller method does not exist, so this route only ever threw a 500.
+    // Route::post('/visited-url', 'AdminDashboardController@get_visited_url_data')->name('admin.home.visited.url.data');
+    // Removed: the controller method does not exist, so this route only ever threw a 500.
+    // Route::post('/visited/device', 'AdminDashboardController@get_chart_data_device')->name('admin.home.chart.data.by.device');
+    // Removed: the controller method does not exist, so this route only ever threw a 500.
+    // Route::post('/visited/os', 'AdminDashboardController@get_chart_data_os')->name('admin.home.chart.data.by.os');
+    // Removed: the controller method does not exist, so this route only ever threw a 500.
+    // Route::post('/visited/country', 'AdminDashboardController@get_chart_data_country')->name('admin.home.chart.data.by.country');
+    // Removed: the controller method does not exist, so this route only ever threw a 500.
+    // Route::post('/visited/browser', 'AdminDashboardController@get_chart_data_browser')->name('admin.home.chart.data.by.browser');
 
     // media upload routes end
     Route::post('/media-upload/all','MediaUploadController@all_upload_media_file')->name('admin.upload.media.file.all');

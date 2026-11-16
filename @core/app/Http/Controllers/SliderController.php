@@ -57,7 +57,7 @@ class SliderController extends Controller
             ]);
             return redirect()->back()->with(FlashMsg::item_new('Slider Update Success'));
         }
-        $slider = Slider::find($id);
+        $slider = Slider::findOrFail($id);
         $services = Service::select('id', 'title')->where('status', 1)->get();
         return view('backend.pages.slider.edit_slider',compact('slider', 'services'));
     }

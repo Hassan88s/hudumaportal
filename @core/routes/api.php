@@ -39,7 +39,8 @@ Route::group(['prefix'=>'v1', 'middleware' => 'setlang'],function(){
     Route::get('/module-permission',[MiscellaneousController::class,'modulePermission']);
     Route::get('/admin-commission-type',[MiscellaneousController::class,'adminCommissionType']);
     Route::post('/account-delete',[MiscellaneousController::class,'accountDelete'])->middleware('auth:sanctum');
-        Route::get('services/add-date','Frontend\SellerController@checkUpcomingOrderDate')->name('seller.active.services');
+        // Removed: the controller method does not exist, so this route only ever threw a 500.
+        // Route::get('services/add-date','Frontend\SellerController@checkUpcomingOrderDate')->name('seller.active.services');
     
     //todo: languages
     Route::get('/language',[LanguageController::class,'languageInfo']);
@@ -152,7 +153,8 @@ Route::group(['prefix'=>'v1', 'middleware' => 'setlang'],function(){
                  Route::post('request/seller-hire/{id?}', [BuyerJobController::class,'hire_seller']);
                 
                 /* job hire */
-                Route::post('/payment-complete', [BuyerJobController::class, 'job_payment_complete']);
+                // Removed: the controller method does not exist, so this route only ever threw a 500.
+                // Route::post('/payment-complete', [BuyerJobController::class, 'job_payment_complete']);
                 Route::post('/hire', [BuyerJobController::class, 'job_hire']);
                 
             });
@@ -281,7 +283,8 @@ Route::group(['prefix'=>'v1', 'middleware' => 'setlang'],function(){
         });
 
         Route::post('/support-tickets',[SellerController::class,'allTickets']);
-        Route::post('/support-tickets-create',[SellerController::class,'createTicket']);
+        // Removed: the controller method does not exist, so this route only ever threw a 500.
+        // Route::post('/support-tickets-create',[SellerController::class,'createTicket']);
         Route::get('/view-ticket/{id}',[SellerController::class,'viewTickets']);
         Route::post('/ticket-status-change',[SellerController::class,'ticketStatusChange']);
         Route::post('ticket/message-send',[SellerController::class,'sendMessage']);
@@ -300,7 +303,8 @@ Route::group(['prefix'=>'v1', 'middleware' => 'setlang'],function(){
                 Route::get('buyer-lists', [SellerChatController::class, 'liveChat']);//->name('seller.live.chat');
                 Route::get('/all-messages', [SellerChatController::class, 'allMessages']);
                 Route::post('/send', [SellerChatController::class, 'postSendMessage']);
-                Route::get('/fetch-old-messages', [SellerChatController::class, 'getOldMessages']);//->name('fetch.old.message');
+                // Removed: the controller method does not exist, so this route only ever threw a 500.
+                // Route::get('/fetch-old-messages', [SellerChatController::class, 'getOldMessages']);//->name('fetch.old.message');
             });
         }
 

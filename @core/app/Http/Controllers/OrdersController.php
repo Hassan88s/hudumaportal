@@ -396,7 +396,7 @@ class OrdersController extends Controller
 //            event(new SupportMessage($ticket_info));
             return redirect()->back()->with(FlashMsg::item_new(__('Message Send')));
         }
-        $report_details = Report::where('id',$report_id)->where('seller_id',$seller_id)->first();
+        $report_details = Report::where('id',$report_id)->where('seller_id',$seller_id)->firstOrFail();
         $all_messages = ReportChatMessage::where('report_id',$report_id)
             ->where('seller_id',$seller_id)
             ->get();
@@ -434,7 +434,7 @@ class OrdersController extends Controller
 //            event(new SupportMessage($ticket_info));
             return redirect()->back()->with(FlashMsg::item_new(__('Message Send')));
         }
-        $report_details = Report::where('id',$report_id)->where('buyer_id',$buyer_id)->first();
+        $report_details = Report::where('id',$report_id)->where('buyer_id',$buyer_id)->firstOrFail();
         $all_messages = ReportChatMessage::where('report_id',$report_id)
             ->where('buyer_id',$buyer_id)
             ->get();

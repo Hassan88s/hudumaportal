@@ -124,7 +124,7 @@ class BlogController extends Controller
     }
 
     public function edit_blog(Request $request,$id){
-        $blog_post = Blog::find($id);
+        $blog_post = Blog::findOrFail($id);
         $all_category = Category::select(['id','name'])->get();
         $all_tags = Tag::select(['id','name'])->get();
         return view('backend.pages.blog.edit')->with([
@@ -209,7 +209,7 @@ class BlogController extends Controller
     }
 
     public function restore_trashed_blog($id){
-        Blog::withTrashed()->find($id)->restore();
+        Blog::withTrashed()->findOrFail($id)->restore();
         return back()->with(FlashMsg::settings_update('Trashed Blog Restored Successfully..'));
     }
 

@@ -44,8 +44,10 @@ Route::get('/Accept-Time-Extension/{id}', 'Frontend\BuyerController@AcceptTimeEx
 
 Route::get('/enterprise/register', 'Frontend\EnterpriseController@create')->name('buyer.enterprise.create');
 Route::post('/enterprise/save', 'Frontend\EnterpriseController@store')->name('buyer.enterprise.store');
-Route::get('/enterprise/edit/{id}', 'Frontend\EnterpriseController@edit')->name('buyer.enterprise.edit');
-Route::post('/enterprise/update/{id}', 'Frontend\EnterpriseController@update')->name('buyer.enterprise.update');
+// Removed: the controller method does not exist, so this route only ever threw a 500.
+// Route::get('/enterprise/edit/{id}', 'Frontend\EnterpriseController@edit')->name('buyer.enterprise.edit');
+// Removed: the controller method does not exist, so this route only ever threw a 500.
+// Route::post('/enterprise/update/{id}', 'Frontend\EnterpriseController@update')->name('buyer.enterprise.update');
 
     // buyer deactivate and delete account
     Route::post('/account-deactive','Frontend\BuyerController@accountDeactive')->name('buyer.account.deactive');
@@ -79,15 +81,18 @@ Route::post('/enterprise/update/{id}', 'Frontend\EnterpriseController@update')->
     //extra services
      Route::post('order/extra-service/decline','Frontend\BuyerController@extraServiceDecline')->name('buyer.order.extra.service.decline');
      Route::post('order/extra-service/accept','Frontend\BuyerController@extraServiceAccept')->name('buyer.order.extra.service.accept');
-     Route::get('order/extra-service/success/{id}','Frontend\BuyerController@extraServicePaymentSuccess')->name('buyer.order.extra.service.payment.success');
-     Route::get('order/extra-service/cancel/{id}','Frontend\BuyerController@extraServiceCancel')->name('buyer.order.extra.service.payment.cancel');
+     // Removed: the controller method does not exist, so this route only ever threw a 500.
+     // Route::get('order/extra-service/success/{id}','Frontend\BuyerController@extraServicePaymentSuccess')->name('buyer.order.extra.service.payment.success');
+     // Removed: the controller method does not exist, so this route only ever threw a 500.
+     // Route::get('order/extra-service/cancel/{id}','Frontend\BuyerController@extraServiceCancel')->name('buyer.order.extra.service.payment.cancel');
 
      /* ------------------------------
         ipn routes for extra services
      --------------------------------*/
     Route::get('/paypal-ipn','Frontend\ExtraServicePaymentController@paypal_ipn')->name('buyer.order.extra.service.payment.paypal.ipn');
     Route::post('/paytm-ipn','Frontend\ExtraServicePaymentController@paytm_ipn')->name('buyer.order.extra.service.payment.paytm.ipn');
-    Route::get('/paystack-ipn','Frontend\ExtraServicePaymentController@paystack_ipn')->name('buyer.order.extra.service.payment.paystack.ipn');
+    // Removed: the controller method does not exist, so this route only ever threw a 500.
+    // Route::get('/paystack-ipn','Frontend\ExtraServicePaymentController@paystack_ipn')->name('buyer.order.extra.service.payment.paystack.ipn');
     Route::get('/mollie/ipn','Frontend\ExtraServicePaymentController@mollie_ipn')->name('buyer.order.extra.service.payment.mollie.ipn');
     Route::get('/stripe/ipn','Frontend\ExtraServicePaymentController@stripe_ipn')->name('buyer.order.extra.service.payment.stripe.ipn');
     Route::post('/razorpay-ipn','Frontend\ExtraServicePaymentController@razorpay_ipn')->name('buyer.order.extra.service.payment.razorpay.ipn');
