@@ -2253,6 +2253,34 @@ function purify_html($html){
     return strip_tags(\Mews\Purifier\Facades\Purifier::clean($html));
 }
 
+/**
+ * Show a booking date without blowing up when there isn't one.
+ *
+ * An online service has no appointment, and the order stores the
+ * literal 'No Date Created' for it — 8 of the 12 orders in the
+ * database say exactly that. Carbon throws on it, and the twelve
+ * templates that formatted the date did so unguarded, so a seller or
+ * buyer with one online order could not open their own order list or
+ * dashboard at all.
+ *
+ * Anything Carbon cannot read is handed back as it was, so the page
+ * still says what the order says.
+ */
+if (!function_exists('order_date')) {
+    function order_date($date, $format = 'd/m/y')
+    {
+        if ($date === null || $date === '') {
+            return '';
+        }
+
+        try {
+            return \Carbon\Carbon::parse($date)->format($format);
+        } catch (\Throwable $e) {
+            return (string) $date;
+        }
+    }
+}
+
 function purify_html_raw($html){
     return \Mews\Purifier\Facades\Purifier::clean($html);
 }

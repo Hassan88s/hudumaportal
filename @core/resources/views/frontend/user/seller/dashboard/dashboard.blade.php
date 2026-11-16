@@ -190,7 +190,7 @@ Join today and experience the fastest way to get things done.') }}" target="_bla
                                                     @if($order->date === 'No Date Created')
                                                         <strong>{{ __('No Date Created') }}</strong>
                                                     @else
-                                                        <strong>{{ Carbon\Carbon::parse($order->date)->format('d/m/y') }} {{ $order->schedule }}</strong>
+                                                        <strong>{{ order_date($order->date, 'd/m/y') }} {{ $order->schedule }}</strong>
                                                     @endif
                                                 </div>
                                                 <div class="d-order-row">

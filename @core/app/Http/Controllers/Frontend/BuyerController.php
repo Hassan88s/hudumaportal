@@ -726,7 +726,7 @@ class BuyerController extends Controller
 //            event(new SupportMessage($ticket_info));
             return redirect()->back()->with(FlashMsg::item_new(__('Message Send')));
         }
-        $report_details = Report::where('id',$report_id)->where('buyer_id',$buyer_id)->first();
+        $report_details = Report::where('id',$report_id)->where('buyer_id',$buyer_id)->firstOrFail();
         $all_messages = ReportChatMessage::where('report_id',$report_id)
             ->where('buyer_id',$buyer_id)
             ->get();
@@ -2312,7 +2312,12 @@ class BuyerController extends Controller
     
     public function AcceptTimeExtension($id){
        
-      $order_details= order::where(['id'=>$id])->first();
+      // Scoped to the signed-in buyer's own order: without this any
+      // buyer could accept an extension on somebody else's order and
+      // move their delivery deadline.
+      $order_details = Order::where('id', $id)
+          ->where('buyer_id', Auth::guard('web')->id())
+          ->firstOrFail();
              $days= $order_details->time_extension_days;
             $makesting= "+ $days days";
             $time_limit = new DateTime($makesting);

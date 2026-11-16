@@ -485,7 +485,16 @@ class SellerController extends Controller
 
     public function accountDeactiveCancel($id = null)
     {
-        $account_details = Accountdeactive::where('user_id', $id)->first();
+        /*
+         * The id came from the URL and was used to pick whose
+         * deactivation to cancel, while the services reactivated below
+         * were always the signed-in seller's. One seller could
+         * therefore cancel another's account deactivation. It is the
+         * signed-in seller's own record either way, so that is what it
+         * looks up now.
+         */
+        $account_details = Accountdeactive::where('user_id', Auth::guard('web')->id())->first();
+        abort_if($account_details === null, 404);
         $account_details->delete();
         Service::where('seller_id', Auth::guard('web')->user()->id)
             ->update(['status' => 1]);
@@ -3307,7 +3316,7 @@ class SellerController extends Controller
 //            event(new SupportMessage($ticket_info));
             return redirect()->back()->with(FlashMsg::item_new(__('Message Send')));
         }
-        $report_details = Report::where('id',$report_id)->where('seller_id',$seller_id)->first();
+        $report_details = Report::where('id',$report_id)->where('seller_id',$seller_id)->firstOrFail();
         $all_messages = ReportChatMessage::where('report_id',$report_id)
             ->where('seller_id',$seller_id)
             ->get();

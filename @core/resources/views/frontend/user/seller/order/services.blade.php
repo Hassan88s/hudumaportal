@@ -233,7 +233,7 @@
                                                     <a href="javascript:void(0)" class="dashboard_table__main__order__contents__id"> <strong class="text-dark">{{ __('Order ID:') }}</strong> {{ $order->id }}</a> ,
                                                     <!--<a href="javascript:void(0)" class="dashboard_table__main__order__contents__author"> <strong class="text-dark">{{ __('Buyer Name:') }}</strong>{{ optional($order->buyer)->name }} </a>-->
                                                 </span>
-                                                        <span><strong>{{ __('Booking Date:') }}</strong>  {{ \Carbon\Carbon::parse($order->date)->format('d/m/y') }}</span>
+                                                        <span><strong>{{ __('Booking Date:') }}</strong>  {{ \order_date($order->date, 'd/m/y') }}</span>
                                                          {{-- Order Status Badge --}}
                                                     @php
                                                         $statusMap = [

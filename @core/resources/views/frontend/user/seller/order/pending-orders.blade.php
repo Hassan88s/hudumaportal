@@ -152,7 +152,7 @@
                                                                         @if($order->date === 'No Date Created')
                                                                             <span>{{ __('No Date Created') }}</span>
                                                                         @else
-                                                                            {{ Carbon\Carbon::parse($order->date)->format('d/m/y') }}
+                                                                            {{ order_date($order->date, 'd/m/y') }}
                                                                         @endif
 
                                                                         @if($order->schedule === 'No Schedule Created')

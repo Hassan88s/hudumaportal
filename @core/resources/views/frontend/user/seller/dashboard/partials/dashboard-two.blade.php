@@ -246,7 +246,7 @@
                                                     @if($order->date === 'No Date Created')
                                                         <p>{{ __('No Date Created') }}</p>
                                                         @else
-                                                            <p class="dashboard_recentOrder__item__details__item__right">{{ Carbon\Carbon::parse($order->date)->format('d/m/y') }} <span>{{ $order->schedule }}</span></p>
+                                                            <p class="dashboard_recentOrder__item__details__item__right">{{ order_date($order->date, 'd/m/y') }} <span>{{ $order->schedule }}</span></p>
                                                       @endif
                                                 </div>
 

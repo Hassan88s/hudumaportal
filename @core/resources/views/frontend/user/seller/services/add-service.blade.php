@@ -392,7 +392,10 @@
 
 //                 </script>
 
-@if($seller_subscription_check->aidescription_enabled === 'yes')
+{{-- optional(): a seller with no subscription row has nothing to read
+         this from, and reading it straight meant most sellers could not
+         open this page at all. --}}
+@if(optional($seller_subscription_check)->aidescription_enabled === 'yes')
 <script>
 $(document).ready(function() {
     $("#submitPromptBtn").click(function() {
