@@ -442,6 +442,20 @@ class JobRequestController extends Controller
 
         $last_order_id = $order_details->id;
 
+        /*
+         * Hiring for a job is a booking, and it writes an orders row just
+         * like booking a service does — but this path never told the
+         * referral service, so a referred buyer's job hires earned their
+         * referrer nothing. Idempotent: the referral's stage markers are
+         * what stop it paying more than once.
+         */
+        $referred_buyer = \App\User::find($buyer_id);
+        if ($referred_buyer && ! empty($referred_buyer->referred_by)) {
+            $rs = app(\App\Services\ReferralService::class);
+            $rs->onBuyerFirstOrder($referred_buyer);
+            $rs->onBuyerSecondOrderWithin60Days($referred_buyer);
+        }
+
         // invoice generate
         $invoiceNumber = 'INV'.$last_order_id;
         Order::where('id', $last_order_id)->update(['invoice' => $invoiceNumber]);

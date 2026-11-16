@@ -447,9 +447,18 @@ class ReferralService
         $referral = Referral::where('referred_user_id', $buyer->id)->first();
         if (!$referral || !empty($referral->stage2_at)) return;
 
-        // Only fire on the first order (matches legacy behaviour)
+        /*
+         * At least one booking, not exactly one.
+         *
+         * Insisting on exactly one meant the reward was lost for good if
+         * anything else had already written an orders row — hiring for a
+         * job does exactly that, and that path never called this hook. A
+         * buyer who hired two jobs and then booked a service arrived here
+         * with three orders and silently earned their referrer nothing.
+         * stage2_at above is what stops this paying twice.
+         */
         $count = DB::table('orders')->where('buyer_id', $buyer->id)->count();
-        if ($count !== 1) return;
+        if ($count < 1) return;
 
         $referral->update(['stage2_at' => now()]);
 
@@ -467,8 +476,10 @@ class ReferralService
         $referral = Referral::where('referred_user_id', $buyer->id)->first();
         if (!$referral || !empty($referral->stage3_at)) return;
 
+        // At least two, for the same reason as stage 1 above; stage3_at
+        // is what keeps it to one payment.
         $count = DB::table('orders')->where('buyer_id', $buyer->id)->count();
-        if ($count !== 2) return;
+        if ($count < 2) return;
 
         // Was the referral within 60 days ago?
         if (Carbon::parse($referral->created_at)->diffInDays(now()) > 60) return;
