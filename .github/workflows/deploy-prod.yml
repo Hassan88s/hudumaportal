@@ -1,0 +1,77 @@
+name: Deploy to Production
+
+# Production is NOT deployed from main. It is deployed from the `production`
+# branch, so dev can move freely while production only changes when somebody
+# promotes a tested commit:
+#
+#   git checkout production && git merge --ff-only main && git push
+#
+# Nothing here runs until the four PROD_* secrets exist, so adding this file
+# alone deploys nothing.
+
+on:
+  push:
+    branches: [ production ]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'List what would change without uploading anything'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false          # never interrupt a half-finished upload
+
+jobs:
+  deploy:
+    name: FTP -> hudumaportal.co.tz
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.PROD_FTP_HOST }}
+          username: ${{ secrets.PROD_FTP_USERNAME }}
+          password: ${{ secrets.PROD_FTP_PASSWORD }}
+          port: 21
+          protocol: ftp
+          server-dir: /                      # the prod FTP user must be jailed to the live docroot
+          state-name: .ftp-deploy-sync-state.json
+          dry-run: ${{ inputs.dry_run == true }}
+          timeout: 60000
+          log-level: standard
+          # Identical to deploy-dev.yml. Everything listed here is owned by the
+          # server, not by git: per-environment config, uploads, vendor, caches.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/node_modules/**
+            **/@core/vendor/**
+            **/@core/storage/framework/cache/**
+            **/@core/storage/framework/views/**
+            **/@core/storage/framework/sessions/**
+            **/@core/storage/logs/**
+            **/@core/storage/app/public/**
+            **/@core/bootstrap/cache/*.php
+            **/@core/.env
+            **/@core/.env.*
+            **/assets/uploads/**
+            **/backups/**
+            **/security/**
+            **/*.sql
+            **/*.zip
+            **/*.tar.gz
+            **/error_log
+            **/_deploy/**
+            index.php
+            .htaccess
+            .user.ini
+            @core/app/Providers/AppServiceProvider.php
