@@ -501,6 +501,144 @@ class SystemUpgradeService
                 },
             ],
 
+            'ride_riders_table' => [
+                'title' => 'Rides: rider accounts and their documents',
+                'run'   => function () {
+                    if (Schema::hasTable('riders')) {
+                        return null;
+                    }
+                    DB::statement("
+                        CREATE TABLE `riders` (
+                          `id`                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                          `user_id`            BIGINT UNSIGNED NOT NULL,
+                          `status`             TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0 pending, 1 approved, 2 rejected, 3 suspended',
+                          `full_name`          VARCHAR(191) NULL,
+                          `phone`              VARCHAR(50)  NULL,
+                          `national_id`        VARCHAR(100) NULL,
+                          `national_id_photo`  VARCHAR(255) NULL,
+                          `licence_number`     VARCHAR(100) NULL,
+                          `licence_expiry`     DATE NULL,
+                          `licence_photo`      VARCHAR(255) NULL,
+                          `bike_plate`         VARCHAR(50)  NULL,
+                          `bike_model`         VARCHAR(100) NULL,
+                          `bike_photo`         VARCHAR(255) NULL,
+                          `bike_reg_photo`     VARCHAR(255) NULL,
+                          `insurance_photo`    VARCHAR(255) NULL,
+                          `rejection_reason`   TEXT NULL,
+                          `submitted_at`       TIMESTAMP NULL DEFAULT NULL,
+                          `approved_at`        TIMESTAMP NULL DEFAULT NULL,
+                          `approved_by`        BIGINT UNSIGNED NULL DEFAULT NULL,
+                          `is_online`          TINYINT(1) NOT NULL DEFAULT 0,
+                          `last_lat`           DECIMAL(10,7) NULL DEFAULT NULL,
+                          `last_lng`           DECIMAL(10,7) NULL DEFAULT NULL,
+                          `last_location_at`   TIMESTAMP NULL DEFAULT NULL,
+                          `total_trips`        INT NOT NULL DEFAULT 0,
+                          `rating_sum`         INT NOT NULL DEFAULT 0,
+                          `rating_count`       INT NOT NULL DEFAULT 0,
+                          `created_at`         TIMESTAMP NULL DEFAULT NULL,
+                          `updated_at`         TIMESTAMP NULL DEFAULT NULL,
+                          PRIMARY KEY (`id`),
+                          UNIQUE KEY `riders_user_id_unique` (`user_id`),
+                          KEY `riders_status_index` (`status`),
+                          KEY `riders_online_index` (`is_online`, `status`)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    ");
+                    return 'created riders';
+                },
+            ],
+
+            'ride_settings_defaults' => [
+                'title' => 'Rides: fare and dispatch settings',
+                'run'   => function () {
+                    /*
+                     * Fares live in static_options like the rest of the site's
+                     * settings, so get_static_option() and the existing settings
+                     * screens work unchanged. Each default is written only when
+                     * the option is absent, so a fare an admin edits is never
+                     * reset by a later upgrade.
+                     */
+                    $defaults = [
+                        'ride_enabled'            => '0',
+                        'ride_base_fare'          => '1000',
+                        'ride_price_per_km'       => '400',
+                        'ride_price_per_minute'   => '50',
+                        'ride_minimum_fare'       => '1500',
+                        'ride_commission_percent' => '15',
+                        'ride_search_radius_km'   => '5',
+                        'ride_request_timeout'    => '30',
+                        'ride_cancellation_fee'   => '0',
+                    ];
+
+                    $added = [];
+                    foreach ($defaults as $name => $value) {
+                        if (DB::table('static_options')->where('option_name', $name)->exists()) {
+                            continue;
+                        }
+                        DB::table('static_options')->insert([
+                            'option_name'  => $name,
+                            'option_value' => $value,
+                            'created_at'   => now(),
+                            'updated_at'   => now(),
+                        ]);
+                        $added[] = $name;
+                    }
+
+                    return $added ? 'added ' . count($added) . ' ride setting(s)' : null;
+                },
+            ],
+
+            'ride_admin_permissions' => [
+                'title' => 'Rides: admin permissions',
+                'run'   => function () {
+                    $names = ['ride-rider-list', 'ride-rider-approve', 'ride-settings'];
+
+                    $created = [];
+                    foreach ($names as $name) {
+                        $exists = DB::table('permissions')
+                            ->where('name', $name)->where('guard_name', 'admin')->exists();
+                        if ($exists) {
+                            continue;
+                        }
+                        DB::table('permissions')->insert([
+                            'name'       => $name,
+                            'guard_name' => 'admin',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        $created[] = $name;
+                    }
+
+                    // Super Admin must be able to reach anything new at once.
+                    $superId = DB::table('roles')
+                        ->where('name', 'Super Admin')->where('guard_name', 'admin')->value('id');
+
+                    $granted = 0;
+                    if ($superId) {
+                        $ids = DB::table('permissions')
+                            ->whereIn('name', $names)->where('guard_name', 'admin')->pluck('id');
+                        foreach ($ids as $pid) {
+                            $has = DB::table('role_has_permissions')
+                                ->where('role_id', $superId)->where('permission_id', $pid)->exists();
+                            if (! $has) {
+                                DB::table('role_has_permissions')->insert([
+                                    'role_id' => $superId, 'permission_id' => $pid,
+                                ]);
+                                $granted++;
+                            }
+                        }
+                    }
+
+                    app()->forgetInstance(\Spatie\Permission\PermissionRegistrar::class);
+
+                    if (! $created && ! $granted) {
+                        return null;
+                    }
+
+                    return trim(($created ? 'created ' . implode(', ', $created) : '')
+                        . ($granted ? ' granted ' . $granted . ' to Super Admin' : ''));
+                },
+            ],
+
         ];
     }
 

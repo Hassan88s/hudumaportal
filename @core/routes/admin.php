@@ -683,6 +683,16 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
     Route::post('/frontend/verify-seller-profile/{id}','FrontendUserManageController@sellerVerify')->name('admin.frontend.seller.profile.verify');
     Route::get('/frontend/seller-verify/all','FrontendUserManageController@sellerAll')->name('admin.frontend.seller.all');
 
+    /* ---- Ride booking ---- */
+    Route::get('/ride/riders','RideManageController@riders')->name('admin.ride.riders');
+    Route::get('/ride/rider/{id}','RideManageController@riderDetails')->name('admin.ride.rider.details');
+    Route::post('/ride/rider/{id}/approve','RideManageController@approve')->name('admin.ride.rider.approve');
+    Route::post('/ride/rider/{id}/reject','RideManageController@reject')->name('admin.ride.rider.reject');
+    Route::post('/ride/rider/{id}/suspend','RideManageController@suspend')->name('admin.ride.rider.suspend');
+    Route::post('/ride/rider/{id}/restore','RideManageController@restore')->name('admin.ride.rider.restore');
+    Route::get('/ride/settings','RideManageController@settings')->name('admin.ride.settings');
+    Route::post('/ride/settings','RideManageController@settingsUpdate')->name('admin.ride.settings.update');
+
     Route::get('/frontend/seller-add-page','FrontendUserManageController@sellerAddPage')->name('admin.frontend.seller.add');
     Route::post('/frontend/seller/create','FrontendUserManageController@sellerCreate')->name('admin.frontend.seller.create');
 

@@ -295,3 +295,4 @@ Route::group(['middleware'=>['auth','inactiveuser']],function(){
 
 require_once __DIR__ . '/seller.php';
 require_once __DIR__ . '/buyer.php';
+require_once __DIR__ . '/rider.php';

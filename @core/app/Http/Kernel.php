@@ -72,6 +72,7 @@ class Kernel extends HttpKernel
         'inactiveuser' => \App\Http\Middleware\InactiveUser::class,
         'UserRoleCheck' => \App\Http\Middleware\UserRoleCheck::class,
         'BuyerCheck' => \App\Http\Middleware\BuyerCheck::class,
+        'RiderCheck' => \App\Http\Middleware\RiderCheck::class,
     ];
 
     protected $middlewarePriority = [
