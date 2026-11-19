@@ -49,6 +49,8 @@
                         <a href="{{ route('seller.wallet.history') }}"> <i class="las la-th"></i> {{__('Wallet')}} </a>
                     </li>
                 @endif
+
+                @include('frontend.partials.ride-nav', ['listClass' => 'list'])
                 <li class="list @if(request()->is('seller/coupons*')) active @endif">
                     <a href="{{ route('seller.service.coupon') }}"> <i class="las la-gifts"></i> {{__('Service Coupons')}} </a>
                 </li>

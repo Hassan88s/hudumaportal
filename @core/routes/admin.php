@@ -692,6 +692,9 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
     Route::post('/ride/rider/{id}/restore','RideManageController@restore')->name('admin.ride.rider.restore');
     Route::get('/ride/settings','RideManageController@settings')->name('admin.ride.settings');
     Route::post('/ride/settings','RideManageController@settingsUpdate')->name('admin.ride.settings.update');
+    Route::get('/ride/trips','RideManageController@trips')->name('admin.ride.trips');
+    Route::get('/ride/trip/{id}','RideManageController@tripDetails')->name('admin.ride.trip.details');
+    Route::post('/ride/trip/{id}/resolve','RideManageController@resolveTrip')->name('admin.ride.trip.resolve');
 
     Route::get('/frontend/seller-add-page','FrontendUserManageController@sellerAddPage')->name('admin.frontend.seller.add');
     Route::post('/frontend/seller/create','FrontendUserManageController@sellerCreate')->name('admin.frontend.seller.create');

@@ -686,7 +686,7 @@
                         </li>
                     @endcanany
 
-                    @canany(['ride-rider-list', 'ride-settings'])
+                    @canany(['ride-rider-list', 'ride-trip-list', 'ride-settings'])
                         <li class="{{ active_menu('admin-home/ride') }}
                                 @if (request()->is('admin-home/ride/*')) active @endif">
                             <a href="javascript:void(0)" aria-expanded="true"><i class="ti-location-pin"></i>
@@ -695,6 +695,11 @@
                                 @can('ride-rider-list')
                                     <li class="{{ active_menu('admin-home/ride/riders') }}">
                                         <a href="{{ route('admin.ride.riders') }}" aria-expanded="true">{{ __('Riders') }}</a>
+                                    </li>
+                                @endcan
+                                @can('ride-trip-list')
+                                    <li class="{{ active_menu('admin-home/ride/trips') }}">
+                                        <a href="{{ route('admin.ride.trips') }}" aria-expanded="true">{{ __('Trips') }}</a>
                                     </li>
                                 @endcan
                                 @can('ride-settings')

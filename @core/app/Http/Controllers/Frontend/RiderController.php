@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Exceptions\RideException;
 use App\Http\Controllers\Controller;
+use App\Ride;
 use App\Rider;
+use App\Services\RideService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -11,10 +14,9 @@ use Illuminate\Support\Str;
 /**
  * The rider side of ride booking.
  *
- * Phase one: apply, watch the application, and once approved go on and off
- * duty while the phone reports where the bike is. Trips themselves arrive in
- * the next phase; everything here is what has to exist before a trip can be
- * offered to anybody.
+ * Apply, watch the application, and once approved go on duty, take trips,
+ * carry them out and get paid. The pages are deliberately plain: a rider
+ * reads them at a junction with one hand on the bars.
  */
 class RiderController extends Controller
 {
@@ -142,10 +144,12 @@ class RiderController extends Controller
 
     public function dashboard()
     {
-        $rider = $this->rider();
+        $rider  = $this->rider();
+        $rides  = app(RideService::class);
 
         return view('frontend.user.rider.dashboard', [
             'rider'      => $rider,
+            'active'     => $rides->activeTripFor($rider),
             'fare'       => [
                 'base'       => (float) get_static_option('ride_base_fare'),
                 'per_km'     => (float) get_static_option('ride_price_per_km'),
@@ -231,5 +235,181 @@ class RiderController extends Controller
         ]);
 
         return response()->json(['ok' => true, 'online' => (bool) $rider->is_online]);
+    }
+
+    /* ----------------------------------------------------------- trip work */
+
+    /**
+     * Trips on offer near this rider.
+     *
+     * Polled by the dashboard while the rider is online. It also returns the
+     * trip they are already on, so one request is enough to know whether to
+     * show a list or a job in progress.
+     */
+    public function requests()
+    {
+        $rider = $this->rider();
+
+        if (! $rider || ! $rider->isApproved()) {
+            return response()->json(['ok' => false], 403);
+        }
+
+        $rides   = app(RideService::class);
+        $active  = $rides->activeTripFor($rider);
+        $cur     = $rides->currency();
+
+        if ($active) {
+            return response()->json([
+                'ok'       => true,
+                'online'   => (bool) $rider->is_online,
+                'active'   => true,
+                'redirect' => route('rider.trip'),
+                'requests' => [],
+            ]);
+        }
+
+        $open = $rides->openRequestsFor($rider)->map(fn ($ride) => [
+            'id'        => $ride->id,
+            'pickup'    => $ride->pickup_address ?: __('Pick-up point'),
+            'dropoff'   => $ride->dropoff_address ?: __('Drop-off point'),
+            'away_km'   => $ride->pickup_distance_km,
+            'trip_km'   => (float) $ride->distance_km,
+            'minutes'   => (int) $ride->duration_min,
+            'fare'      => $cur . ' ' . number_format($ride->fare, 0),
+            'earning'   => $cur . ' ' . number_format(
+                $ride->fare * (1 - ((float) get_static_option('ride_commission_percent') / 100)),
+                0
+            ),
+            'passenger' => optional($ride->passenger)->name,
+            'accept_url' => route('rider.trip.accept', $ride->id),
+        ]);
+
+        return response()->json([
+            'ok'       => true,
+            'online'   => (bool) $rider->is_online,
+            'active'   => false,
+            'requests' => $open->values(),
+        ]);
+    }
+
+    /** Take one of the trips on offer. */
+    public function accept(Request $request, $id)
+    {
+        $rider = $this->rider();
+
+        if (! $rider) {
+            return response()->json(['ok' => false], 403);
+        }
+
+        try {
+            app(RideService::class)->accept($rider, (int) $id);
+        } catch (RideException $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 409);
+        }
+
+        return response()->json(['ok' => true, 'redirect' => route('rider.trip')]);
+    }
+
+    /** The job in hand. */
+    public function trip()
+    {
+        $rider = $this->rider();
+        $rides = app(RideService::class);
+        $ride  = $rides->activeTripFor($rider);
+
+        if (! $ride) {
+            toastr_error(__('You are not on a trip right now.'));
+
+            return redirect()->route('rider.dashboard');
+        }
+
+        return view('frontend.user.rider.trip', [
+            'rider'    => $rider,
+            'ride'     => $ride,
+            'currency' => $rides->currency(),
+            'earning'  => round(
+                $ride->fare * (1 - ((float) get_static_option('ride_commission_percent') / 100)),
+                2
+            ),
+        ]);
+    }
+
+    /**
+     * Move the job on: arrived, started, finished, or dropped.
+     *
+     * One endpoint for all four because the screen is one screen, and the
+     * service decides whether the step asked for is legal from where the trip
+     * actually is — not from what the button said.
+     */
+    public function tripAction(Request $request, $id, $action)
+    {
+        $rider = $this->rider();
+        $rides = app(RideService::class);
+
+        if (! $rider) {
+            return response()->json(['ok' => false], 403);
+        }
+
+        $ride = Ride::where('id', $id)->where('rider_id', $rider->id)->first();
+
+        if (! $ride) {
+            return response()->json(['ok' => false, 'message' => __('That is not your trip.')], 404);
+        }
+
+        try {
+            switch ($action) {
+                case 'arrived':
+                case 'start':
+                    $ride = $rides->advance($rider, $ride, $action);
+                    break;
+
+                case 'complete':
+                    $ride = $rides->complete($rider, $ride);
+                    break;
+
+                case 'cancel':
+                    $request->validate(['reason' => 'nullable|string|max:255']);
+                    $ride = $rides->cancelByRider($rider, $ride, $request->input('reason'));
+                    break;
+
+                default:
+                    return response()->json(['ok' => false, 'message' => __('Unknown step.')], 422);
+            }
+        } catch (RideException $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 409);
+        }
+
+        return response()->json([
+            'ok'       => true,
+            'status'   => $ride->status,
+            'label'    => $ride->statusLabel(),
+            'closed'   => $ride->isClosed(),
+            'earning'  => (float) $ride->rider_earning,
+            'redirect' => $ride->isClosed() ? route('rider.dashboard') : null,
+        ]);
+    }
+
+    /** What this rider has earned, and from which trips. */
+    public function earnings()
+    {
+        $rider = $this->rider();
+        $rides = app(RideService::class);
+
+        $completed = Ride::where('rider_id', $rider->id)
+            ->where('status', Ride::COMPLETED);
+
+        return view('frontend.user.rider.earnings', [
+            'rider'    => $rider,
+            'currency' => $rides->currency(),
+            'balance'  => $rides->walletBalance($rider->user_id),
+            'today'    => (float) (clone $completed)->whereDate('completed_at', today())->sum('rider_earning'),
+            'week'     => (float) (clone $completed)
+                ->where('completed_at', '>=', now()->subDays(7))->sum('rider_earning'),
+            'lifetime' => (float) (clone $completed)->sum('rider_earning'),
+            'trips'    => Ride::where('rider_id', $rider->id)
+                ->whereIn('status', Ride::CLOSED)
+                ->orderByDesc('id')
+                ->paginate(15),
+        ]);
     }
 }

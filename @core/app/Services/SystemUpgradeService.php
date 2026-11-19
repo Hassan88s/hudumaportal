@@ -639,6 +639,110 @@ class SystemUpgradeService
                 },
             ],
 
+            'ride_rides_table' => [
+                'title' => 'Rides: trips',
+                'run'   => function () {
+                    if (Schema::hasTable('rides')) {
+                        return null;
+                    }
+                    DB::statement("
+                        CREATE TABLE `rides` (
+                          `id`                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                          `passenger_id`       BIGINT UNSIGNED NOT NULL,
+                          `rider_id`           BIGINT UNSIGNED NULL DEFAULT NULL COMMENT 'riders.id, null while nobody has accepted',
+                          `status`             TINYINT(2) NOT NULL DEFAULT 0 COMMENT '0 searching, 1 accepted, 2 rider arrived, 3 on the way, 4 completed, 5 passenger cancelled, 6 rider cancelled, 7 nobody accepted',
+                          `pickup_address`     VARCHAR(255) NULL,
+                          `pickup_lat`         DECIMAL(10,7) NOT NULL,
+                          `pickup_lng`         DECIMAL(10,7) NOT NULL,
+                          `dropoff_address`    VARCHAR(255) NULL,
+                          `dropoff_lat`        DECIMAL(10,7) NOT NULL,
+                          `dropoff_lng`        DECIMAL(10,7) NOT NULL,
+                          `distance_km`        DECIMAL(8,2) NOT NULL DEFAULT 0,
+                          `duration_min`       INT NOT NULL DEFAULT 0,
+                          `fare`               DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT 'quoted at booking and charged unchanged',
+                          `commission`         DECIMAL(12,2) NOT NULL DEFAULT 0,
+                          `rider_earning`      DECIMAL(12,2) NOT NULL DEFAULT 0,
+                          `cancellation_fee`   DECIMAL(12,2) NOT NULL DEFAULT 0,
+                          `refunded_amount`    DECIMAL(12,2) NOT NULL DEFAULT 0,
+                          `payment_state`      TINYINT(2) NOT NULL DEFAULT 0 COMMENT '0 nothing taken, 1 fare held, 2 settled, 3 refunded',
+                          `cancel_reason`      VARCHAR(255) NULL,
+                          `rating`             TINYINT(1) NULL DEFAULT NULL,
+                          `rating_comment`     VARCHAR(500) NULL,
+                          `requested_at`       TIMESTAMP NULL DEFAULT NULL,
+                          `accepted_at`        TIMESTAMP NULL DEFAULT NULL,
+                          `arrived_at`         TIMESTAMP NULL DEFAULT NULL,
+                          `started_at`         TIMESTAMP NULL DEFAULT NULL,
+                          `completed_at`       TIMESTAMP NULL DEFAULT NULL,
+                          `cancelled_at`       TIMESTAMP NULL DEFAULT NULL,
+                          `created_at`         TIMESTAMP NULL DEFAULT NULL,
+                          `updated_at`         TIMESTAMP NULL DEFAULT NULL,
+                          PRIMARY KEY (`id`),
+                          KEY `rides_passenger_index` (`passenger_id`, `status`),
+                          KEY `rides_rider_index` (`rider_id`, `status`),
+                          KEY `rides_open_index` (`status`, `requested_at`),
+                          KEY `rides_completed_index` (`completed_at`)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    ");
+                    return 'created rides';
+                },
+            ],
+
+            'ride_trip_settings' => [
+                'title' => 'Rides: distance and speed assumptions',
+                'run'   => function () {
+                    /*
+                     * A straight line between two points is shorter than the
+                     * road, and the fare has a per-minute part, so both the
+                     * detour and the expected speed have to be numbers an
+                     * admin can tune rather than constants buried in code.
+                     */
+                    return $this->ensureOptions([
+                        'ride_road_factor'   => '1.35',
+                        'ride_avg_speed_kmh' => '20',
+                        'ride_fare_rounding' => '100',
+                    ]);
+                },
+            ],
+
+            'ride_request_timeout_sane' => [
+                'title' => 'Rides: give a request long enough to be seen',
+                'run'   => function () {
+                    /*
+                     * The first default was 30 seconds, which was shorter than
+                     * the interval at which a rider's screen asks for work —
+                     * a request could expire before anybody was shown it. Only
+                     * the untouched original value is corrected; a timeout an
+                     * admin has chosen is left exactly as they set it.
+                     */
+                    $current = DB::table('static_options')
+                        ->where('option_name', 'ride_request_timeout')->value('option_value');
+
+                    if ((string) $current !== '30') {
+                        return null;
+                    }
+
+                    DB::table('static_options')
+                        ->where('option_name', 'ride_request_timeout')
+                        ->update(['option_value' => '180', 'updated_at' => now()]);
+
+                    \Illuminate\Support\Facades\Cache::forget('ride_request_timeout');
+
+                    return 'raised request timeout to 180s';
+                },
+            ],
+
+            'ride_trip_permissions' => [
+                'title' => 'Rides: trip permissions',
+                'run'   => function () {
+                    /*
+                     * Reading the trip list and ending somebody's trip are
+                     * very different powers, so they are separate boxes on the
+                     * role screen rather than one.
+                     */
+                    return $this->ensurePermissions(['ride-trip-list', 'ride-trip-resolve']);
+                },
+            ],
+
         ];
     }
 
@@ -722,6 +826,8 @@ class SystemUpgradeService
                 ]);
             }
         }
+
+        app()->forgetInstance(\Spatie\Permission\PermissionRegistrar::class);
 
         return $added ? 'added ' . implode(', ', $added) : null;
     }

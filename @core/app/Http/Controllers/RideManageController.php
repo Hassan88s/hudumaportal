@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\FlashMsg;
+use App\Ride;
 use App\Rider;
+use App\Services\RideService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,6 +19,8 @@ class RideManageController extends Controller
         $this->middleware('permission:ride-rider-list',    ['only' => ['riders', 'riderDetails']]);
         $this->middleware('permission:ride-rider-approve', ['only' => ['approve', 'reject', 'suspend', 'restore']]);
         $this->middleware('permission:ride-settings',      ['only' => ['settings', 'settingsUpdate']]);
+        $this->middleware('permission:ride-trip-list',     ['only' => ['trips', 'tripDetails']]);
+        $this->middleware('permission:ride-trip-resolve',  ['only' => ['resolveTrip']]);
     }
 
     /* --------------------------------------------------------------- riders */
@@ -134,6 +138,9 @@ class RideManageController extends Controller
             'ride_search_radius_km'   => 'required|numeric|min:0.5|max:100',
             'ride_request_timeout'    => 'required|integer|min:5|max:300',
             'ride_cancellation_fee'   => 'required|numeric|min:0',
+            'ride_road_factor'        => 'required|numeric|min:1|max:3',
+            'ride_avg_speed_kmh'      => 'required|numeric|min:5|max:120',
+            'ride_fare_rounding'      => 'required|numeric|min:1|max:10000',
         ];
     }
 
@@ -164,5 +171,99 @@ class RideManageController extends Controller
         }
 
         return redirect()->back()->with(FlashMsg::item_new(__('Ride settings saved.')));
+    }
+
+    /* ---------------------------------------------------------------- trips */
+
+    public function trips(Request $request)
+    {
+        app(RideService::class)->expireStale();
+
+        $status = $request->query('status');
+        $from   = $request->query('from');
+        $to     = $request->query('to');
+
+        $base = Ride::query()
+            ->when($status !== null && $status !== '', fn ($q) => $q->where('status', (int) $status))
+            ->when($from, fn ($q) => $q->whereDate('created_at', '>=', $from))
+            ->when($to, fn ($q) => $q->whereDate('created_at', '<=', $to));
+
+        $trips = (clone $base)
+            ->with(['passenger', 'rider.user'])
+            ->orderByDesc('id')
+            ->paginate(25)
+            ->withQueryString();
+
+        // Totals follow the same filter as the list, so the figures always
+        // describe exactly what is on screen.
+        $settled = (clone $base)->where('status', Ride::COMPLETED);
+
+        $totals = [
+            'trips'      => (clone $base)->count(),
+            'completed'  => (clone $settled)->count(),
+            'fares'      => (float) (clone $settled)->sum('fare'),
+            'commission' => (float) (clone $settled)->sum('commission'),
+            'earnings'   => (float) (clone $settled)->sum('rider_earning'),
+            'refunded'   => (float) (clone $base)->sum('refunded_amount'),
+            'live'       => Ride::live()->count(),
+        ];
+
+        return view('backend.pages.ride.trips', [
+            'trips'    => $trips,
+            'totals'   => $totals,
+            'status'   => $status,
+            'from'     => $from,
+            'to'       => $to,
+            'currency' => app(RideService::class)->currency(),
+            'labels'   => $this->statusLabels(),
+        ]);
+    }
+
+    public function tripDetails($id)
+    {
+        $ride = Ride::with(['passenger', 'rider.user'])->findOrFail($id);
+
+        return view('backend.pages.ride.trip-details', [
+            'ride'     => $ride,
+            'currency' => app(RideService::class)->currency(),
+        ]);
+    }
+
+    /**
+     * End a trip that has stalled.
+     *
+     * Only ever reached for a trip that is still open: once a trip has an
+     * ending, support has nothing left to decide.
+     */
+    public function resolveTrip(Request $request, $id)
+    {
+        $request->validate(['reason' => 'nullable|string|max:255']);
+
+        $ride = Ride::findOrFail($id);
+
+        try {
+            $ride = app(RideService::class)->forceClose($ride, $request->input('reason'));
+        } catch (\App\Exceptions\RideException $e) {
+            return redirect()->back()->with(FlashMsg::item_delete($e->getMessage()));
+        }
+
+        return redirect()->back()->with(FlashMsg::item_new(__('Trip closed and :amount returned to the passenger.', [
+            'amount' => app(RideService::class)->currency() . ' ' . number_format($ride->refunded_amount, 0),
+        ])));
+    }
+
+    /** Trip statuses as the filter tabs need them. */
+    protected function statusLabels(): array
+    {
+        return [
+            Ride::SEARCHING           => __('Looking for a rider'),
+            Ride::ACCEPTED            => __('Rider on the way'),
+            Ride::ARRIVED             => __('Rider waiting'),
+            Ride::ONGOING             => __('On the way'),
+            Ride::COMPLETED           => __('Completed'),
+            Ride::CANCELLED_PASSENGER => __('Cancelled by passenger'),
+            Ride::CANCELLED_RIDER     => __('Cancelled by rider'),
+            Ride::EXPIRED             => __('No rider available'),
+        ];
     }
 }

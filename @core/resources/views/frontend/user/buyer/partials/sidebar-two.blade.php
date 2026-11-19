@@ -82,6 +82,8 @@
                     </li>
                 @endif
 
+                @include('frontend.partials.ride-nav', ['listClass' => 'dashboard__bottom__list__item'])
+
                 @if(moduleExists('JobPost'))
                     <li class="dashboard__bottom__list__item @if(request()->is('buyer/jobpost*')) active @endif ">
                         <a href="{{ route('buyer.all.jobs') }}"><i class="las la-briefcase"></i> {{__('Jobs')}}

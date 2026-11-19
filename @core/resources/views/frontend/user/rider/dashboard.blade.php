@@ -1,6 +1,10 @@
-@extends('frontend.user.rider.rider-master')
+@extends('frontend.ride.master')
 
 @section('title', __('Rider'))
+
+@section('topright')
+    <a href="{{ route('rider.earnings') }}" class="link">{{ __('Earnings') }}</a>
+@endsection
 
 @section('style')
 <style>
@@ -34,10 +38,29 @@
 
     .fare-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--line); }
     .fare-row:last-child { border-bottom: 0; }
+
+    .req {
+        border: 1px solid var(--line); border-radius: 12px;
+        padding: 14px; margin-bottom: 12px; background: #0d1420;
+    }
+    .req .money { font-size: 20px; font-weight: 800; }
+    .req .away  { color: var(--muted); font-size: 13px; }
+    .req .leg   { font-size: 14px; margin-top: 8px; }
+    .req .leg b { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+    .req button { margin-top: 12px; }
 </style>
 @endsection
 
 @section('content')
+
+    @if ($active)
+        <div class="card" style="border-color: rgba(245,158,11,.5)">
+            <h2>{{ __('You are on a trip') }}</h2>
+            <p class="muted">{{ $active->pickup_address ?: __('Point on the map') }}
+                &rarr; {{ $active->dropoff_address ?: __('Point on the map') }}</p>
+            <a href="{{ route('rider.trip') }}" class="btn">{{ __('Open the trip') }}</a>
+        </div>
+    @endif
 
     <div class="duty {{ $rider->is_online ? 'on' : '' }}" id="duty">
         <div class="state" id="dutyState">
@@ -81,10 +104,13 @@
         <div class="fare-row"><span class="muted">{{ __('Our commission') }}</span><span>{{ rtrim(rtrim(number_format($fare['commission'], 2, '.', ''), '0'), '.') }}%</span></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="reqCard">
         <h2>{{ __('Trip requests') }}</h2>
-        <p class="muted" style="margin:0">
-            {{ __('Nothing yet. Requests will appear here while you are online.') }}
+        <div id="reqList"></div>
+        <p class="muted" id="reqEmpty" style="margin:0">
+            {{ $rider->is_online
+                ? __('Nothing yet. New requests appear here on their own.')
+                : __('Go online to start receiving trips.') }}
         </p>
     </div>
 
@@ -215,7 +241,8 @@
             if (!res.ok || !res.d.ok) { throw new Error(res.d.message || T.failed); }
             online = res.d.online;
             paint();
-            if (online) { startWatching(); } else { stopWatching(); }
+            if (online) { startWatching(); startPolling(); }
+            else { stopWatching(); stopPolling(); }
         })
         .catch(function (e) {
             // A refused location permission is the common case and deserves its
@@ -229,8 +256,114 @@
         .then(function () { btn.disabled = false; });
     });
 
+    /* ---------------------------------------------------------- trip work */
+
+    var reqList  = document.getElementById('reqList');
+    var reqEmpty = document.getElementById('reqEmpty');
+    var hadTrip  = {{ $active ? 'true' : 'false' }};
+    var reqTimer = null;
+
+    var R = {
+        none:    @json(__('Nothing yet. New requests appear here on their own.')),
+        offline: @json(__('Go online to start receiving trips.')),
+        take:    @json(__('Take this trip')),
+        taking:  @json(__('Taking…')),
+        gone:    @json(__('That trip has already been taken.')),
+        away:    @json(__(':km km away'))
+    };
+
+    function card(r) {
+        var el = document.createElement('div');
+        el.className = 'req';
+
+        var head = document.createElement('div');
+        head.innerHTML = '<div class="money">' + r.earning + '</div>'
+            + '<div class="away">' + R.away.replace(':km', r.away_km)
+            + ' · ' + r.trip_km + ' km · ' + r.minutes + ' min</div>';
+
+        var legs = document.createElement('div');
+        legs.innerHTML = '<div class="leg"><b>' + @json(__('Pick up')) + '</b><br>'
+            + escapeHtml(r.pickup) + '</div>'
+            + '<div class="leg"><b>' + @json(__('Drop off')) + '</b><br>'
+            + escapeHtml(r.dropoff) + '</div>';
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn';
+        btn.textContent = R.take;
+        btn.addEventListener('click', function () {
+            btn.disabled = true;
+            btn.textContent = R.taking;
+
+            post(r.accept_url, {})
+                .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
+                .then(function (res) {
+                    if (!res.ok || !res.d.ok) { throw new Error(res.d.message || R.gone); }
+                    window.location = res.d.redirect;
+                })
+                .catch(function (e) {
+                    btn.textContent = e.message || R.gone;
+                    // The trip is gone, so take it off the screen rather than
+                    // leaving a button that cannot work.
+                    setTimeout(function () { el.remove(); pollRequests(); }, 1200);
+                });
+        });
+
+        el.appendChild(head);
+        el.appendChild(legs);
+        el.appendChild(btn);
+
+        return el;
+    }
+
+    function escapeHtml(s) {
+        var d = document.createElement('div');
+        d.textContent = s == null ? '' : String(s);
+        return d.innerHTML;
+    }
+
+    function pollRequests() {
+        fetch(@json(route('rider.requests')), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin'
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (!d || !d.ok) { return; }
+
+            // A trip taken on another device should pull this screen along
+            // with it, but a rider who already knew is left where they are.
+            if (d.active && !hadTrip) { window.location = d.redirect; return; }
+
+            reqList.innerHTML = '';
+
+            if (!d.requests.length) {
+                reqEmpty.style.display = '';
+                reqEmpty.textContent = d.online ? R.none : R.offline;
+                return;
+            }
+
+            reqEmpty.style.display = 'none';
+            d.requests.forEach(function (r) { reqList.appendChild(card(r)); });
+        })
+        .catch(function () { /* a missed poll just means the next one */ });
+    }
+
+    function startPolling() {
+        if (reqTimer) { return; }
+        pollRequests();
+        reqTimer = setInterval(pollRequests, 8000);
+    }
+
+    function stopPolling() {
+        if (reqTimer) { clearInterval(reqTimer); reqTimer = null; }
+        reqList.innerHTML = '';
+        reqEmpty.style.display = '';
+        reqEmpty.textContent = R.offline;
+    }
+
     paint();
-    if (online) { startWatching(); }
+    if (online) { startWatching(); startPolling(); }
 })();
 </script>
 @endsection

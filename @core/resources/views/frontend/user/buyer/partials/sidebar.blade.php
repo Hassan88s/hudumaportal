@@ -34,6 +34,8 @@
                     </li>
                 @endif
 
+                @include('frontend.partials.ride-nav', ['listClass' => 'list'])
+
                 <li class="list @if(request()->is('buyer/orders*')) active @endif">
                     <a href="{{ route('buyer.orders') }}"> <i class="las la-tasks"></i>{{ __('All Service Orders') }}</a>
                 </li>

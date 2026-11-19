@@ -272,6 +272,13 @@ Route::post('/login/admin/otp/resend', 'Auth\LoginController@resendAdminOtp')->n
 Route::match(['get','post'],'/clickpesa/webhook','ClickPesaWebhookController@handle')->name('clickpesa.webhook');
 Route::match(['get','post'],'/clickpesa/return','ClickPesaWebhookController@returnFromCheckout')->name('clickpesa.return');
 
+/*
+ * Ride booking has to be registered above the catch-all below: /ride is a
+ * single segment, so the dynamic page route would swallow it and answer 404
+ * for a page that does not exist.
+ */
+require_once __DIR__ . '/ride.php';
+
 Route::group(['middleware' => ['setlang', 'globalVariable', 'maintains_mode']], function () {
     Route::get('/{slug}', 'FrontendController@dynamic_single_page')->name('frontend.dynamic.page');
     Route::get('/{username?}', 'FrontendController@dynamic_single_page')->name('about.seller.profile');

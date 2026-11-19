@@ -64,10 +64,34 @@
                                     $other = [
                                         'ride_commission_percent' => [__('Our commission (%)'), __('Taken from the fare. The rider keeps the rest.'), '0.01', 0, 100],
                                         'ride_search_radius_km'   => [__('Search radius (km)'), __('How far to look for a free rider.'), '0.1', 0.5, 100],
-                                        'ride_request_timeout'    => [__('Seconds to accept'), __('How long a rider has before the trip goes to the next one.'), '1', 5, 300],
+                                        'ride_request_timeout'    => [__('Seconds to accept'), __('How long a request stays open before it expires and the fare is returned.'), '1', 5, 300],
                                     ];
                                 @endphp
                                 @foreach ($other as $name => [$label, $hint, $step, $min, $max])
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ $name }}">{{ $label }}</label>
+                                        <input type="number" step="{{ $step }}" min="{{ $min }}" max="{{ $max }}"
+                                               class="form-control" id="{{ $name }}" name="{{ $name }}"
+                                               value="{{ old($name, $settings[$name]) }}" required>
+                                        <div class="text-muted small">{{ $hint }}</div>
+                                        @error($name)<div class="text-danger small">{{ $message }}</div>@enderror
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <h5 class="mb-3 mt-3">{{ __('How a trip is estimated') }}</h5>
+                            <p class="text-muted small">
+                                {{ __('A fare is worked out before the trip happens, so distance and time have to be estimated. These three numbers are those estimates.') }}
+                            </p>
+                            <div class="row">
+                                @php
+                                    $est = [
+                                        'ride_road_factor'   => [__('Road factor'), __('Streets are longer than a straight line. 1.35 adds 35% to the direct distance.'), '0.01', 1, 3],
+                                        'ride_avg_speed_kmh' => [__('Average speed (km/h)'), __('Used to turn distance into minutes for the per-minute charge.'), '1', 5, 120],
+                                        'ride_fare_rounding' => [__('Round fares up to'), __('Set 100 and every fare is a round 100. Set 1 for no rounding.'), '1', 1, 10000],
+                                    ];
+                                @endphp
+                                @foreach ($est as $name => [$label, $hint, $step, $min, $max])
                                     <div class="col-md-4 mb-3">
                                         <label for="{{ $name }}">{{ $label }}</label>
                                         <input type="number" step="{{ $step }}" min="{{ $min }}" max="{{ $max }}"

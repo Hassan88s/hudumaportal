@@ -162,6 +162,15 @@ return [
             'champions-manage', 'referral-manage', 'spin-wheel-manage',
         ],
 
+        // Ride booking. Reading the trip list, waving a rider onto the road,
+        // ending somebody's stalled trip and setting the fares are four
+        // different powers, so they are four boxes.
+        'Rides' => [
+            'ride-rider-list', 'ride-rider-approve',
+            'ride-trip-list', 'ride-trip-resolve',
+            'ride-settings',
+        ],
+
     ],
 
     /*

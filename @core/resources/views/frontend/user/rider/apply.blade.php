@@ -1,4 +1,4 @@
-@extends('frontend.user.rider.rider-master')
+@extends('frontend.ride.master')
 
 @section('title', __('Become a rider'))
 

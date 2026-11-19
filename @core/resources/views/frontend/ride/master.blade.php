@@ -3,14 +3,15 @@
 <head>
     <meta charset="utf-8">
     {{--
-        Rider pages are used one-handed, outdoors, on a phone. They deliberately
-        do not extend the dashboard shell: no sidebar, no desktop chrome, and a
-        viewport that cannot be pinched away from the controls.
+        Ride pages — passenger and rider alike — are used one-handed,
+        outdoors, on a phone. They deliberately do not extend the dashboard
+        shell: no sidebar, no desktop chrome, and a viewport that cannot be
+        pinched away from the controls.
     --}}
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#111827">
-    <title>@yield('title', __('Rider')) — {{ get_static_option('site_title') ?? 'Huduma' }}</title>
+    <title>@yield('title', __('Ride')) — {{ get_static_option('site_title') ?? 'Huduma' }}</title>
 
     <link rel="stylesheet" href="{{ asset('assets/frontend/css/line-awesome.min.css') }}">
 
@@ -48,8 +49,9 @@
             border-bottom: 1px solid var(--line);
             position: sticky; top: 0; z-index: 20;
         }
-        .rider-top h1 { font-size: 17px; margin: 0; font-weight: 600; }
+        .rider-top h1 { font-size: 17px; margin: 0; font-weight: 600; flex: 1; }
         .rider-top a { color: var(--muted); text-decoration: none; font-size: 22px; line-height: 1; }
+        .rider-top .link { font-size: 14px; font-weight: 600; color: var(--accent); }
 
         .card {
             background: var(--card);
@@ -62,7 +64,8 @@
 
         label { display: block; font-size: 14px; color: var(--muted); margin: 0 0 6px; }
 
-        input[type=text], input[type=date], input[type=tel], input[type=file], select {
+        input[type=text], input[type=date], input[type=tel], input[type=number],
+        input[type=file], select, textarea {
             width: 100%;
             padding: 12px 14px;
             margin-bottom: 16px;
@@ -71,9 +74,10 @@
             border-radius: 10px;
             color: var(--text);
             font-size: 16px;   /* 16px stops iOS zooming the page on focus */
+            font-family: inherit;
         }
         input[type=file] { padding: 10px; font-size: 14px; }
-        input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+        input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
         .btn {
             display: block; width: 100%;
@@ -82,10 +86,13 @@
             background: var(--accent); color: #04140a;
             font-size: 16px; font-weight: 700;
             cursor: pointer;
+            text-align: center; text-decoration: none;
         }
         .btn[disabled] { opacity: .55; cursor: not-allowed; }
         .btn-danger { background: var(--danger); color: #fff; }
+        .btn-warn   { background: var(--warn); color: #231703; }
         .btn-ghost  { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+        .btn-sm     { padding: 11px; font-size: 14px; }
 
         .pill {
             display: inline-block; padding: 5px 12px; border-radius: 999px;
@@ -105,11 +112,17 @@
         }
         .alert-error { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.35); color: #fecaca; }
         .alert-info  { background: rgba(34,197,94,.08); border-color: rgba(34,197,94,.3);  color: #bbf7d0; }
+        .alert-warn  { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.35); color: #fde68a; }
 
         .row { display: flex; gap: 12px; }
         .row > * { flex: 1; }
 
         .have { font-size: 13px; color: var(--accent); margin: -12px 0 14px; }
+
+        .kv { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--line); }
+        .kv:last-child { border-bottom: 0; }
+        .kv .k { color: var(--muted); font-size: 14px; }
+        .kv .v { font-weight: 600; }
     </style>
 
     @yield('style')
@@ -117,8 +130,9 @@
 <body>
 
 <div class="rider-top">
-    <a href="{{ url('/') }}" aria-label="{{ __('Back to site') }}"><i class="las la-arrow-left"></i></a>
-    <h1>@yield('title', __('Rider'))</h1>
+    <a href="@yield('back', url('/'))" aria-label="{{ __('Back') }}"><i class="las la-arrow-left"></i></a>
+    <h1>@yield('title', __('Ride'))</h1>
+    @yield('topright')
 </div>
 
 <div class="rider-wrap">
@@ -126,9 +140,19 @@
          this view is rendered outside a normal request. --}}
     @if (isset($errors) && $errors->any())
         <div class="alert alert-error">
-            {{ __('Please check the form below.') }}
+            {{ $errors->first() }}
         </div>
     @endif
+
+    {{-- These pages have no toastr script, so the flashes the controllers set
+         with toastr_success()/toastr_error() are drawn here as plain text
+         instead of being silently dropped. --}}
+    @php $flashes = session('toastr::notifications', []); @endphp
+    @foreach ($flashes as $flash)
+        <div class="alert {{ ($flash['type'] ?? '') === 'error' ? 'alert-error' : 'alert-info' }}">
+            {{ $flash['message'] ?? '' }}
+        </div>
+    @endforeach
 
     @yield('content')
 </div>

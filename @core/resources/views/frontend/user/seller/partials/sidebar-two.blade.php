@@ -115,6 +115,8 @@
                     </li>
                 @endif
 
+                @include('frontend.partials.ride-nav', ['listClass' => 'dashboard__bottom__list__item'])
+
                 @if(moduleExists('JobPost'))
                     @php
             

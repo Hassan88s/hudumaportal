@@ -24,4 +24,12 @@ Route::group([
     Route::post('/online', 'Frontend\RiderController@toggleOnline')->name('rider.online');
     Route::post('/ping', 'Frontend\RiderController@ping')->name('rider.ping');
 
+    // Trips. The dashboard polls requests; everything else is a single step
+    // the service checks against where the trip actually is.
+    Route::get('/requests', 'Frontend\RiderController@requests')->name('rider.requests');
+    Route::post('/requests/{id}/accept', 'Frontend\RiderController@accept')->name('rider.trip.accept');
+    Route::get('/trip', 'Frontend\RiderController@trip')->name('rider.trip');
+    Route::post('/trip/{id}/{action}', 'Frontend\RiderController@tripAction')->name('rider.trip.action');
+    Route::get('/earnings', 'Frontend\RiderController@earnings')->name('rider.earnings');
+
 });
