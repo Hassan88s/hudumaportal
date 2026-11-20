@@ -731,6 +731,36 @@ class SystemUpgradeService
                 },
             ],
 
+            'ride_passenger_rating_columns' => [
+                'title' => 'Rides: the rating a rider gives the passenger',
+                'run'   => function () {
+                    /*
+                     * `rating` on a trip is the rating the passenger gave the
+                     * rider, which came first. These two are the other
+                     * direction, named for who is being judged rather than
+                     * who is doing the judging.
+                     */
+                    if (Schema::hasColumn('rides', 'passenger_rating')) {
+                        return null;
+                    }
+
+                    DB::statement("
+                        ALTER TABLE `rides`
+                          ADD COLUMN `passenger_rating` TINYINT(1) NULL DEFAULT NULL AFTER `rating_comment`,
+                          ADD COLUMN `passenger_rating_comment` VARCHAR(500) NULL DEFAULT NULL AFTER `passenger_rating`
+                    ");
+
+                    if (! $this->hasIndex('rides', 'rides_passenger_rating_index')) {
+                        DB::statement("
+                            ALTER TABLE `rides`
+                              ADD INDEX `rides_passenger_rating_index` (`passenger_id`, `passenger_rating`)
+                        ");
+                    }
+
+                    return 'added passenger_rating';
+                },
+            ],
+
             'ride_rating_settings' => [
                 'title' => 'Rides: when a rating is poor enough to flag',
                 'run'   => function () {

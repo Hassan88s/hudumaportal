@@ -55,11 +55,22 @@
                             @endif
                             @if ($ride->rating)
                                 <tr>
-                                    <th class="pl-0">{{ __('Rating') }}</th>
+                                    <th class="pl-0">{{ __('Passenger rated the rider') }}</th>
                                     <td>
-                                        {{ str_repeat('★', $ride->rating) }}
+                                        <span style="color:#f0ad4e">{{ str_repeat('★', $ride->rating) }}</span>
                                         @if ($ride->rating_comment)
                                             <div class="text-muted small">{{ $ride->rating_comment }}</div>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endif
+                            @if ($ride->passenger_rating)
+                                <tr>
+                                    <th class="pl-0">{{ __('Rider rated the passenger') }}</th>
+                                    <td>
+                                        <span style="color:#f0ad4e">{{ str_repeat('★', $ride->passenger_rating) }}</span>
+                                        @if ($ride->passenger_rating_comment)
+                                            <div class="text-muted small">{{ $ride->passenger_rating_comment }}</div>
                                         @endif
                                     </td>
                                 </tr>
@@ -150,7 +161,31 @@
                         <h4 class="header-title mb-3">{{ __('Passenger') }}</h4>
                         @if ($ride->passenger)
                             <p class="mb-1"><strong>{{ $ride->passenger->name }}</strong></p>
-                            <p class="text-muted mb-0">{{ $ride->passenger->email }}</p>
+                            <p class="text-muted mb-1">{{ $ride->passenger->email }}</p>
+
+                            {{-- How riders have found this passenger across all
+                                 their trips, not just this one. --}}
+                            @if ($standing['count'])
+                                <p class="mb-0">
+                                    <span style="color:#f0ad4e">{{ str_repeat('★', (int) round($standing['average'])) }}</span>
+                                    <strong class="{{ $standing['count'] >= 5 && $standing['average'] < $threshold ? 'text-danger' : '' }}">
+                                        {{ number_format($standing['average'], 1) }}
+                                    </strong>
+                                    <span class="text-muted">
+                                        {{ __('from :count ratings over :trips rides', [
+                                            'count' => $standing['count'],
+                                            'trips' => $standing['trips'],
+                                        ]) }}
+                                    </span>
+                                </p>
+                                @if ($standing['count'] >= 5 && $standing['average'] < $threshold)
+                                    <p class="text-danger small mb-0">
+                                        {{ __('Riders rate this passenger below the limit you set.') }}
+                                    </p>
+                                @endif
+                            @else
+                                <p class="text-muted mb-0">{{ __('No rider has rated this passenger yet.') }}</p>
+                            @endif
                         @else
                             <p class="text-muted mb-0">{{ __('This account no longer exists.') }}</p>
                         @endif

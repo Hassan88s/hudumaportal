@@ -281,6 +281,8 @@ class RiderController extends Controller
                 0
             ),
             'passenger' => optional($ride->passenger)->name,
+            // Who the rider would be carrying matters as much as where to.
+            'standing'  => $rides->passengerStanding((int) $ride->passenger_id),
             'accept_url' => route('rider.trip.accept', $ride->id),
         ]);
 
@@ -326,6 +328,7 @@ class RiderController extends Controller
         return view('frontend.user.rider.trip', [
             'rider'    => $rider,
             'ride'     => $ride,
+            'standing' => $rides->passengerStanding((int) $ride->passenger_id),
             'currency' => $rides->currency(),
             'earning'  => round(
                 $ride->fare * (1 - ((float) get_static_option('ride_commission_percent') / 100)),
@@ -385,8 +388,71 @@ class RiderController extends Controller
             'label'    => $ride->statusLabel(),
             'closed'   => $ride->isClosed(),
             'earning'  => (float) $ride->rider_earning,
-            'redirect' => $ride->isClosed() ? route('rider.dashboard') : null,
+            // A finished trip has one more thing to do on it, so it gets its
+            // own screen rather than dropping the rider back on the feed.
+            'redirect' => $ride->status === Ride::COMPLETED
+                ? route('rider.trip.done', $ride->id)
+                : ($ride->isClosed() ? route('rider.dashboard') : null),
         ]);
+    }
+
+    /**
+     * The screen a rider lands on when a trip is finished.
+     *
+     * Shows what they made, and asks them to rate the passenger while the
+     * trip is still fresh — which is the only moment anybody will do it.
+     */
+    public function tripDone($id)
+    {
+        $rider = $this->rider();
+        $rides = app(RideService::class);
+
+        $ride = Ride::with('passenger')
+            ->where('id', $id)
+            ->where('rider_id', $rider->id)
+            ->firstOrFail();
+
+        if ($ride->status !== Ride::COMPLETED) {
+            return redirect()->route('rider.dashboard');
+        }
+
+        return view('frontend.user.rider.trip-done', [
+            'rider'    => $rider,
+            'ride'     => $ride,
+            'standing' => $rides->passengerStanding((int) $ride->passenger_id),
+            'currency' => $rides->currency(),
+        ]);
+    }
+
+    /** Rate the passenger who was just carried. */
+    public function ratePassenger(Request $request, $id)
+    {
+        $request->validate([
+            'rating'  => 'required|integer|between:1,5',
+            'comment' => 'nullable|string|max:500',
+        ]);
+
+        $rider = $this->rider();
+
+        if (! $rider) {
+            return response()->json(['ok' => false], 403);
+        }
+
+        $ride = Ride::where('id', $id)->where('rider_id', $rider->id)->first();
+
+        if (! $ride) {
+            return response()->json(['ok' => false, 'message' => __('That is not your trip.')], 404);
+        }
+
+        try {
+            app(RideService::class)->ratePassenger(
+                $rider, $ride, (int) $request->rating, $request->input('comment')
+            );
+        } catch (RideException $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 409);
+        }
+
+        return response()->json(['ok' => true, 'message' => __('Thanks for the rating.')]);
     }
 
     /**

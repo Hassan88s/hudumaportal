@@ -248,9 +248,13 @@ class RideManageController extends Controller
     {
         $ride = Ride::with(['passenger', 'rider.user'])->findOrFail($id);
 
+        $rides = app(RideService::class);
+
         return view('backend.pages.ride.trip-details', [
-            'ride'     => $ride,
-            'currency' => app(RideService::class)->currency(),
+            'ride'      => $ride,
+            'standing'  => $rides->passengerStanding((int) $ride->passenger_id),
+            'threshold' => $rides->lowRatingThreshold(),
+            'currency'  => $rides->currency(),
         ]);
     }
 

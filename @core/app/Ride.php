@@ -53,6 +53,7 @@ class Ride extends Model
         'fare', 'commission', 'rider_earning', 'cancellation_fee', 'refunded_amount',
         'payment_state', 'cancel_reason',
         'rating', 'rating_comment',
+        'passenger_rating', 'passenger_rating_comment',
         'requested_at', 'accepted_at', 'arrived_at', 'started_at', 'completed_at', 'cancelled_at',
     ];
 
@@ -63,6 +64,7 @@ class Ride extends Model
         'payment_state'    => 'integer',
         'duration_min'     => 'integer',
         'rating'           => 'integer',
+        'passenger_rating' => 'integer',
         'pickup_lat'       => 'float',
         'pickup_lng'       => 'float',
         'dropoff_lat'      => 'float',

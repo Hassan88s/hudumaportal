@@ -48,6 +48,9 @@
     .req .leg   { font-size: 14px; margin-top: 8px; }
     .req .leg b { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
     .req button { margin-top: 12px; }
+    .req .pax { font-size: 14px; margin-top: 10px; font-weight: 600; }
+    .req .pax .st  { color: var(--warn); }
+    .req .pax .new { color: var(--muted); font-weight: 400; font-size: 13px; }
 </style>
 @endsection
 
@@ -269,7 +272,8 @@
         take:    @json(__('Take this trip')),
         taking:  @json(__('Taking…')),
         gone:    @json(__('That trip has already been taken.')),
-        away:    @json(__(':km km away'))
+        away:    @json(__(':km km away')),
+        newPax:  @json(__('first ride'))
     };
 
     function card(r) {
@@ -280,6 +284,14 @@
         head.innerHTML = '<div class="money">' + r.earning + '</div>'
             + '<div class="away">' + R.away.replace(':km', r.away_km)
             + ' · ' + r.trip_km + ' km · ' + r.minutes + ' min</div>';
+
+        // A rider deciding whether to take a trip should know who is in it.
+        var who = document.createElement('div');
+        who.className = 'pax';
+        who.innerHTML = escapeHtml(r.passenger || '')
+            + (r.standing && r.standing.count
+                ? ' <span class="st">\u2605</span> ' + Number(r.standing.average).toFixed(1)
+                : ' <span class="new">' + R.newPax + '</span>');
 
         var legs = document.createElement('div');
         legs.innerHTML = '<div class="leg"><b>' + @json(__('Pick up')) + '</b><br>'
@@ -310,6 +322,7 @@
         });
 
         el.appendChild(head);
+        el.appendChild(who);
         el.appendChild(legs);
         el.appendChild(btn);
 

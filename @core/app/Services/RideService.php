@@ -328,6 +328,74 @@ class RideService
         });
     }
 
+    /**
+     * The rider's turn: rate the passenger.
+     *
+     * The mirror of rate(), with one difference. A rider's standing is kept
+     * as running totals on their own row, because it is read on every trip
+     * offer and shown to passengers. A passenger's is worked out from their
+     * trips when somebody asks, which is rarer and saves carrying two more
+     * columns on the users table for it.
+     */
+    public function ratePassenger(Rider $rider, Ride $ride, int $stars, ?string $comment = null): Ride
+    {
+        if ($ride->rider_id !== $rider->id) {
+            throw new RideException(__('That is not your trip.'));
+        }
+
+        if ($ride->status !== Ride::COMPLETED) {
+            throw new RideException(__('Only a finished trip can be rated.'));
+        }
+
+        if ($ride->passenger_rating !== null) {
+            throw new RideException(__('You have already rated this passenger.'));
+        }
+
+        $ride->update([
+            'passenger_rating'         => max(1, min(5, $stars)),
+            'passenger_rating_comment' => $comment,
+        ]);
+
+        return $ride->fresh();
+    }
+
+    /**
+     * How a passenger has been rated, and how many trips they have taken.
+     *
+     * Shown to a rider deciding whether to take a trip, so it has to answer
+     * for somebody who has never been rated as well — and say so, rather
+     * than looking like a zero.
+     */
+    public function passengerStanding(int $userId): array
+    {
+        $row = Ride::where('passenger_id', $userId)
+            ->whereNotNull('passenger_rating')
+            ->selectRaw('COUNT(*) as n, SUM(passenger_rating) as total')
+            ->first();
+
+        $count = (int) ($row->n ?? 0);
+        $trips = Ride::where('passenger_id', $userId)
+            ->where('status', Ride::COMPLETED)
+            ->count();
+
+        return [
+            'count'   => $count,
+            'trips'   => $trips,
+            'average' => $count > 0 ? round(((float) $row->total) / $count, 2) : null,
+        ];
+    }
+
+    /** The ratings a rider has given out, newest first. */
+    public function ratingsGivenBy(Rider $rider, int $limit = 20)
+    {
+        return Ride::with('passenger')
+            ->where('rider_id', $rider->id)
+            ->whereNotNull('passenger_rating')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+    }
+
     /* ------------------------------------------------------------- ratings */
 
     /** The average below which a rider is worth looking at. */

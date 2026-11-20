@@ -68,6 +68,15 @@
     <div class="card">
         <h2>{{ __('Passenger') }}</h2>
         <div style="font-weight:700">{{ optional($ride->passenger)->name ?: __('Passenger') }}</div>
+        <div class="muted">
+            @if ($standing['count'])
+                <span style="color:var(--warn)">{{ str_repeat('★', (int) round($standing['average'])) }}</span>
+                {{ number_format($standing['average'], 1) }}
+                · {{ __(':count rides', ['count' => $standing['trips']]) }}
+            @else
+                {{ __('Has not been rated before') }}
+            @endif
+        </div>
         @if (optional($ride->passenger)->phone)
             <a class="btn btn-ghost btn-sm" style="margin-top:14px" href="tel:{{ $ride->passenger->phone }}">
                 <i class="las la-phone"></i> {{ __('Call the passenger') }}

@@ -29,6 +29,9 @@ Route::group([
     Route::get('/requests', 'Frontend\RiderController@requests')->name('rider.requests');
     Route::post('/requests/{id}/accept', 'Frontend\RiderController@accept')->name('rider.trip.accept');
     Route::get('/trip', 'Frontend\RiderController@trip')->name('rider.trip');
+    Route::get('/trip/{id}/done', 'Frontend\RiderController@tripDone')->name('rider.trip.done');
+    Route::post('/trip/{id}/rate-passenger', 'Frontend\RiderController@ratePassenger')->name('rider.trip.rate.passenger');
+    // Declared last: {action} would otherwise swallow 'rate-passenger'.
     Route::post('/trip/{id}/{action}', 'Frontend\RiderController@tripAction')->name('rider.trip.action');
     Route::get('/earnings', 'Frontend\RiderController@earnings')->name('rider.earnings');
     Route::get('/ratings', 'Frontend\RiderController@ratings')->name('rider.ratings');
