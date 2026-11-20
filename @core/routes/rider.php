@@ -31,5 +31,6 @@ Route::group([
     Route::get('/trip', 'Frontend\RiderController@trip')->name('rider.trip');
     Route::post('/trip/{id}/{action}', 'Frontend\RiderController@tripAction')->name('rider.trip.action');
     Route::get('/earnings', 'Frontend\RiderController@earnings')->name('rider.earnings');
+    Route::get('/ratings', 'Frontend\RiderController@ratings')->name('rider.ratings');
 
 });

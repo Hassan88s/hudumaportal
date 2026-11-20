@@ -98,6 +98,20 @@ class Rider extends Model
             : 0.0;
     }
 
+    /**
+     * Whether this rider's ratings are bad enough to be worth a look.
+     *
+     * Needs a handful of ratings before it says anything: one passenger
+     * having a bad morning is not a pattern, and a rider on their second
+     * trip should not be flagged because somebody tapped one star.
+     */
+    public function isPoorlyRated(float $below, int $minRatings = 5): bool
+    {
+        return $this->rating_count >= $minRatings
+            && $this->averageRating() > 0
+            && $this->averageRating() < $below;
+    }
+
     /** Documents the application cannot be submitted without. */
     public static function requiredDocuments(): array
     {

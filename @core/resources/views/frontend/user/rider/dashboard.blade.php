@@ -88,10 +88,10 @@
             <div class="n">{{ $rider->total_trips }}</div>
             <div class="l">{{ __('Trips') }}</div>
         </div>
-        <div class="stat">
+        <a class="stat" href="{{ route('rider.ratings') }}" style="text-decoration:none;color:inherit">
             <div class="n">{{ $rider->rating_count ? number_format($rider->averageRating(), 1) : '—' }}</div>
-            <div class="l">{{ __('Rating') }}</div>
-        </div>
+            <div class="l">{{ __('Rating') }} &rsaquo;</div>
+        </a>
     </div>
 
     <div class="card">

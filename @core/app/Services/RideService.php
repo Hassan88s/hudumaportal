@@ -328,6 +328,50 @@ class RideService
         });
     }
 
+    /* ------------------------------------------------------------- ratings */
+
+    /** The average below which a rider is worth looking at. */
+    public function lowRatingThreshold(): float
+    {
+        return (float) (get_static_option('ride_low_rating_threshold') ?: 3.5);
+    }
+
+    /**
+     * How many of each star this rider has been given, five first.
+     *
+     * Read from the trips rather than the running totals on the rider, which
+     * hold the sum and the count but not the shape — and the shape is what
+     * tells you whether a 4.0 is everybody agreeing or half delighted and
+     * half furious.
+     */
+    public function ratingBreakdown(Rider $rider): array
+    {
+        $counts = Ride::where('rider_id', $rider->id)
+            ->whereNotNull('rating')
+            ->selectRaw('rating, COUNT(*) as n')
+            ->groupBy('rating')
+            ->pluck('n', 'rating')
+            ->all();
+
+        $out = [];
+        for ($stars = 5; $stars >= 1; $stars--) {
+            $out[$stars] = (int) ($counts[$stars] ?? 0);
+        }
+
+        return $out;
+    }
+
+    /** The most recent ratings, with whatever the passenger wrote. */
+    public function recentRatings(Rider $rider, int $limit = 20)
+    {
+        return Ride::with('passenger')
+            ->where('rider_id', $rider->id)
+            ->whereNotNull('rating')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+    }
+
     /* --------------------------------------------------------------- rider */
 
     /** The trip this rider is currently carrying out, if any. */

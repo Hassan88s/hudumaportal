@@ -89,6 +89,7 @@
                                         'ride_road_factor'   => [__('Road factor'), __('Streets are longer than a straight line. 1.35 adds 35% to the direct distance.'), '0.01', 1, 3],
                                         'ride_avg_speed_kmh' => [__('Average speed (km/h)'), __('Used to turn distance into minutes for the per-minute charge.'), '1', 5, 120],
                                         'ride_fare_rounding' => [__('Round fares up to'), __('Set 100 and every fare is a round 100. Set 1 for no rounding.'), '1', 1, 10000],
+                                        'ride_low_rating_threshold' => [__('Flag riders rated below'), __('A rider averaging less than this, over at least five ratings, is flagged for a look.'), '0.1', 1, 5],
                                     ];
                                 @endphp
                                 @foreach ($est as $name => [$label, $hint, $step, $min, $max])

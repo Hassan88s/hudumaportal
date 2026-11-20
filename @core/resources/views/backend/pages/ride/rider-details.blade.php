@@ -20,6 +20,17 @@
                             <a href="{{ route('admin.ride.riders') }}" class="btn btn-secondary">{{ __('Back') }}</a>
                         </div>
 
+                        @if ($rider->isPoorlyRated($threshold))
+                            <div class="alert alert-danger">
+                                <strong>{{ __('Poorly rated.') }}</strong>
+                                {{ __('This rider averages :avg from :count ratings, below the :limit you set.', [
+                                    'avg'   => number_format($rider->averageRating(), 1),
+                                    'count' => $rider->rating_count,
+                                    'limit' => number_format($threshold, 1),
+                                ]) }}
+                            </div>
+                        @endif
+
                         @php $missing = $rider->missingDocuments(); @endphp
                         @if ($missing)
                             <div class="alert alert-warning">
@@ -64,6 +75,61 @@
                             </div>
 
                             <div class="col-md-6">
+                                <h5 class="mb-3">{{ __('Ratings') }}</h5>
+
+                                @if ($rider->rating_count)
+                                    <p class="mb-2">
+                                        <span style="color:#f0ad4e">{{ str_repeat('★', (int) round($rider->averageRating())) }}</span>
+                                        <strong>{{ number_format($rider->averageRating(), 1) }}</strong>
+                                        <span class="text-muted">
+                                            {{ __('from :count ratings', ['count' => $rider->rating_count]) }}
+                                        </span>
+                                    </p>
+
+                                    {{-- The shape matters as much as the average: a 4.0 made of
+                                         fours is a different rider from one made of fives and ones. --}}
+                                    @php $most = max(1, max($breakdown)); @endphp
+                                    <table class="table table-sm mb-3">
+                                        @foreach ($breakdown as $stars => $count)
+                                            <tr>
+                                                <th style="width:48px">{{ $stars }} ★</th>
+                                                <td>
+                                                    <div class="progress" style="height:8px">
+                                                        <div class="progress-bar bg-warning"
+                                                             style="width: {{ round(($count / $most) * 100) }}%"></div>
+                                                    </div>
+                                                </td>
+                                                <td style="width:48px" class="text-right text-muted">{{ $count }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </table>
+
+                                    <h6 class="mb-2">{{ __('What passengers said') }}</h6>
+                                    <ul class="list-group mb-4">
+                                        @foreach ($ratings as $rated)
+                                            <li class="list-group-item">
+                                                <div class="d-flex justify-content-between">
+                                                    <span style="color:#f0ad4e">{{ str_repeat('★', $rated->rating) }}</span>
+                                                    <small class="text-muted">
+                                                        {{ optional($rated->completed_at ?? $rated->created_at)->format('d/m/y') }}
+                                                    </small>
+                                                </div>
+                                                @if (filled($rated->rating_comment))
+                                                    <div>{{ $rated->rating_comment }}</div>
+                                                @endif
+                                                <small class="text-muted">
+                                                    {{ optional($rated->passenger)->name ?: __('passenger') }}
+                                                    @can('ride-trip-list')
+                                                        · <a href="{{ route('admin.ride.trip.details', $rated->id) }}">{{ __('trip #:id', ['id' => $rated->id]) }}</a>
+                                                    @endcan
+                                                </small>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @else
+                                    <p class="text-muted">{{ __('No ratings yet.') }}</p>
+                                @endif
+
                                 <h5 class="mb-3">{{ __('Documents') }}</h5>
                                 @php
                                     $docs = [

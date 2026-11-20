@@ -35,6 +35,7 @@
     }
     .who .nm { font-weight: 700; }
     .who .dt { color: var(--muted); font-size: 13px; }
+    .who .rated .st { color: var(--warn); letter-spacing: 1px; }
 
     .stars { display: flex; gap: 8px; justify-content: center; margin: 6px 0 16px; }
     .stars button {
@@ -71,6 +72,17 @@
                     @if ($ride->rider)
                         {{ $ride->rider->bike_plate }}
                         @if ($ride->rider->bike_model) · {{ $ride->rider->bike_model }} @endif
+                    @endif
+                </div>
+                {{-- A rider's standing is the one thing a passenger waiting at
+                     the roadside actually wants to know about them. --}}
+                <div class="dt rated" id="rStars">
+                    @if ($ride->rider && $ride->rider->rating_count)
+                        <span class="st">{{ str_repeat('★', (int) round($ride->rider->averageRating())) }}</span>
+                        {{ number_format($ride->rider->averageRating(), 1) }}
+                        · {{ trans_choice('{1} trip|[2,*] :count trips', $ride->rider->total_trips, ['count' => $ride->rider->total_trips]) }}
+                    @elseif ($ride->rider)
+                        {{ __('New rider') }}
                     @endif
                 </div>
             </div>
@@ -162,7 +174,9 @@
         sending: @json(__('Sending…')),
         asking:  @json(__('We are asking riders near you.')),
         done:    @json(__('Hope it was a good trip.')),
-        thanks:  @json(__('Thanks for the rating.'))
+        thanks:  @json(__('Thanks for the rating.')),
+        trips:   @json(__(':count trips')),
+        newRider: @json(__('New rider'))
     };
 
     var urls = {
@@ -178,6 +192,7 @@
         rider:  document.getElementById('riderCard'),
         rName:  document.getElementById('rName'),
         rMeta:  document.getElementById('rMeta'),
+        rStars: document.getElementById('rStars'),
         rCall:  document.getElementById('rCall'),
         cancel: document.getElementById('cancelBox'),
         cNote:  document.getElementById('cancelNote'),
@@ -223,6 +238,15 @@
             els.rider.style.display = '';
             els.rName.textContent = d.rider.name || '';
             els.rMeta.textContent = [d.rider.plate, d.rider.model].filter(Boolean).join(' · ');
+
+            if (d.rider.rating) {
+                els.rStars.innerHTML = '<span class="st">'
+                    + '\u2605'.repeat(Math.round(d.rider.rating)) + '</span> '
+                    + Number(d.rider.rating).toFixed(1)
+                    + ' \u00b7 ' + T.trips.replace(':count', d.rider.trips);
+            } else {
+                els.rStars.textContent = T.newRider;
+            }
             if (d.rider.phone) {
                 els.rCall.style.display = '';
                 els.rCall.setAttribute('href', 'tel:' + d.rider.phone);

@@ -731,6 +731,15 @@ class SystemUpgradeService
                 },
             ],
 
+            'ride_rating_settings' => [
+                'title' => 'Rides: when a rating is poor enough to flag',
+                'run'   => function () {
+                    return $this->ensureOptions([
+                        'ride_low_rating_threshold' => '3.5',
+                    ]);
+                },
+            ],
+
             'ride_trip_permissions' => [
                 'title' => 'Rides: trip permissions',
                 'run'   => function () {

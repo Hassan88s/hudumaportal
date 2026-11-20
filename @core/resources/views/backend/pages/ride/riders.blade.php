@@ -39,6 +39,10 @@
                                     {{ $label }}
                                 </a>
                             @endforeach
+                            <a href="{{ route('admin.ride.riders') }}?poor=1"
+                               class="btn btn-sm {{ $poor ? 'btn-danger' : 'btn-outline-danger' }} mr-2 mb-2">
+                                {{ __('Poorly rated') }} ({{ $counts['poor'] }})
+                            </a>
                             <span class="badge badge-success ml-2">
                                 {{ $counts['online'] }} {{ __('online now') }}
                             </span>
@@ -51,6 +55,7 @@
                                     <th>{{ __('Rider') }}</th>
                                     <th>{{ __('Phone') }}</th>
                                     <th>{{ __('Plate') }}</th>
+                                    <th>{{ __('Rating') }}</th>
                                     <th>{{ __('Applied') }}</th>
                                     <th>{{ __('Status') }}</th>
                                     <th>{{ __('Action') }}</th>
@@ -65,6 +70,16 @@
                                         </td>
                                         <td>{{ $rider->phone ?: '—' }}</td>
                                         <td>{{ $rider->bike_plate ?: '—' }}</td>
+                                        <td>
+                                            @if ($rider->rating_count)
+                                                <span class="{{ $rider->isPoorlyRated($threshold) ? 'text-danger font-weight-bold' : '' }}">
+                                                    {{ number_format($rider->averageRating(), 1) }}
+                                                </span>
+                                                <div class="text-muted small">{{ $rider->rating_count }}</div>
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
                                         <td>{{ $rider->submitted_at ? $rider->submitted_at->format('d/m/y') : '—' }}</td>
                                         <td>
                                             @php
@@ -87,7 +102,9 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-muted py-4">{{ __('No riders yet.') }}</td>
+                                        <td colspan="7" class="text-muted py-4">
+                                            {{ $poor ? __('No rider is rated that poorly.') : __('No riders yet.') }}
+                                        </td>
                                     </tr>
                                 @endforelse
                                 </tbody>

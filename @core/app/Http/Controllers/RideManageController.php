@@ -29,10 +29,23 @@ class RideManageController extends Controller
     {
         $status = $request->query('status');
 
+        $threshold = app(RideService::class)->lowRatingThreshold();
+
+        /*
+         * "poor" is its own filter rather than a status, because a badly rated
+         * rider is still an approved one — the point is to find them, not to
+         * change what they are.
+         */
+        $poor = $request->query('poor') == '1';
+
         $riders = Rider::with('user')
             ->when($status !== null && $status !== '', fn ($q) => $q->where('status', (int) $status))
-            ->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', [Rider::PENDING])  // waiting first
-            ->orderByDesc('submitted_at')
+            ->when($poor, fn ($q) => $q->where('rating_count', '>=', 5)
+                ->whereRaw('(rating_sum / rating_count) < ?', [$threshold]))
+            ->when($poor, fn ($q) => $q->orderByRaw('(rating_sum / rating_count) ASC'))
+            ->when(! $poor, fn ($q) => $q
+                ->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', [Rider::PENDING])  // waiting first
+                ->orderByDesc('submitted_at'))
             ->paginate(25)
             ->withQueryString();
 
@@ -44,14 +57,25 @@ class RideManageController extends Controller
             'online'    => Rider::where('status', Rider::APPROVED)->where('is_online', 1)->count(),
         ];
 
-        return view('backend.pages.ride.riders', compact('riders', 'counts', 'status'));
+        $counts['poor'] = Rider::where('rating_count', '>=', 5)
+            ->whereRaw('(rating_sum / rating_count) < ?', [$threshold])
+            ->count();
+
+        return view('backend.pages.ride.riders',
+            compact('riders', 'counts', 'status', 'poor', 'threshold'));
     }
 
     public function riderDetails($id)
     {
         $rider = Rider::with('user')->findOrFail($id);
+        $rides = app(RideService::class);
 
-        return view('backend.pages.ride.rider-details', compact('rider'));
+        return view('backend.pages.ride.rider-details', [
+            'rider'     => $rider,
+            'breakdown' => $rides->ratingBreakdown($rider),
+            'ratings'   => $rides->recentRatings($rider),
+            'threshold' => $rides->lowRatingThreshold(),
+        ]);
     }
 
     public function approve($id)
@@ -141,6 +165,7 @@ class RideManageController extends Controller
             'ride_road_factor'        => 'required|numeric|min:1|max:3',
             'ride_avg_speed_kmh'      => 'required|numeric|min:5|max:120',
             'ride_fare_rounding'      => 'required|numeric|min:1|max:10000',
+            'ride_low_rating_threshold' => 'required|numeric|min:1|max:5',
         ];
     }
 

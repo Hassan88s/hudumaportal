@@ -11,6 +11,7 @@
     .trip .amt { font-weight: 700; white-space: nowrap; }
     .trip .when { color: var(--muted); font-size: 13px; margin-top: 2px; }
     .stars-ro { color: var(--warn); font-size: 13px; }
+    .to-rate { color: var(--accent); font-size: 13px; font-weight: 600; margin-top: 2px; }
 </style>
 @endsection
 
@@ -28,6 +29,10 @@
             </div>
             @if ($ride->rating)
                 <div class="stars-ro">{{ str_repeat('★', $ride->rating) }}</div>
+            @elseif ($ride->status === \App\Ride::COMPLETED)
+                {{-- The rating screen lives on the trip itself, so this is a
+                     way back to a trip the passenger never got round to. --}}
+                <div class="to-rate">{{ __('Tap to rate this trip') }}</div>
             @endif
         </a>
     @empty

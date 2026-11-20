@@ -389,6 +389,25 @@ class RiderController extends Controller
         ]);
     }
 
+    /**
+     * What passengers have said.
+     *
+     * A rider can see their own average, the shape behind it and what people
+     * wrote — but not who wrote it. A rating has to be safe to give honestly,
+     * and a rider who can put a name to a complaint makes it less so.
+     */
+    public function ratings()
+    {
+        $rider = $this->rider();
+        $rides = app(RideService::class);
+
+        return view('frontend.user.rider.ratings', [
+            'rider'     => $rider,
+            'breakdown' => $rides->ratingBreakdown($rider),
+            'ratings'   => $rides->recentRatings($rider, 30),
+        ]);
+    }
+
     /** What this rider has earned, and from which trips. */
     public function earnings()
     {
