@@ -110,7 +110,7 @@
     <div class="card" id="reqCard">
         <h2>{{ __('Trip requests') }}</h2>
         <div id="reqList"></div>
-        <p class="muted" id="reqEmpty" style="margin:0">
+        <p class="muted" id="reqEmpty" style="margin:0{{ $waiting->isNotEmpty() ? ';display:none' : '' }}">
             {{ $rider->is_online
                 ? __('Nothing yet. New requests appear here on their own.')
                 : __('Go online to start receiving trips.') }}
@@ -265,6 +265,8 @@
     var reqEmpty = document.getElementById('reqEmpty');
     var hadTrip  = {{ $active ? 'true' : 'false' }};
     var reqTimer = null;
+    // Rendered by the server with the page, so the first paint is not empty.
+    var waiting  = @json($waiting);
 
     var R = {
         none:    @json(__('Nothing yet. New requests appear here on their own.')),
@@ -335,6 +337,19 @@
         return d.innerHTML;
     }
 
+    function paintRequests(list, isOnline) {
+        reqList.innerHTML = '';
+
+        if (!list || !list.length) {
+            reqEmpty.style.display = '';
+            reqEmpty.textContent = isOnline ? R.none : R.offline;
+            return;
+        }
+
+        reqEmpty.style.display = 'none';
+        list.forEach(function (r) { reqList.appendChild(card(r)); });
+    }
+
     function pollRequests() {
         fetch(@json(route('rider.requests')), {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -348,16 +363,7 @@
             // with it, but a rider who already knew is left where they are.
             if (d.active && !hadTrip) { window.location = d.redirect; return; }
 
-            reqList.innerHTML = '';
-
-            if (!d.requests.length) {
-                reqEmpty.style.display = '';
-                reqEmpty.textContent = d.online ? R.none : R.offline;
-                return;
-            }
-
-            reqEmpty.style.display = 'none';
-            d.requests.forEach(function (r) { reqList.appendChild(card(r)); });
+            paintRequests(d.requests, d.online);
         })
         .catch(function () { /* a missed poll just means the next one */ });
     }
@@ -376,6 +382,7 @@
     }
 
     paint();
+    if (waiting.length) { paintRequests(waiting, true); }
     if (online) { startWatching(); startPolling(); }
 })();
 </script>

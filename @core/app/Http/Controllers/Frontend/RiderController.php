@@ -146,10 +146,19 @@ class RiderController extends Controller
     {
         $rider  = $this->rider();
         $rides  = app(RideService::class);
+        $active = $rides->activeTripFor($rider);
+
+        // The server already knows what is on offer. Handing it to the first
+        // paint means an idle rider sees waiting trips as the screen opens,
+        // instead of an empty card until the first poll answers.
+        $waiting = (! $active && $rider && $rider->isApproved() && $rider->is_online)
+            ? $this->offeredTrips($rides, $rider)
+            : collect();
 
         return view('frontend.user.rider.dashboard', [
             'rider'      => $rider,
-            'active'     => $rides->activeTripFor($rider),
+            'active'     => $active,
+            'waiting'    => $waiting,
             'fare'       => [
                 'base'       => (float) get_static_option('ride_base_fare'),
                 'per_km'     => (float) get_static_option('ride_price_per_km'),
@@ -256,7 +265,6 @@ class RiderController extends Controller
 
         $rides   = app(RideService::class);
         $active  = $rides->activeTripFor($rider);
-        $cur     = $rides->currency();
 
         if ($active) {
             return response()->json([
@@ -268,7 +276,26 @@ class RiderController extends Controller
             ]);
         }
 
-        $open = $rides->openRequestsFor($rider)->map(fn ($ride) => [
+        return response()->json([
+            'ok'       => true,
+            'online'   => (bool) $rider->is_online,
+            'active'   => false,
+            'requests' => $this->offeredTrips($rides, $rider),
+        ]);
+    }
+
+    /**
+     * The trips on offer to this rider, shaped for the screen.
+     *
+     * Shared by the dashboard's first paint and by the poll that follows it,
+     * so the list cannot arrive in one shape and then change into another.
+     */
+    private function offeredTrips(RideService $rides, Rider $rider)
+    {
+        $cur        = $rides->currency();
+        $commission = (float) get_static_option('ride_commission_percent');
+
+        return $rides->openRequestsFor($rider)->map(fn ($ride) => [
             'id'        => $ride->id,
             'pickup'    => $ride->pickup_address ?: __('Pick-up point'),
             'dropoff'   => $ride->dropoff_address ?: __('Drop-off point'),
@@ -276,22 +303,12 @@ class RiderController extends Controller
             'trip_km'   => (float) $ride->distance_km,
             'minutes'   => (int) $ride->duration_min,
             'fare'      => $cur . ' ' . number_format($ride->fare, 0),
-            'earning'   => $cur . ' ' . number_format(
-                $ride->fare * (1 - ((float) get_static_option('ride_commission_percent') / 100)),
-                0
-            ),
+            'earning'   => $cur . ' ' . number_format($ride->fare * (1 - ($commission / 100)), 0),
             'passenger' => optional($ride->passenger)->name,
             // Who the rider would be carrying matters as much as where to.
             'standing'  => $rides->passengerStanding((int) $ride->passenger_id),
             'accept_url' => route('rider.trip.accept', $ride->id),
-        ]);
-
-        return response()->json([
-            'ok'       => true,
-            'online'   => (bool) $rider->is_online,
-            'active'   => false,
-            'requests' => $open->values(),
-        ]);
+        ])->values();
     }
 
     /** Take one of the trips on offer. */
