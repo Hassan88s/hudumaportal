@@ -782,6 +782,25 @@ class SystemUpgradeService
                 },
             ],
 
+            'ride_dashboard_permission' => [
+                'title' => 'Rides: the overview screen',
+                'run'   => function () {
+                    $added = $this->ensurePermissions(['ride-dashboard']);
+
+                    /*
+                     * Anybody already trusted with the trip list is trusted
+                     * with the summary of it, so they keep a way in without an
+                     * admin having to go round the roles again. Applied once:
+                     * unticking the box later must stay unticked.
+                     */
+                    $inherited = $this->inheritOnce('ride_dashboard_inherited', [
+                        'ride-trip-list' => ['ride-dashboard'],
+                    ]);
+
+                    return trim(($added ?: '') . ' ' . ($inherited ?: '')) ?: null;
+                },
+            ],
+
         ];
     }
 

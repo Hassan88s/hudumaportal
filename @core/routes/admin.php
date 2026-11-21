@@ -684,6 +684,7 @@ Route::group(['prefix' => 'page-builder','middleware' => 'auth:admin','setlang']
     Route::get('/frontend/seller-verify/all','FrontendUserManageController@sellerAll')->name('admin.frontend.seller.all');
 
     /* ---- Ride booking ---- */
+    Route::get('/ride','RideManageController@dashboard')->name('admin.ride.dashboard');
     Route::get('/ride/riders','RideManageController@riders')->name('admin.ride.riders');
     Route::get('/ride/rider/{id}','RideManageController@riderDetails')->name('admin.ride.rider.details');
     Route::post('/ride/rider/{id}/approve','RideManageController@approve')->name('admin.ride.rider.approve');
