@@ -6,8 +6,8 @@ name: Deploy to Production
 #
 #   git checkout production && git merge --ff-only main && git push
 #
-# Nothing here runs until the four PROD_* secrets exist, so adding this file
-# alone deploys nothing.
+# Nothing here runs until the three PROD_FTP_* secrets exist, so adding this
+# file alone deploys nothing.
 
 on:
   push:

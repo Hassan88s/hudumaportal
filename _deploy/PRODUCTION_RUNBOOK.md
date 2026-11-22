@@ -36,6 +36,15 @@ both deploys, so the server's copies are never overwritten:
 - `.htaccess` — production has the www redirect and session path
 - `@core/app/Providers/AppServiceProvider.php` — production forces HTTPS
 - `.user.ini`
+
+The three middle ones are not only excluded from the deploy, they are in
+`.gitignore`, so git has never held a copy of them. That is deliberate — each
+environment keeps its own — but it has a consequence worth knowing: if a future
+change ever needs something registered in `AppServiceProvider.php`, production
+will not receive it through a deploy. It would have to be edited on the server
+by hand, or the file taken out of `.gitignore` and the environment difference
+moved into `.env`. Nothing needs this today; the file's only difference from
+production is the commented-out HTTPS forcing.
 - `assets/uploads/` and `@core/public/assets/uploads/` — user uploads
 - `@core/vendor/` — installed once by composer on the server
 - `@core/storage/` caches, logs, sessions
@@ -58,7 +67,7 @@ So production keeps its own config forever. Nothing in a deploy can break it.
    deploy uses `server-dir: /`, which is only correct if the FTP user is jailed
    to that folder — the same arrangement dev already uses.
 
-3. **Add four repository secrets** in GitHub (Settings -> Secrets and variables
+3. **Add three repository secrets** in GitHub (Settings -> Secrets and variables
    -> Actions):
    - `PROD_FTP_HOST`
    - `PROD_FTP_USERNAME`
@@ -132,6 +141,21 @@ Open `https://hudumaportal.co.tz/system-upgrade` once. It applies the permission
 and settings steps, records what it did, and is safe to open repeatedly — each
 step runs at most once.
 
+### Step G2 — confirm ride booking is still switched off
+
+The ride feature ships dormant and should stay that way until somebody decides
+otherwise. After the upgrade URL has run, check in the admin panel under
+**Rides -> Ride Settings** that both switches are off:
+
+- **Ride booking is switched on** — off. While it is off `/ride` and `/rider`
+  are 404 for everybody, and nothing about rides appears anywhere on the site.
+- **Invite sellers to sign up as riders** — off. Nobody is asked to become a
+  rider.
+
+Turning ride booking on is a separate decision, made after the fares and the
+commission on that same page have been set to real numbers. The defaults are
+placeholders.
+
 ### Step H — check it, then open the doors
 
 Click through, logged out and logged in:
@@ -142,6 +166,7 @@ Click through, logged out and logged in:
 - place a test order through to the payment screen
 - admin: orders, services, users, general settings
 - the referral page and a referral link
+- `/ride` returns 404 while ride booking is off
 
 Then turn maintenance mode off.
 
