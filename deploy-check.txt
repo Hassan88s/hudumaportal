@@ -1,9 +1,0 @@
-Deploy marker.
-
-This file exists only to prove that a push reaches the live document root.
-Fetch it at /deploy-check.txt after a deploy: if the stamp below matches the
-commit that was promoted, the chain from git to the server is intact.
-
-Delete it once both environments are confirmed; nothing reads it.
-
-stamp: 2026-11-23 first production deploy
