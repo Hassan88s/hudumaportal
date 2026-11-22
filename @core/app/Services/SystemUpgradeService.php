@@ -782,6 +782,20 @@ class SystemUpgradeService
                 },
             ],
 
+            'ride_rider_link_setting' => [
+                'title' => 'Rides: whether to invite sellers to ride',
+                'run'   => function () {
+                    /*
+                     * Off to begin with. Riders are approved one at a time, so
+                     * the invitation goes out when somebody decides it should,
+                     * not the moment the feature ships.
+                     */
+                    return $this->ensureOptions([
+                        'ride_show_rider_link' => '0',
+                    ]);
+                },
+            ],
+
             'ride_dashboard_permission' => [
                 'title' => 'Rides: the overview screen',
                 'run'   => function () {

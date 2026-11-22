@@ -303,6 +303,7 @@ class RideManageController extends Controller
     {
         return [
             'ride_enabled'            => 'nullable|boolean',
+            'ride_show_rider_link'    => 'nullable|boolean',
             'ride_base_fare'          => 'required|numeric|min:0',
             'ride_price_per_km'       => 'required|numeric|min:0',
             'ride_price_per_minute'   => 'required|numeric|min:0',
@@ -316,6 +317,17 @@ class RideManageController extends Controller
             'ride_fare_rounding'      => 'required|numeric|min:1|max:10000',
             'ride_low_rating_threshold' => 'required|numeric|min:1|max:5',
         ];
+    }
+
+    /**
+     * The settings above that are checkboxes.
+     *
+     * An unticked box sends nothing at all, which has to be read as off
+     * rather than as "leave it alone".
+     */
+    protected function settingToggles(): array
+    {
+        return ['ride_enabled', 'ride_show_rider_link'];
     }
 
     public function settings()
@@ -335,9 +347,7 @@ class RideManageController extends Controller
         ]);
 
         foreach (array_keys($this->settingFields()) as $name) {
-            // An unticked checkbox sends nothing, which has to mean off rather
-            // than "leave it as it was".
-            $value = $name === 'ride_enabled'
+            $value = in_array($name, $this->settingToggles(), true)
                 ? ($request->boolean($name) ? '1' : '0')
                 : $request->input($name);
 

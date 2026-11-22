@@ -14,13 +14,21 @@
         $rideListClass = $listClass ?? 'list';
         $isSeller = (int) auth('web')->user()->user_type === 0;
         $myRider  = $isSeller ? \App\Rider::where('user_id', auth('web')->id())->first() : null;
+
+        /*
+         * Recruiting can be switched off without stranding anyone: a seller
+         * who has already applied keeps the way back to their own account,
+         * whatever the invitation setting says.
+         */
+        $showRider = $isSeller
+            && ($myRider || get_static_option('ride_show_rider_link') == '1');
     @endphp
 
     <li class="{{ $rideListClass }} @if(request()->is('ride') || request()->is('ride/*')) active @endif">
         <a href="{{ route('ride.index') }}"><i class="las la-motorcycle"></i> {{ __('Book a ride') }}</a>
     </li>
 
-    @if ($isSeller)
+    @if ($showRider)
         <li class="{{ $rideListClass }} @if(request()->is('rider*')) active @endif">
             <a href="{{ $myRider && $myRider->isApproved() ? route('rider.dashboard') : ($myRider ? route('rider.status') : route('rider.apply')) }}">
                 <i class="las la-id-card"></i>

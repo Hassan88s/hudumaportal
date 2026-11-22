@@ -35,6 +35,18 @@
                                 </div>
                             </div>
 
+                            <div class="custom-control custom-switch mb-4">
+                                <input type="checkbox" class="custom-control-input" id="ride_show_rider_link"
+                                       name="ride_show_rider_link" value="1"
+                                       {{ old('ride_show_rider_link', $settings['ride_show_rider_link']) == '1' ? 'checked' : '' }}>
+                                <label class="custom-control-label" for="ride_show_rider_link">
+                                    {{ __('Invite sellers to sign up as riders') }}
+                                </label>
+                                <div class="text-muted small mt-1">
+                                    {{ __('Shows the rider link in the seller dashboard. Turn it off to stop recruiting without affecting anyone already approved — they keep their link and their trips.') }}
+                                </div>
+                            </div>
+
                             <h5 class="mb-3">{{ __('Fare') }}</h5>
                             <div class="row">
                                 @php
