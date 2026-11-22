@@ -85,10 +85,38 @@ Both of these, before anything else:
 
 Do not skip either. Everything below is reversible only because of this step.
 
-### Step B — work out what the database is missing
+### Step B — the database
 
-Production's schema is behind dev's by several features. The file deploy does
-not touch the database at all, so this has to be handled separately.
+The file deploy does not touch the database at all, so this is handled
+separately. There are two ways, and which one applies depends on a single
+question: **does production hold data anyone would miss?**
+
+#### B1 — production is empty: replace it wholesale
+
+If production has no real users, orders or payments, this is the better route.
+Importing dev's database wholesale brings the schema and the content in one
+step, so no delta has to be written and nothing can be half-applied.
+
+1. Export dev: phpMyAdmin -> Export -> Quick -> SQL.
+2. On production: drop the existing database and create it again empty, or drop
+   every table in it. Importing over a database that still has old tables in it
+   leaves whatever the dump does not mention, which is the one way to get a
+   half-and-half schema out of this route.
+3. Import the dump.
+4. **Run `_deploy/prod_import_scrub.sql`.** This is not optional. A dev
+   database carries test accounts, and one of them is usually an admin login
+   with a password chosen for a test. The script removes them, forces the
+   settings that must not be inherited from dev, and prints what is left for
+   you to read. Run its first section on its own and check the list before
+   letting it delete anything.
+5. Leave `@core/.env` on production alone. The database name, user and password
+   there are production's own and have nothing to do with dev's.
+
+The uploads folder is **not** part of this and not part of the file deploy
+either — see Step E2. A database full of image references with no image files
+behind them renders a site of broken pictures.
+
+#### B2 — production holds real data: write a delta
 
 1. In phpMyAdmin on **production**, export the schema only (Export -> Custom ->
    Structure only) and save the file.
@@ -123,6 +151,19 @@ which is exactly the full copy you want. Watch it in the repo's Actions tab.
 Before the real run, you can preview: Actions -> Deploy to Production -> Run
 workflow -> tick **dry run**. That lists every file it would send and uploads
 nothing.
+
+### Step E2 — copy the uploads
+
+Git never carries `assets/uploads/`, and neither deploy touches it: it is user
+content, not code. If the database came from dev (B1), every image, avatar and
+attachment it references lives in dev's uploads folder and must be copied
+across or the site renders broken pictures.
+
+It is large — on the order of 3,400 files and 300 MB — so FTP file-by-file is
+the slow way to do it. Compress `assets/uploads` on dev in cPanel File Manager,
+download or move the archive to production, and extract it there.
+
+Do the same for `@core/public/assets/uploads` if it has anything in it.
 
 ### Step F — clear the caches on production
 
