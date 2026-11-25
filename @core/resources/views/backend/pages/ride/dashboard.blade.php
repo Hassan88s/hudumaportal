@@ -28,27 +28,16 @@
 
             {{-- On the road right now. --}}
             <div class="col-12 {{ $enabled ? 'mt-5' : '' }}">
-                <div class="row">
-                    @php
-                        $live = [
-                            __('Riders on duty')     => $now['online'],
-                            __('Approved riders')    => $now['approved'],
-                            __('Looking for a rider')=> $now['searching'],
-                            __('Rider on the way')   => $now['heading'],
-                            __('On the way')         => $now['ongoing'],
-                        ];
-                    @endphp
-                    @foreach ($live as $label => $value)
-                        <div class="col-xl col-md-4 col-6 mb-3">
-                            <div class="card h-100">
-                                <div class="card-body text-center">
-                                    <h3 class="mb-1">{{ number_format($value) }}</h3>
-                                    <span class="text-muted small">{{ $label }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
+                @include('backend.pages.ride.partials.stat-cards', [
+                    'cardCol' => 'col-xl col-md-4 col-6',
+                    'cards'   => [
+                        ['value' => number_format($now['online']),    'label' => __('Riders on duty'),      'tone' => 'green',  'icon' => 'user-check'],
+                        ['value' => number_format($now['approved']),  'label' => __('Approved riders'),     'tone' => 'slate',  'icon' => 'id-card'],
+                        ['value' => number_format($now['searching']), 'label' => __('Looking for a rider'), 'tone' => 'amber',  'icon' => 'search-location'],
+                        ['value' => number_format($now['heading']),   'label' => __('Rider on the way'),    'tone' => 'blue',   'icon' => 'motorcycle'],
+                        ['value' => number_format($now['ongoing']),   'label' => __('On the way'),           'tone' => 'teal',   'icon' => 'route'],
+                    ],
+                ])
             </div>
 
             {{-- Money. One row per period so the periods read against each

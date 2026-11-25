@@ -11,28 +11,14 @@
             {{-- The totals follow the filter below, so they always describe
                  exactly the trips on screen rather than the whole table. --}}
             <div class="col-12 mt-5">
-                <div class="row">
-                    @php
-                        $cards = [
-                            __('Trips')            => number_format($totals['trips']),
-                            __('Completed')        => number_format($totals['completed']),
-                            __('Fares collected')  => $currency . ' ' . number_format($totals['fares'], 0),
-                            __('Our commission')   => $currency . ' ' . number_format($totals['commission'], 0),
-                            __('Paid to riders')   => $currency . ' ' . number_format($totals['earnings'], 0),
-                            __('Refunded')         => $currency . ' ' . number_format($totals['refunded'], 0),
-                        ];
-                    @endphp
-                    @foreach ($cards as $label => $value)
-                        <div class="col-xl-2 col-md-4 col-6 mb-3">
-                            <div class="card h-100">
-                                <div class="card-body text-center">
-                                    <h4 class="mb-1">{{ $value }}</h4>
-                                    <span class="text-muted small">{{ $label }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
+                @include('backend.pages.ride.partials.stat-cards', ['cards' => [
+                    ['value' => number_format($totals['trips']),                        'label' => __('Trips'),           'tone' => 'slate',  'icon' => 'route'],
+                    ['value' => number_format($totals['completed']),                    'label' => __('Completed'),       'tone' => 'green',  'icon' => 'check-circle'],
+                    ['value' => number_format($totals['fares'], 0),   'label' => __('Fares collected') . ' (' . $currency . ')', 'tone' => 'blue',   'icon' => 'wallet'],
+                    ['value' => number_format($totals['commission'], 0), 'label' => __('Our commission') . ' (' . $currency . ')', 'tone' => 'purple', 'icon' => 'percentage'],
+                    ['value' => number_format($totals['earnings'], 0),   'label' => __('Paid to riders') . ' (' . $currency . ')', 'tone' => 'amber',  'icon' => 'motorcycle'],
+                    ['value' => number_format($totals['refunded'], 0),   'label' => __('Refunded') . ' (' . $currency . ')',       'tone' => 'red',    'icon' => 'undo'],
+                ]])
             </div>
 
             <div class="col-12">
