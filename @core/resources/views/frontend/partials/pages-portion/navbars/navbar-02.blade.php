@@ -56,6 +56,11 @@
             <ul class="navbar-nav">
              
                         {!! render_frontend_menu($primary_menu) !!}
+                @if (get_static_option('ride_enabled') == '1')
+                    <li class="@if(request()->is('ride') || request()->is('ride/*')) active @endif">
+                        <a href="{{ route('ride.index') }}">{{ __('Huduma Rides') }}</a>
+                    </li>
+                @endif
                 @if(get_static_option('site_Challenege_Page') == 'on')
     <li> 
         <a href="{{ route('challenges') }}">{{ __('Challenges') }}</a>
